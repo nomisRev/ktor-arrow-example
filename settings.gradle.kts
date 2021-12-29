@@ -1,0 +1,1 @@
+rootProject.name = "io.github.nomisrev.ktor-arrow-validation-sample"
