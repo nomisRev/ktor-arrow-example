@@ -17,7 +17,8 @@ import kotlinx.serialization.Serializable
 fun Application.happyBirthdayRouting(): Routing = routing {
   get("/happy-birthday/{name}/{age}") {
     val happyBirthday =
-      path("age") { "age not present" }.validateInt()
+      path("age") { "age not present" }
+        .validateInt()
         .zip(path("name") { "name not present" }, ::HappyBirthday)
 
     when (happyBirthday) {

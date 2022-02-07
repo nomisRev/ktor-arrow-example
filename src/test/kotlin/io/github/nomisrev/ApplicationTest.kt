@@ -5,13 +5,14 @@ import io.kotest.matchers.shouldBe
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.Application
 import io.ktor.server.testing.testApplication
 
 class ApplicationTest :
   StringSpec({
     "happy birthday - happy flow" {
       testApplication {
-        application { configure() }
+        application(Application::app)
         val response = client.get("/happy-birthday/Santa/999")
         response.status shouldBe HttpStatusCode.OK
         response.bodyAsText() shouldBe personJson("Santa", 999)
@@ -20,7 +21,7 @@ class ApplicationTest :
 
     "happy birthday - text for age error" {
       testApplication {
-        application { configure() }
+        application(Application::app)
         val response = client.config { expectSuccess = false }.get("/happy-birthday/Santa/nine")
 
         response.status shouldBe HttpStatusCode.BadRequest
@@ -30,7 +31,7 @@ class ApplicationTest :
 
     "happy birthday - age missing from path => NotFound" {
       testApplication {
-        application { configure() }
+        application(Application::app)
         val response = client.config { expectSuccess = false }.get("/happy-birthday/Santa")
 
         response.status shouldBe HttpStatusCode.NotFound
