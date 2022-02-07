@@ -9,10 +9,18 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
   id(libs.plugins.detekt.pluginId)
   alias(libs.plugins.kover)
   alias(libs.plugins.kotlinx.serialization)
+  alias(libs.plugins.sqldelight)
 }
 
 application {
   mainClass by "io.github.nomisrev.ApplicationKt"
+}
+
+sqldelight {
+  database("SqlDelight") {
+    packageName = "io.github.nomisrev"
+    dialect = "postgresql"
+  }
 }
 
 allprojects {
@@ -44,11 +52,17 @@ tasks {
 
 dependencies {
   implementation(libs.arrow.core)
+  implementation(libs.arrow.fx)
+
   implementation(libs.ktor.server.core)
   implementation(libs.ktor.server.content.negotiation)
   implementation(libs.ktor.server.netty)
   implementation(libs.ktor.serialization)
   implementation(libs.logback.classic)
+
+  implementation("com.zaxxer:HikariCP:5.0.1")
+  implementation("com.squareup.sqldelight:jdbc-driver:1.5.3")
+  implementation("org.postgresql:postgresql:42.2.20")
 
   testImplementation(libs.ktor.server.tests)
   testImplementation(libs.kotest.runnerJUnit5)

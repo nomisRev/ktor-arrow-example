@@ -20,3 +20,5 @@ fun <E> KtorCtx.path(name: String, notPresent: () -> E): ValidatedNel<E, String>
 suspend fun KtorCtx.ok(any: Any) = call.respond(HttpStatusCode.OK, any)
 
 suspend fun KtorCtx.badRequest(any: Any) = call.respond(HttpStatusCode.BadRequest, any)
+
+suspend fun KtorCtx.serverError(any: Any) = call.respond(HttpStatusCode.InternalServerError, any)

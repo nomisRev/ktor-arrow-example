@@ -9,6 +9,7 @@ kover = "0.5.0"
 detekt = "1.19.0"
 ktor = "2.0.0-beta-1"
 logback = "1.2.10"
+sqldelight="1.5.3"
 
 [libraries]
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
@@ -39,3 +40,4 @@ kotest-multiplatform = { id = "io.kotest.multiplatform", version.ref = "kotest" 
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+sqldelight = { id = "com.squareup.sqldelight", version.ref = "sqldelight" }
