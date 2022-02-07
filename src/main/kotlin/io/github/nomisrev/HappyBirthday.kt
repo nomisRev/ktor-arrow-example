@@ -16,15 +16,14 @@ import kotlinx.serialization.Serializable
 
 fun Application.happyBirthdayRouting(): Routing = routing {
   get("/happy-birthday/{name}/{age}") {
-    val validated =
-      path("age") { "age not present" }
-        .validateInt()
-        .zip(path("name") { "name not present" }, ::Person)
+    val happyBirthday =
+      path("age") { "age not present" }.validateInt()
+        .zip(path("name") { "name not present" }, ::HappyBirthday)
 
-    when (validated) {
-      is Validated.Valid -> ok(validated.value)
+    when (happyBirthday) {
+      is Validated.Valid -> ok(happyBirthday.value)
       is Validated.Invalid ->
-        badRequest(validated.value.joinToString(prefix = "The following errors were found: "))
+        badRequest(happyBirthday.value.joinToString(prefix = "The following errors were found: "))
     }
   }
 }

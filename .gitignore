@@ -168,4 +168,5 @@ gradle-wrapper.jar
 ### Gradle Patch ###
 **/build/
 
+kotlin-js-store
 # End of https://www.toptal.com/developers/gitignore/api/intellij+all,kotlin,gradle,macos

@@ -22,12 +22,19 @@ jobs:
           java-version: 11
 
       - name: Build
-        uses: gradle/gradle-build-action@v2.0.1
+        uses: gradle/gradle-build-action@v2.1.3
         with:
           arguments: build --full-stacktrace
 
       - name: Upload reports
+        if: always()
         uses: actions/upload-artifact@v2.3.1
         with:
           name: 'reports-${{ matrix.os }}'
           path: '**/build/reports/**'
+
+      - name: Upload Code Scanning code analysis report
+        if: always()
+        uses: github/codeql-action/upload-sarif@v1
+        with:
+          sarif_file: 'build/reports/detekt/main.sarif'

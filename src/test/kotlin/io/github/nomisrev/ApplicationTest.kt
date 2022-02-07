@@ -11,7 +11,7 @@ class ApplicationTest :
   StringSpec({
     "happy birthday - happy flow" {
       testApplication {
-        application { setup() }
+        application { configure() }
         val response = client.get("/happy-birthday/Santa/999")
         response.status shouldBe HttpStatusCode.OK
         response.bodyAsText() shouldBe personJson("Santa", 999)
@@ -20,7 +20,7 @@ class ApplicationTest :
 
     "happy birthday - text for age error" {
       testApplication {
-        application { setup() }
+        application { configure() }
         val response = client.config { expectSuccess = false }.get("/happy-birthday/Santa/nine")
 
         response.status shouldBe HttpStatusCode.BadRequest
@@ -30,7 +30,7 @@ class ApplicationTest :
 
     "happy birthday - age missing from path => NotFound" {
       testApplication {
-        application { setup() }
+        application { configure() }
         val response = client.config { expectSuccess = false }.get("/happy-birthday/Santa")
 
         response.status shouldBe HttpStatusCode.NotFound

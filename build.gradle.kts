@@ -1,19 +1,14 @@
-import io.gitlab.arturbosch.detekt.Detekt
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 @Suppress("DSL_SCOPE_VIOLATION") plugins {
   application
   alias(libs.plugins.kotest.multiplatform)
-  alias(libs.plugins.kotlin.multiplatform)
-  alias(libs.plugins.arrowGradleConfig.kotlin)
+  id(libs.plugins.kotlin.jvm.pluginId)
   alias(libs.plugins.arrowGradleConfig.formatter)
   alias(libs.plugins.dokka)
-  alias(libs.plugins.detekt)
+  id(libs.plugins.detekt.pluginId)
   alias(libs.plugins.kover)
-}
-
-infix fun <T> Property<T>.by(value: T) {
-  set(value)
+  alias(libs.plugins.kotlinx.serialization)
 }
 
 application {
@@ -22,6 +17,7 @@ application {
 
 allprojects {
   extra.set("dokka.outputDirectory", rootDir.resolve("docs"))
+  setupDetekt()
 }
 
 repositories {
@@ -31,7 +27,9 @@ repositories {
 
 tasks {
   withType<KotlinCompile>().configureEach {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions {
+      jvmTarget = "1.8"
+    }
     sourceCompatibility = "1.8"
     targetCompatibility = "1.8"
   }
@@ -58,18 +56,3 @@ dependencies {
   testImplementation(libs.kotest.assertionsCore)
   testImplementation(libs.kotest.property)
 }
-
-detekt {
-  buildUponDefaultConfig = true
-  allRules = true
-}
-
-tasks.withType<Detekt>().configureEach {
-  reports {
-    html.required by true
-    sarif.required by true
-    txt.required by false
-    xml.required by false
-  }
-}
-
