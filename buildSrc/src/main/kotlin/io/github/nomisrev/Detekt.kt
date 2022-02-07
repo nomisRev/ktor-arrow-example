@@ -3,7 +3,6 @@ import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.withType
-import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 fun Project.setupDetekt() {
   plugins.apply("io.gitlab.arturbosch.detekt")
@@ -12,10 +11,10 @@ fun Project.setupDetekt() {
     parallel = true
     buildUponDefaultConfig = true
     allRules = true
-    source = files(file("src").listFiles()?.find { it.isDirectory } ?: emptyArray<Any>())
   }
 
   tasks.withType<Detekt>().configureEach {
+    exclude { "generated/sqldelight" in it.file.absolutePath }
     reports {
       html.required by true
       sarif.required by true
@@ -24,12 +23,7 @@ fun Project.setupDetekt() {
     }
   }
 
-  tasks.register("detektAll") {
-    group = LifecycleBasePlugin.VERIFICATION_GROUP
-    dependsOn(tasks.withType<Detekt>())
-  }
-
   tasks.configureEach {
-    if (name == "build") dependsOn("detektAll")
+    if (name == "build") dependsOn(tasks.withType<Detekt>())
   }
 }

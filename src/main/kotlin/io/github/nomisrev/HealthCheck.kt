@@ -6,7 +6,5 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 
 fun Application.healthRoute(database: Database): Routing = routing {
-  get("/health") {
-    if (database.isRunning()) ok("true") else serverError("false")
-  }
+  get("/health") { if (database.isRunning()) ok("true") else serverError("false") }
 }

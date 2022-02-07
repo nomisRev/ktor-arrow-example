@@ -10,21 +10,23 @@ interface Database {
   fun isRunning(): Boolean
 }
 
-fun database(hikari: HikariDataSource, sqlDelight: SqlDelight): Database =
+fun database(hikari: HikariDataSource): Database =
   object : Database {
     override fun isRunning(): Boolean = hikari.isRunning
   }
 
 fun sqlDelight(hikariDataSource: HikariDataSource): Resource<SqlDelight> =
-  Resource.fromCloseable { hikariDataSource.asJdbcDriver() }
-    .map { driver -> SqlDelight(driver) }
+  Resource.fromCloseable { hikariDataSource.asJdbcDriver() }.map { driver -> SqlDelight(driver) }
 
-fun hikari(config: DataSource): Resource<HikariDataSource> = Resource.fromCloseable {
-  HikariDataSource(HikariConfig().apply {
-    jdbcUrl = config.url
-    username = config.username
-    password = config.password
-    driverClassName = config.driver
-    maximumPoolSize = config.maximumPoolSize
-  })
-}
+fun hikari(config: DataSource): Resource<HikariDataSource> =
+  Resource.fromCloseable {
+    HikariDataSource(
+      HikariConfig().apply {
+        jdbcUrl = config.url
+        username = config.username
+        password = config.password
+        driverClassName = config.driver
+        maximumPoolSize = config.maximumPoolSize
+      }
+    )
+  }
