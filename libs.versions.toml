@@ -7,12 +7,12 @@ kotest = "5.1.0"
 kotlin = "1.6.10"
 kover = "0.5.0"
 detekt = "1.19.0"
-ktor = "2.0.0-beta-1"
+ktor = "2.0.0-ide-debug-eap-225"
 logback = "1.2.10"
 sqldelight="1.5.3"
-testcontainers="1.15.2"
+testcontainers="1.16.3"
 hikari="5.0.1"
-postgresql="42.2.20"
+postgresql="42.3.2"
 
 [libraries]
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
