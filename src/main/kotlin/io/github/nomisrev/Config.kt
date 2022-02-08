@@ -1,8 +1,6 @@
 package io.github.nomisrev
 
-import arrow.fx.coroutines.Resource
-
-data class Config(val database: DataSource, val port: Int = 8080)
+data class Config(val dataSource: DataSource, val host: String, val port: Int)
 
 data class DataSource(
   val url: String,
@@ -12,9 +10,19 @@ data class DataSource(
   val maximumPoolSize: Int = 10
 )
 
-data class Module(val database: Database)
+private const val DEFAULT_PORT: Int = 8080
 
-fun module(config: Config): Resource<Module> =
-  hikari(config.database).flatMap { hikari ->
-    sqlDelight(hikari).map { sqlDelight -> Module(database(hikari)) }
-  }
+fun envConfig(): Config =
+  Config(
+    dataSource = envDataSource(),
+    host = System.getenv("HOST") ?: "0.0.0.0",
+    port = System.getenv("SERVER_PORT")?.toIntOrNull() ?: DEFAULT_PORT
+  )
+
+fun envDataSource(): DataSource =
+  DataSource(
+    url = System.getenv("POSTGRES_URL")
+        ?: "jdbc:postgresql://localhost:5432/ktor-arrow-example-database",
+    username = System.getenv("POSTGRES_USERNAME") ?: "postgres",
+    password = System.getenv("POSTGRES_PASSWORD") ?: "postgres",
+  )

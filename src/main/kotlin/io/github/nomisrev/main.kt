@@ -6,15 +6,27 @@ import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.ContentNegotiation
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 
-fun main() {
-  embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::app).start(wait = true)
-}
+fun main(): Unit =
+  runBlocking(Dispatchers.Default) {
+    val config = envConfig()
+    module(config).use { module ->
+      embeddedServer(
+          Netty,
+          port = config.port,
+          host = config.host,
+          parentCoroutineContext = coroutineContext,
+        ) { app(module) }
+        .start(wait = true)
+    }
+  }
 
-fun Application.app() {
+fun Application.app(module: Module) {
   configure()
-  happyBirthdayRouting()
+  healthRoute(module.database)
 }
 
 fun Application.configure() {

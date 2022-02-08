@@ -10,6 +10,9 @@ detekt = "1.19.0"
 ktor = "2.0.0-beta-1"
 logback = "1.2.10"
 sqldelight="1.5.3"
+testcontainers="1.15.2"
+hikari="5.0.1"
+postgresql="42.2.20"
 
 [libraries]
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
@@ -30,6 +33,10 @@ ktor-serialization = { module = "io.ktor:ktor-serialization-kotlinx-json", versi
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 kotlin-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 detekt-gradle = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
+testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
+hikari = { module = "com.zaxxer:HikariCP", version.ref="hikari" }
+sqldelight-jdbc = { module = "com.squareup.sqldelight:jdbc-driver", version.ref="sqldelight" }
+postgresql = { module="org.postgresql:postgresql", version.ref="postgresql" }
 
 [plugins]
 arrowGradleConfig-formatter = { id = "io.arrow-kt.arrow-gradle-config-formatter", version.ref = "arrowGradleConfig" }

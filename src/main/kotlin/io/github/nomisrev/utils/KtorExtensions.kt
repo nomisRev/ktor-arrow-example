@@ -1,4 +1,4 @@
-package io.github.nomisrev
+package io.github.nomisrev.utils
 
 import arrow.core.ValidatedNel
 import arrow.core.invalidNel
@@ -21,4 +21,5 @@ suspend fun KtorCtx.ok(any: Any) = call.respond(HttpStatusCode.OK, any)
 
 suspend fun KtorCtx.badRequest(any: Any) = call.respond(HttpStatusCode.BadRequest, any)
 
-suspend fun KtorCtx.serverError(any: Any) = call.respond(HttpStatusCode.InternalServerError, any)
+suspend fun KtorCtx.serverError(any: Any = Unit) =
+  call.respond(HttpStatusCode.InternalServerError, any)

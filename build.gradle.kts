@@ -13,7 +13,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 }
 
 application {
-  mainClass by "io.github.nomisrev.ApplicationKt"
+  mainClass by "io.github.nomisrev.MainKt"
 }
 
 sqldelight {
@@ -60,10 +60,11 @@ dependencies {
   implementation(libs.ktor.serialization)
   implementation(libs.logback.classic)
 
-  implementation("com.zaxxer:HikariCP:5.0.1")
-  implementation("com.squareup.sqldelight:jdbc-driver:1.5.3")
-  implementation("org.postgresql:postgresql:42.2.20")
+  implementation(libs.hikari)
+  implementation(libs.sqldelight.jdbc)
+  implementation(libs.postgresql)
 
+  testImplementation(libs.testcontainers.postgresql)
   testImplementation(libs.ktor.server.tests)
   testImplementation(libs.kotest.runnerJUnit5)
   testImplementation(libs.kotest.frameworkEngine)
