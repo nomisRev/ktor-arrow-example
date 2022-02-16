@@ -12,7 +12,7 @@ logback = "1.2.10"
 sqldelight="1.5.3"
 testcontainers="1.16.3"
 hikari="5.0.1"
-postgresql="42.3.2"
+postgresql="42.3.3"
 
 [libraries]
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
