@@ -1,0 +1,36 @@
+CREATE TABLE IF NOT EXISTS users(
+    id BIGSERIAL PRIMARY KEY,
+    email VARCHAR(200) NOT NULL UNIQUE,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(150) NOT NULL,
+    bio VARCHAR(1000) NOT NULL DEFAULT '',
+    image VARCHAR(255) NOT NULL DEFAULT ''
+);
+
+selectByEmail:
+SELECT id, email, username, password, bio, image
+FROM users
+WHERE email = :email;
+
+selectByUsername:
+SELECT email, username, bio, image
+FROM users
+WHERE username = :username;
+
+selectById:
+SELECT email, username, bio, image
+FROM users
+WHERE id = :id;
+
+insert:
+INSERT INTO users(email, username, password, bio, image)
+VALUES (:email, :username, :password, :bio, :image);
+
+selectId:
+SELECT id
+FROM users
+WHERE email = :email AND username = :username AND password = :password AND bio = :bio AND image = :image;
+
+update:
+UPDATE users
+SET email = :email, username = :username, password = :password, bio = :bio, image = :image;

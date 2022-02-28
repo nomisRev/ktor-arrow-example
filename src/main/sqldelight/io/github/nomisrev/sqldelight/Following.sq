@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS following(
+    source_id BIGINT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    target_id BIGINT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    PRIMARY KEY (source_id, target_id)
+);
+
+select:
+SELECT source_id, source_id
+FROM following
+WHERE source_id = :sourceUserId AND source_id = :targetUserId;
+
+selectFollowedUserIds:
+SELECT target_id
+FROM following
+WHERE source_id = :sourceUserId;
+
+insert:
+INSERT INTO following(source_id, target_id)
+VALUES (:sourceUserId, :targetUserId);
+
+delete:
+DELETE FROM following
+WHERE source_id = :sourceUserId AND source_id = :targetUserId;

@@ -1,8 +1,6 @@
 package io.github.nomisrev
 
 import arrow.core.Either
-import arrow.core.computations.either
-import arrow.core.computations.ensureNotNull
 import io.github.nomisrev.utils.ok
 import io.github.nomisrev.utils.serverError
 import io.ktor.server.application.Application
@@ -13,18 +11,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class HealthCheck(val postgresVersion: String)
 
-fun Application.healthRoute(database: Database): Routing = routing {
+fun Application.healthRoute(pool: DatabasePool): Routing = routing {
   get("/health") {
-    val res =
-      either<Unit, HealthCheck> {
-        ensure(database.isRunning()) {}
-        val version = ensureNotNull(database.version()) {}
-        HealthCheck(version)
-      }
-
-    when (res) {
+    when (val res = pool.healthCheck()) {
       is Either.Right -> ok(res.value)
-      is Either.Left -> serverError("not healthy")
+      is Either.Left -> serverError(res.value)
     }
   }
 }

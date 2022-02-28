@@ -1,0 +1,46 @@
+import java.time.LocalDateTime;
+
+CREATE TABLE IF NOT EXISTS articles(
+    id BIGSERIAL PRIMARY KEY,
+    slug VARCHAR(255) UNIQUE NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    body TEXT NOT NULL,
+    author_id BIGINT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    createdAt TIMESTAMP AS LocalDateTime NOT NULL,
+    updatedAt TIMESTAMP AS LocalDateTime NOT NULL
+);
+
+amountOfArticleForAuthor:
+SELECT COUNT(id)
+FROM articles
+WHERE author_id = :authorId;
+
+selectArticlesOfAuthor:
+SELECT id, slug, title, description, body, author_id, createdAt, updatedAt
+FROM articles
+WHERE author_id = :authorId
+ORDER BY createdAt DESC
+LIMIT :limit OFFSET :offset;
+
+update:
+UPDATE articles
+SET title = :title, description = :description, body = :body;
+
+insert:
+INSERT INTO articles(slug, title, description, body, author_id, createdAt, updatedAt)
+VALUES (:slug, :title, :description, :body, :authorId, :createdAt, :updatedAt);
+
+selectId:
+SELECT id
+FROM articles
+WHERE slug = :slug AND title = :title AND description = :description AND body = :body AND author_id = :authorId AND createdAt = :createdAt AND updatedAt = :updatedAt;
+
+selectBySlug:
+SELECT id, slug, title, description, body, author_id, createdAt, updatedAt
+FROM articles
+WHERE slug = :slug;
+
+delete:
+DELETE FROM articles
+WHERE id = :articleId;

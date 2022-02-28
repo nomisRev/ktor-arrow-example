@@ -16,12 +16,12 @@ package io.github.nomisrev
 class PostgreSQLContainer private constructor() :
   org.testcontainers.containers.PostgreSQLContainer<Nothing>("postgres:14.1-alpine") {
 
-  fun config(): DataSource = DataSource(jdbcUrl, username, password, driverClassName)
+  fun config(): Config.DataSource = Config.DataSource(jdbcUrl, username, password, driverClassName)
 
   companion object {
     fun create(): PostgreSQLContainer = instance
 
-    fun config(): DataSource = instance.config()
+    fun config(): Config.DataSource = instance.config()
 
     private val instance by lazy { PostgreSQLContainer().also { it.start() } }
   }

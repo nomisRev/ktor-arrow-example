@@ -1,3 +1,0 @@
-CREATE TABLE dummy (
-  dummy TEXT NOT NULL
-);
