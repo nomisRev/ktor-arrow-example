@@ -16,7 +16,7 @@ class HealthCheckSpec :
 
     "healthy" {
       testApplication {
-        application { app(config, module) }
+        application { app(module) }
         val response = client.get("/health")
         response.status shouldBe HttpStatusCode.OK
         response.bodyAsText() shouldBe Json.encodeToString(HealthCheck("14.1"))

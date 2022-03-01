@@ -3,8 +3,8 @@ package io.github.nomisrev.routes
 import arrow.core.Either
 import arrow.core.computations.either
 import arrow.core.computations.ensureNotNull
+import io.github.nomisrev.jwtAuth
 import io.github.nomisrev.service.UserService
-import io.github.nomisrev.utils.jwtAuth
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -27,8 +27,8 @@ data class User(
   val email: String,
   val token: String,
   val username: String,
-  val bio: String = "",
-  val image: String = ""
+  val bio: String,
+  val image: String
 )
 
 data class UserInfo(val email: String, val username: String, val bio: String, val image: String)
@@ -48,7 +48,7 @@ fun Application.userRoutes(userService: UserService) = routing {
               .user
           val userId = userService.register(user).toGenericError().bind()
           val token = userService.generateJwtToken(userId, user.password).toGenericError().bind()
-          UserResponse(User(user.email, token, user.username))
+          UserResponse(User(user.email, token, user.username, "", ""))
         }
       when (res) {
         is Either.Left -> call.respond(HttpStatusCode.UnprocessableEntity, res.value)
@@ -62,8 +62,7 @@ fun Application.userRoutes(userService: UserService) = routing {
     jwtAuth(userService) { jwtContext ->
       val res =
         either<GenericErrorModel, UserResponse> {
-          val userId = jwtContext.userId
-          val user = userService.getUser(userId).toGenericError().bind()
+          val user = userService.getUser(jwtContext.userId).toGenericError().bind()
           ensureNotNull(user) { GenericErrorModel("User not found") }
           UserResponse(User(user.email, jwtContext.token, user.username, user.bio, user.image))
         }
