@@ -1,10 +1,21 @@
 package io.github.nomisrev.service
 
 import arrow.core.Either
+import arrow.core.Nel
+import arrow.core.computations.either
+import arrow.core.computations.ensureNotNull
+import arrow.core.nel
+import io.github.nefilim.kjwt.ClaimsValidator
+import io.github.nefilim.kjwt.ClaimsVerification
+import io.github.nefilim.kjwt.ClaimsVerification.issuer
+import io.github.nefilim.kjwt.ClaimsVerification.requiredOptionClaim
 import io.github.nefilim.kjwt.JWSAlgorithm
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
+import io.github.nefilim.kjwt.KJWTError
 import io.github.nefilim.kjwt.KJWTSignError
+import io.github.nefilim.kjwt.KJWTValidationError.RequiredClaimIsInvalid
+import io.github.nefilim.kjwt.KJWTVerificationError
 import io.github.nefilim.kjwt.SignedJWT
 import io.github.nefilim.kjwt.sign
 import io.github.nomisrev.Config
@@ -18,6 +29,8 @@ import io.github.nomisrev.sqldelight.UsersQueries
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneId
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.postgresql.util.PSQLException
 import org.postgresql.util.PSQLState
 
@@ -25,6 +38,8 @@ interface UserService {
   /** Registers the user and returns its unique identifier */
   suspend fun register(user: NewUser): Either<Error, Long>
   suspend fun generateJwtToken(userId: Long, password: String): Either<Error, String>
+  // Could be used instead of Ktor JWT Auth for verifying the JWT token
+  suspend fun verifyJwtToken(token: String): Either<Nel<KJWTError>, Long>
   suspend fun getUser(userId: Long): Either<Unexpected, UserInfo?>
   suspend fun getUser(username: String): Either<Unexpected, UserInfo?>
 
@@ -86,6 +101,27 @@ fun userService(config: Config.Auth, usersQueries: UsersQueries) =
     override suspend fun getUser(username: String): Either<Unexpected, UserInfo?> =
       Either.catch { usersQueries.selectByUsername(username, ::UserInfo).executeAsOneOrNull() }
         .mapLeft(::Unexpected)
+
+    override suspend fun verifyJwtToken(token: String): Either<Nel<KJWTError>, Long> = either {
+      withContext(Dispatchers.IO) {
+        val jwt = JWT.decodeT(token, JWSHMAC512Algorithm).mapLeft(KJWTVerificationError::nel).bind()
+        ClaimsVerification.validateClaims(isNotExpired(), issuer(config.issuer), userIdExists())(
+            jwt
+          )
+          .bind()
+        ensureNotNull(jwt.claimValueAsLong("id").orNull()) { RequiredClaimIsInvalid("id").nel() }
+      }
+    }
+
+    private fun isNotExpired(): ClaimsValidator =
+      requiredOptionClaim("exp", { expiresAt() }, { it.isAfter(LocalDateTime.now()) })
+
+    private fun userIdExists(): ClaimsValidator =
+      requiredOptionClaim(
+        "id",
+        { claimValueAsLong("id") },
+        { id -> usersQueries.selectById(id).executeAsOneOrNull()?.let { true } ?: false }
+      )
   }
 
 private fun <A : JWSAlgorithm> Either<KJWTSignError, SignedJWT<A>>.toUserServiceError() =

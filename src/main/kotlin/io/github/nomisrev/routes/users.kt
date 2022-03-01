@@ -4,12 +4,11 @@ import arrow.core.Either
 import arrow.core.computations.either
 import arrow.core.computations.ensureNotNull
 import io.github.nomisrev.service.UserService
-import io.github.nomisrev.userIdOrNull
+import io.github.nomisrev.utils.jwtAuth
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
-import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
@@ -58,16 +57,15 @@ fun Application.userRoutes(userService: UserService) = routing {
     }
   }
 
-  authenticate {
-    /* Get Current User: GET /api/user */
-    get("/user") {
+  /* Get Current User: GET /api/user */
+  get("/user") {
+    jwtAuth(userService) { jwtContext ->
       val res =
         either<GenericErrorModel, UserResponse> {
-          val userId =
-            ensureNotNull(call.userIdOrNull()) { GenericErrorModel("userId not present in JWT") }
+          val userId = jwtContext.userId
           val user = userService.getUser(userId).toGenericError().bind()
           ensureNotNull(user) { GenericErrorModel("User not found") }
-          UserResponse(User(user.email, "", user.username, user.bio, user.image))
+          UserResponse(User(user.email, jwtContext.token, user.username, user.bio, user.image))
         }
       when (res) {
         is Either.Left -> call.respond(HttpStatusCode.UnprocessableEntity, res.value)

@@ -26,19 +26,19 @@ fun main(): Unit =
           port = config.http.port,
           host = config.http.host,
           parentCoroutineContext = coroutineContext,
-        ) { app(config, module) }
+        ) { app(module) }
         .start(wait = true)
     }
   }
 
-fun Application.app(config: Config, module: Module) {
-  configure(config.auth)
+fun Application.app(module: Module) {
+  configure()
   healthRoute(module.pool)
   userRoutes(module.userService)
 }
 
 @OptIn(ExperimentalTime::class)
-fun Application.configure(config: Config.Auth) {
+fun Application.configure() {
   install(DefaultHeaders)
   install(ContentNegotiation) {
     json(
@@ -48,11 +48,11 @@ fun Application.configure(config: Config.Auth) {
       }
     )
   }
-  configureJWT(config)
   install(CORS) {
     header(HttpHeaders.Authorization)
     header(HttpHeaders.ContentType)
     allowNonSimpleContentTypes = true
     maxAgeDuration = 3.days
   }
+  //  configureJWT(config, module.userService)
 }
