@@ -42,9 +42,7 @@ private suspend fun PipelineContext<Unit, ApplicationCall>.jwtAuth(
   userService
     .verifyJwtToken(token)
     .fold(
-      { errors ->
-        call.respond(HttpStatusCode.UnprocessableEntity, errors.toGenericError())
-      },
+      { errors -> call.respond(HttpStatusCode.UnprocessableEntity, errors.toGenericError()) },
       { userId -> body(this, JwtContext(token, userId)) }
     )
 }

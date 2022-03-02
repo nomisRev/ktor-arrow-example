@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.Nel
 import arrow.core.computations.either
 import arrow.core.computations.ensureNotNull
+import arrow.core.left
 import arrow.core.nel
 import io.github.nefilim.kjwt.ClaimsValidator
 import io.github.nefilim.kjwt.ClaimsVerification
@@ -20,15 +21,20 @@ import io.github.nefilim.kjwt.SignedJWT
 import io.github.nefilim.kjwt.sign
 import io.github.nomisrev.Config
 import io.github.nomisrev.routes.GenericErrorModel
-import io.github.nomisrev.routes.NewUser
-import io.github.nomisrev.routes.UserInfo
+import io.github.nomisrev.service.UserService.IncorrectLoginCredentials
 import io.github.nomisrev.service.UserService.JwtFailure
 import io.github.nomisrev.service.UserService.Unexpected
+import io.github.nomisrev.service.UserService.UserDoesNotExist
 import io.github.nomisrev.service.UserService.UserExists
+import io.github.nomisrev.service.UserService.UserInfo
 import io.github.nomisrev.sqldelight.UsersQueries
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.util.Base64
+import java.util.UUID
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.postgresql.util.PSQLException
@@ -36,11 +42,16 @@ import org.postgresql.util.PSQLState
 
 interface UserService {
   /** Registers the user and returns its unique identifier */
-  suspend fun register(user: NewUser): Either<Error, Long>
+  suspend fun register(username: String, email: String, password: String): Either<Error, Long>
+  /** Logs in a user based on email and password. */
+  suspend fun login(email: String, password: String): Either<Error, Pair<Long, UserInfo>>
+  /** Generate a new JWT token for userId and password. Doesn't invalidate old passwordd */
   suspend fun generateJwtToken(userId: Long, password: String): Either<Error, String>
-  // Could be used instead of Ktor JWT Auth for verifying the JWT token
+  /** Verify a JWT token. Checks if userId exists in database, and token is not expired. */
   suspend fun verifyJwtToken(token: String): Either<Nel<KJWTError>, Long>
+  /** Retrieve used based on userId */
   suspend fun getUser(userId: Long): Either<Unexpected, UserInfo?>
+  /** Retrieve used based on username */
   suspend fun getUser(username: String): Either<Unexpected, UserInfo?>
 
   sealed interface Error {
@@ -49,34 +60,71 @@ interface UserService {
   }
 
   data class JwtFailure(override val message: String) : Error
-  data class UserExists(val user: NewUser) : Error {
-    override val message: String = "$user already exists"
+  data class UserExists(val username: String) : Error {
+    override val message: String = "$username already exists"
+  }
+
+  data class UserDoesNotExist(val email: String) : Error {
+    override val message: String = "$email does not exists"
+  }
+
+  object IncorrectLoginCredentials : Error {
+    override val message: String = "Credentials are not correct"
   }
 
   data class Unexpected(val error: Throwable) : Error {
     override val message: String =
       error.message ?: "Something went wrong. ${error::class.java} without message."
   }
+
+  data class UserInfo(val email: String, val username: String, val bio: String, val image: String)
 }
 
 fun userService(config: Config.Auth, usersQueries: UsersQueries) =
   object : UserService {
     @Suppress("MagicNumber") val defaultTokenLength = Duration.ofDays(30)
 
-    override suspend fun register(user: NewUser): Either<UserService.Error, Long> =
+    // Password hashing
+    val secretKeysFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512")
+    @Suppress("MagicNumber") val defaultIterations = 64000
+    @Suppress("MagicNumber") val defaultKeyLength = 512
+
+    override suspend fun register(
+      username: String,
+      email: String,
+      password: String
+    ): Either<UserService.Error, Long> =
       Either.catch {
         usersQueries.transactionWithResult<Long> {
-          usersQueries.insert(user)
-          usersQueries.selectId(user)
+          val salt = generateSalt()
+          val key = generateKey(password, salt)
+          usersQueries.insert(salt, key, username, email)
+          usersQueries.selectId(username, email)
         }
       }
         .mapLeft { error ->
           if (error is PSQLException && error.sqlState == PSQLState.UNIQUE_VIOLATION.state) {
-            UserExists(user)
+            UserExists(username)
           } else {
             Unexpected(error)
           }
         }
+
+    override suspend fun login(
+      email: String,
+      password: String
+    ): Either<UserService.Error, Pair<Long, UserInfo>> = either {
+      val (userId, username, saltString, passwordString, bio, image) =
+        ensureNotNull(usersQueries.selectSecurityByEmail(email).executeAsOneOrNull()) {
+          UserDoesNotExist(email)
+        }
+      val salt = Base64.getDecoder().decode(saltString)
+      val key = Base64.getDecoder().decode(passwordString)
+      val hash = generateKey(password, salt)
+      if (hash.contentEquals(key)) {
+        Pair(userId, UserInfo(email, username, bio, image))
+      } else IncorrectLoginCredentials.left().bind()
+    }
 
     override suspend fun generateJwtToken(
       userId: Long,
@@ -113,6 +161,13 @@ fun userService(config: Config.Auth, usersQueries: UsersQueries) =
       }
     }
 
+    private fun generateSalt(): ByteArray = UUID.randomUUID().toString().toByteArray()
+
+    private fun generateKey(password: String, salt: ByteArray): ByteArray {
+      val spec = PBEKeySpec(password.toCharArray(), salt, defaultIterations, defaultKeyLength)
+      return secretKeysFactory.generateSecret(spec).encoded
+    }
+
     private fun isNotExpired(): ClaimsValidator =
       requiredOptionClaim("exp", { expiresAt() }, { it.isAfter(LocalDateTime.now()) })
 
@@ -135,22 +190,22 @@ private fun <A : JWSAlgorithm> Either<KJWTSignError, SignedJWT<A>>.toUserService
 }
 
 // Overload insert with our own domain
-private fun UsersQueries.insert(user: NewUser): Unit =
+private fun UsersQueries.insert(
+  salt: ByteArray,
+  key: ByteArray,
+  username: String,
+  email: String
+): Unit {
   insert(
-    username = user.username,
-    email = user.email,
-    password = user.password,
+    username = username,
+    email = email,
+    salt = Base64.getEncoder().encodeToString(salt),
+    hashed_password = Base64.getEncoder().encodeToString(key),
     bio = "",
     image = ""
   )
+}
 
 // Overload selectId with our own domain
-private fun UsersQueries.selectId(user: NewUser): Long =
-  selectId(
-      username = user.username,
-      email = user.email,
-      password = user.password,
-      bio = "",
-      image = ""
-    )
-    .executeAsOne()
+private fun UsersQueries.selectId(username: String, email: String): Long =
+  selectId(username = username, email = email, bio = "", image = "").executeAsOne()

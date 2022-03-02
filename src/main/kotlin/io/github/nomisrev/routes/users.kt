@@ -31,29 +31,44 @@ data class User(
   val image: String
 )
 
-data class UserInfo(val email: String, val username: String, val bio: String, val image: String)
-
 @Serializable data class UserResponse(val user: User)
+
+@Serializable data class LoginUser(val email: String, val password: String)
+
+@Serializable data class LoginUserRequest(val user: LoginUser)
 
 fun Application.userRoutes(userService: UserService) = routing {
   route("/users") {
     /* Registration: POST /api/users */
     post {
       val res =
-        either<GenericErrorModel, UserResponse> {
-          val user =
+        either<ApiError, UserResponse> {
+          val (username, email, password) =
             Either.catch { call.receive<NewUserRequest>() }
               .mapLeft { GenericErrorModel(it.message ?: "Received malformed JSON for NewUser") }
               .bind()
               .user
-          val userId = userService.register(user).toGenericError().bind()
-          val token = userService.generateJwtToken(userId, user.password).toGenericError().bind()
-          UserResponse(User(user.email, token, user.username, "", ""))
+          val userId = userService.register(username, email, password).toGenericError().bind()
+          val token = userService.generateJwtToken(userId, password).toGenericError().bind()
+          UserResponse(User(email, token, username, "", ""))
         }
-      when (res) {
-        is Either.Left -> call.respond(HttpStatusCode.UnprocessableEntity, res.value)
-        is Either.Right -> call.respond(HttpStatusCode.Created, res.value)
-      }
+      respond(res, HttpStatusCode.Created)
+    }
+    post("/login") {
+      val res =
+        either<ApiError, UserResponse> {
+          val (email, password) =
+            Either.catch { call.receive<LoginUserRequest>() }
+              .mapLeft {
+                GenericErrorModel(it.message ?: "Received malformed JSON for LoginUserRequest")
+              }
+              .bind()
+              .user
+          val (userId, info) = userService.login(email, password).toGenericError().bind()
+          val token = userService.generateJwtToken(userId, password).toGenericError().bind()
+          UserResponse(User(email, token, info.username, info.bio, info.image))
+        }
+      respond(res, HttpStatusCode.OK)
     }
   }
 
@@ -61,33 +76,45 @@ fun Application.userRoutes(userService: UserService) = routing {
   get("/user") {
     jwtAuth(userService) { jwtContext ->
       val res =
-        either<GenericErrorModel, UserResponse> {
+        either<ApiError, UserResponse> {
           val user = userService.getUser(jwtContext.userId).toGenericError().bind()
           ensureNotNull(user) { GenericErrorModel("User not found") }
           UserResponse(User(user.email, jwtContext.token, user.username, user.bio, user.image))
         }
-      when (res) {
-        is Either.Left -> call.respond(HttpStatusCode.UnprocessableEntity, res.value)
-        is Either.Right -> call.respond(HttpStatusCode.OK, res.value)
-      }
+      respond(res, HttpStatusCode.OK)
     }
   }
 }
 
-fun <A> Either<UserService.Error, A>.toGenericError(): Either<GenericErrorModel, A> =
-  mapLeft(UserService.Error::toGenericErrorModel)
+fun <A> Either<UserService.Error, A>.toGenericError(): Either<ApiError, A> = mapLeft {
+  when (it) {
+    UserService.IncorrectLoginCredentials -> Unauthorized
+    else -> it.toGenericErrorModel()
+  }
+}
 
-// context(EitherEffect<GenericErrorModel, *>)
-// suspend fun <A> Either<UserServiceError, A>.bind(): A =
-//    mapLeft(UserServiceError::toGenericErrorModel).bind()
-
-// New Context receivers :party:
-context(PipelineContext<Unit, ApplicationCall>)
-
-suspend inline fun <reified A : Any> Either<GenericErrorModel, A>.respond(
+suspend inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>.respond(
+  either: Either<ApiError, A>,
   status: HttpStatusCode
 ): Unit =
-  when (this@respond) {
-    is Either.Left -> call.respond(HttpStatusCode.UnprocessableEntity, value)
-    is Either.Right -> call.respond(status, value)
+  when (either) {
+    is Either.Left ->
+      when (either.value) {
+        is Unauthorized -> call.respond(HttpStatusCode.Unauthorized)
+        else -> call.respond(HttpStatusCode.UnprocessableEntity, either.value)
+      }
+    is Either.Right -> call.respond(status, either.value)
   }
+
+/** Playing with Context Receivers */
+// Fails to compile
+// context(EitherEffect<ApiError, *>)
+// suspend fun <A> Either<UserService.Error, A>.bind(): A =
+//    toGenericError().bind()
+
+// Fails at runtime :(
+context(PipelineContext<Unit, ApplicationCall>)
+
+@JvmName("respondContextReceiver")
+suspend inline fun <reified A : Any> Either<ApiError, A>.respond(status: HttpStatusCode): Unit =
+  respond(this@respond, status)
