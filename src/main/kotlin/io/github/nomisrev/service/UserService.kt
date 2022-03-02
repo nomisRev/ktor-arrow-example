@@ -19,7 +19,7 @@ import io.github.nefilim.kjwt.KJWTValidationError.RequiredClaimIsInvalid
 import io.github.nefilim.kjwt.KJWTVerificationError
 import io.github.nefilim.kjwt.SignedJWT
 import io.github.nefilim.kjwt.sign
-import io.github.nomisrev.Config
+import io.github.nomisrev.config.Config
 import io.github.nomisrev.routes.GenericErrorModel
 import io.github.nomisrev.service.UserService.IncorrectLoginCredentials
 import io.github.nomisrev.service.UserService.JwtFailure
@@ -54,6 +54,9 @@ interface UserService {
   /** Retrieve used based on username */
   suspend fun getUser(username: String): Either<Unexpected, UserInfo?>
 
+  /** Decoupled domain from API */
+  data class UserInfo(val email: String, val username: String, val bio: String, val image: String)
+
   sealed interface Error {
     val message: String
     fun toGenericErrorModel(): GenericErrorModel = GenericErrorModel(message)
@@ -76,10 +79,14 @@ interface UserService {
     override val message: String =
       error.message ?: "Something went wrong. ${error::class.java} without message."
   }
-
-  data class UserInfo(val email: String, val username: String, val bio: String, val image: String)
 }
 
+/**
+ * UserService impl based on:
+ * - SqlDelight UsersQueries for persistence
+ * - kjwt for JWT generation, decoding and validation
+ * - javax.crypto for safely storing passwords
+ */
 fun userService(config: Config.Auth, usersQueries: UsersQueries) =
   object : UserService {
     @Suppress("MagicNumber") val defaultTokenLength = Duration.ofDays(30)

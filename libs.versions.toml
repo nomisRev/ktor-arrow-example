@@ -13,6 +13,7 @@ sqldelight="1.5.3"
 testcontainers="1.16.3"
 hikari="5.0.1"
 postgresql="42.3.2"
+kjwt="0.5.1"
 
 [libraries]
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
@@ -46,6 +47,7 @@ testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.
 hikari = { module = "com.zaxxer:HikariCP", version.ref="hikari" }
 sqldelight-jdbc = { module = "com.squareup.sqldelight:jdbc-driver", version.ref="sqldelight" }
 postgresql = { module="org.postgresql:postgresql", version.ref="postgresql" }
+kjwt-core = { module="io.github.nefilim.kjwt:kjwt-core", version.ref="kjwt" }
 
 [plugins]
 arrowGradleConfig-formatter = { id = "io.arrow-kt.arrow-gradle-config-formatter", version.ref = "arrowGradleConfig" }

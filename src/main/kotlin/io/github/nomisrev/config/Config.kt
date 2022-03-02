@@ -1,4 +1,4 @@
-package io.github.nomisrev
+package io.github.nomisrev.config
 
 data class Config(val dataSource: DataSource, val http: Http, val auth: Auth) {
   data class Http(val host: String, val port: Int)
@@ -25,7 +25,8 @@ fun envHttp(): Config.Http =
 
 fun envDataSource(): Config.DataSource =
   Config.DataSource(
-    url = System.getenv("POSTGRES_URL") ?: "jdbc:postgresql://localhost:5432/simonvergauwen",
+    url = System.getenv("POSTGRES_URL")
+        ?: "jdbc:postgresql://localhost:5432/ktor-arrow-example-database",
     username = System.getenv("POSTGRES_USERNAME") ?: "postgres",
     password = System.getenv("POSTGRES_PASSWORD") ?: "postgres",
   )

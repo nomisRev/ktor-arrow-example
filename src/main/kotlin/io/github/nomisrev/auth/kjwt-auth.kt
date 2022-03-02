@@ -1,6 +1,6 @@
 @file:Suppress("MatchingDeclarationName")
 
-package io.github.nomisrev
+package io.github.nomisrev.auth
 
 import arrow.core.Either
 import arrow.core.Nel

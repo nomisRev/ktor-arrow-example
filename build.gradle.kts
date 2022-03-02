@@ -76,7 +76,7 @@ dependencies {
   implementation(libs.hikari)
   implementation(libs.postgresql)
 
-  implementation("io.github.nefilim.kjwt:kjwt-core:0.5.1")
+  implementation(libs.kjwt.core)
 
   testImplementation(libs.testcontainers.postgresql)
 

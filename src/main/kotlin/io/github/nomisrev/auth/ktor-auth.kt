@@ -1,7 +1,8 @@
-package io.github.nomisrev
+package io.github.nomisrev.auth
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import io.github.nomisrev.config.Config
 import io.github.nomisrev.service.UserService
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall

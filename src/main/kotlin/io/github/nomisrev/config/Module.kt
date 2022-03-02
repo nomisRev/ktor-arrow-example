@@ -1,6 +1,7 @@
-package io.github.nomisrev
+package io.github.nomisrev.config
 
 import arrow.fx.coroutines.Resource
+import io.github.nomisrev.service.DatabasePool
 import io.github.nomisrev.service.UserService
 import io.github.nomisrev.service.userService
 

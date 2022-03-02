@@ -3,24 +3,23 @@ package io.github.nomisrev.routes
 import arrow.core.Either
 import arrow.core.computations.either
 import arrow.core.computations.ensureNotNull
-import io.github.nomisrev.jwtAuth
+import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.service.UserService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
-import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
 import io.ktor.server.request.receive
-import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
-import io.ktor.util.pipeline.PipelineContext
 import kotlinx.serialization.Serializable
 
 @Serializable data class NewUserRequest(val user: NewUser)
 
 @Serializable data class NewUser(val username: String, val email: String, val password: String)
+
+@Serializable data class UserResponse(val user: User)
 
 @Serializable
 data class User(
@@ -30,8 +29,6 @@ data class User(
   val bio: String,
   val image: String
 )
-
-@Serializable data class UserResponse(val user: User)
 
 @Serializable data class LoginUser(val email: String, val password: String)
 
@@ -74,12 +71,12 @@ fun Application.userRoutes(userService: UserService) = routing {
 
   /* Get Current User: GET /api/user */
   get("/user") {
-    jwtAuth(userService) { jwtContext ->
+    jwtAuth(userService) { (token, userId) ->
       val res =
         either<ApiError, UserResponse> {
-          val user = userService.getUser(jwtContext.userId).toGenericError().bind()
+          val user = userService.getUser(userId).toGenericError().bind()
           ensureNotNull(user) { GenericErrorModel("User not found") }
-          UserResponse(User(user.email, jwtContext.token, user.username, user.bio, user.image))
+          UserResponse(User(user.email, token, user.username, user.bio, user.image))
         }
       respond(res, HttpStatusCode.OK)
     }
@@ -92,29 +89,3 @@ fun <A> Either<UserService.Error, A>.toGenericError(): Either<ApiError, A> = map
     else -> it.toGenericErrorModel()
   }
 }
-
-suspend inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>.respond(
-  either: Either<ApiError, A>,
-  status: HttpStatusCode
-): Unit =
-  when (either) {
-    is Either.Left ->
-      when (either.value) {
-        is Unauthorized -> call.respond(HttpStatusCode.Unauthorized)
-        else -> call.respond(HttpStatusCode.UnprocessableEntity, either.value)
-      }
-    is Either.Right -> call.respond(status, either.value)
-  }
-
-/** Playing with Context Receivers */
-// Fails to compile
-// context(EitherEffect<ApiError, *>)
-// suspend fun <A> Either<UserService.Error, A>.bind(): A =
-//    toGenericError().bind()
-
-// Fails at runtime :(
-context(PipelineContext<Unit, ApplicationCall>)
-
-@JvmName("respondContextReceiver")
-suspend inline fun <reified A : Any> Either<ApiError, A>.respond(status: HttpStatusCode): Unit =
-  respond(this@respond, status)

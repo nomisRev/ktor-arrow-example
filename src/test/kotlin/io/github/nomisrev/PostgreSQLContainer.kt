@@ -1,5 +1,7 @@
 package io.github.nomisrev
 
+import io.github.nomisrev.config.Config
+
 /**
  * A singleton `PostgreSQLContainer` Test Container. There is no need to `close` or `stop` the
  * test-container since the lifecycle is controlled by TC Ryuk container.
