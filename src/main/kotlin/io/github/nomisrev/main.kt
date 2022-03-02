@@ -1,6 +1,7 @@
 package io.github.nomisrev
 
 import io.github.nomisrev.config.Module
+import io.github.nomisrev.config.configure
 import io.github.nomisrev.config.envConfig
 import io.github.nomisrev.config.module
 import io.github.nomisrev.routes.healthRoute
@@ -39,24 +40,4 @@ fun Application.app(module: Module) {
   configure()
   healthRoute(module.pool)
   userRoutes(module.userService)
-}
-
-@OptIn(ExperimentalTime::class)
-fun Application.configure() {
-  install(DefaultHeaders)
-  install(ContentNegotiation) {
-    json(
-      Json {
-        isLenient = true
-        ignoreUnknownKeys = true
-      }
-    )
-  }
-  install(CORS) {
-    header(HttpHeaders.Authorization)
-    header(HttpHeaders.ContentType)
-    allowNonSimpleContentTypes = true
-    maxAgeDuration = 3.days
-  }
-  //  configureJWT(config, module.userService)
 }
