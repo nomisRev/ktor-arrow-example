@@ -53,35 +53,21 @@ tasks {
 dependencies {
   implementation(libs.arrow.core)
   implementation(libs.arrow.fx)
-
+  implementation(libs.kjwt.core)
+  implementation(libs.ktor.serialization)
   implementation(libs.ktor.server.core)
   implementation(libs.ktor.server.cors)
   implementation(libs.ktor.server.defaultheaders)
   implementation(libs.ktor.server.content.negotiation)
   implementation(libs.ktor.server.netty)
   implementation(libs.ktor.server.auth)
-  implementation(libs.ktor.server.auth.jwt)
-  implementation(libs.ktor.server.html)
-
-  implementation(libs.ktor.client.core)
-  implementation(libs.ktor.client.cio)
-  implementation(libs.ktor.client.serialization)
-  implementation(libs.ktor.client.content.negotiation)
-
-  implementation(libs.ktor.serialization)
-
   implementation(libs.logback.classic)
-
   implementation(libs.sqldelight.jdbc)
   implementation(libs.hikari)
   implementation(libs.postgresql)
 
-  implementation(libs.kjwt.core)
-
   testImplementation(libs.testcontainers.postgresql)
-
   testImplementation(libs.ktor.server.tests)
-
   testImplementation(libs.kotest.runnerJUnit5)
   testImplementation(libs.kotest.frameworkEngine)
   testImplementation(libs.kotest.assertionsCore)
