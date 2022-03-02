@@ -1,14 +1,16 @@
 package io.github.nomisrev
 
-import io.ktor.serialization.kotlinx.json.json
+import io.github.nomisrev.config.Module
+import io.github.nomisrev.config.configure
+import io.github.nomisrev.config.envConfig
+import io.github.nomisrev.config.module
+import io.github.nomisrev.routes.healthRoute
+import io.github.nomisrev.routes.userRoutes
 import io.ktor.server.application.Application
-import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import io.ktor.server.plugins.ContentNegotiation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
 
 fun main(): Unit =
   runBlocking(Dispatchers.Default) {
@@ -16,8 +18,8 @@ fun main(): Unit =
     module(config).use { module ->
       embeddedServer(
           Netty,
-          port = config.port,
-          host = config.host,
+          port = config.http.port,
+          host = config.http.host,
           parentCoroutineContext = coroutineContext,
         ) { app(module) }
         .start(wait = true)
@@ -26,16 +28,6 @@ fun main(): Unit =
 
 fun Application.app(module: Module) {
   configure()
-  healthRoute(module.database)
-}
-
-fun Application.configure() {
-  install(ContentNegotiation) {
-    json(
-      Json {
-        isLenient = true
-        ignoreUnknownKeys = true
-      }
-    )
-  }
+  healthRoute(module.pool)
+  userRoutes(module.userService)
 }

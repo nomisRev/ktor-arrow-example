@@ -1,0 +1,42 @@
+CREATE TABLE IF NOT EXISTS users(
+    id BIGSERIAL PRIMARY KEY,
+    email VARCHAR(200) NOT NULL UNIQUE,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    salt TEXT NOT NULL,
+    hashed_password TEXT NOT NULL,
+    bio VARCHAR(1000) NOT NULL DEFAULT '',
+    image VARCHAR(255) NOT NULL DEFAULT ''
+);
+
+selectByEmail:
+SELECT email, username, bio, image
+FROM users
+WHERE email = :email;
+
+selectByUsername:
+SELECT email, username, bio, image
+FROM users
+WHERE username = :username;
+
+selectSecurityByEmail:
+SELECT id, username, salt, hashed_password, bio, image
+FROM users
+WHERE email = :email;
+
+selectById:
+SELECT email, username, bio, image
+FROM users
+WHERE id = :id;
+
+insert:
+INSERT INTO users(email, username, salt, hashed_password, bio, image)
+VALUES (:email, :username, :salt, :hashed_password, :bio, :image);
+
+selectId:
+SELECT id
+FROM users
+WHERE email = :email AND username = :username AND bio = :bio AND image = :image;
+
+update:
+UPDATE users
+SET email = :email, username = :username, salt = :salt, hashed_password = :hashed_password, bio = :bio, image = :image;

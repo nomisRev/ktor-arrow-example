@@ -18,7 +18,7 @@ application {
 
 sqldelight {
   database("SqlDelight") {
-    packageName = "io.github.nomisrev"
+    packageName = "io.github.nomisrev.sqldelight"
     dialect = "postgresql"
   }
 }
@@ -36,6 +36,7 @@ tasks {
   withType<KotlinCompile>().configureEach {
     kotlinOptions {
       jvmTarget = "1.8"
+      freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
     }
     sourceCompatibility = "1.8"
     targetCompatibility = "1.8"
@@ -52,15 +53,17 @@ tasks {
 dependencies {
   implementation(libs.arrow.core)
   implementation(libs.arrow.fx)
-
+  implementation(libs.kjwt.core)
+  implementation(libs.ktor.serialization)
   implementation(libs.ktor.server.core)
+  implementation(libs.ktor.server.cors)
+  implementation(libs.ktor.server.defaultheaders)
   implementation(libs.ktor.server.content.negotiation)
   implementation(libs.ktor.server.netty)
-  implementation(libs.ktor.serialization)
+  implementation(libs.ktor.server.auth)
   implementation(libs.logback.classic)
-
-  implementation(libs.hikari)
   implementation(libs.sqldelight.jdbc)
+  implementation(libs.hikari)
   implementation(libs.postgresql)
 
   testImplementation(libs.testcontainers.postgresql)
