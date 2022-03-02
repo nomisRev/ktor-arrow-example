@@ -26,7 +26,7 @@ fun Application.healthRoute(pool: DatabasePool): Routing = routing {
   }
 }
 
-suspend fun DatabasePool.healthCheck(): Either<String, HealthCheck> = either {
+private suspend fun DatabasePool.healthCheck(): Either<String, HealthCheck> = either {
   ensure(isRunning()) { "DatabasePool is not running" }
   val version = ensureNotNull(version()) { "Could not reach database. ConnectionPool is running." }
   HealthCheck(version)
