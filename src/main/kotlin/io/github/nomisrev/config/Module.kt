@@ -5,7 +5,7 @@ import io.github.nomisrev.service.DatabasePool
 import io.github.nomisrev.service.UserService
 import io.github.nomisrev.service.userService
 
-data class Module(val pool: DatabasePool, val userService: UserService)
+class Module(val pool: DatabasePool, val userService: UserService)
 
 fun module(config: Config): Resource<Module> =
   hikari(config.dataSource).flatMap { hikari ->

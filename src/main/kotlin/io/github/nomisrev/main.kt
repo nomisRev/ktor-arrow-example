@@ -18,9 +18,8 @@ fun main(): Unit =
     module(config).use { module ->
       embeddedServer(
           Netty,
-          port = config.http.port,
           host = config.http.host,
-          parentCoroutineContext = coroutineContext,
+          port = config.http.port,
         ) { app(module) }
         .start(wait = true)
     }
