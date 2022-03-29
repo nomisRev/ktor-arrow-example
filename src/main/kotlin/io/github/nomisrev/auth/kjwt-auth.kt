@@ -4,10 +4,11 @@ package io.github.nomisrev.auth
 
 import arrow.core.Either
 import arrow.core.Nel
-import io.github.nefilim.kjwt.KJWTError
 import io.github.nomisrev.routes.GenericErrorModel
 import io.github.nomisrev.routes.GenericErrorModelErrors
 import io.github.nomisrev.service.UserService
+import io.github.nomisrev.service.UserService.JwtFailure
+import io.github.nomisrev.service.UserService.JwtToken
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.auth.HttpAuthHeader
 import io.ktor.server.application.ApplicationCall
@@ -40,7 +41,7 @@ private suspend fun PipelineContext<Unit, ApplicationCall>.jwtAuth(
   body: suspend PipelineContext<Unit, ApplicationCall>.(JwtContext) -> Unit
 ) {
   userService
-    .verifyJwtToken(token)
+    .verifyJwtToken(JwtToken(token))
     .fold(
       { errors -> call.respond(HttpStatusCode.UnprocessableEntity, errors.toGenericError()) },
       { userId -> body(this, JwtContext(token, userId)) }
@@ -50,5 +51,5 @@ private suspend fun PipelineContext<Unit, ApplicationCall>.jwtAuth(
 private fun PipelineContext<Unit, ApplicationCall>.jwtToken(): String? =
   Either.catch { (call.request.parseAuthorizationHeader() as HttpAuthHeader.Single) }.orNull()?.blob
 
-private fun Nel<KJWTError>.toGenericError(): GenericErrorModel =
-  GenericErrorModel(GenericErrorModelErrors(map(KJWTError::toString)))
+private fun Nel<JwtFailure>.toGenericError(): GenericErrorModel =
+  GenericErrorModel(GenericErrorModelErrors(map(JwtFailure::toString)))
