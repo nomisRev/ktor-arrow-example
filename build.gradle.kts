@@ -66,7 +66,7 @@ dependencies {
   implementation(libs.hikari)
   implementation(libs.postgresql)
 
-  implementation("com.github.slugify:slugify:2.4")
+  implementation("com.github.slugify:slugify:2.5")
 
   testImplementation(libs.testcontainers.postgresql)
   testImplementation(libs.ktor.server.tests)
