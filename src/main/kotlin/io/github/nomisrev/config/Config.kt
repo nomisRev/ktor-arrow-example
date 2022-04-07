@@ -1,38 +1,38 @@
 package io.github.nomisrev.config
 
-data class Config(val dataSource: DataSource, val http: Http, val auth: Auth) {
-  data class Http(val host: String, val port: Int)
+import java.lang.System.getenv
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
+
+private const val PORT: Int = 8080
+private const val JDBC_URL: String = "jdbc:postgresql://localhost:5432/ktor-arrow-example-database"
+private const val JDBC_USER: String = "postgres"
+private const val JDBC_PW: String = "postgres"
+private const val JDBC_DRIVER: String = "org.postgresql.Driver"
+private const val AUTH_SECRET: String = "MySuperStrongSecret"
+private const val AUTH_ISSUER: String = "KtorArrowExampleIssuer"
+private const val AUTH_DURATION: Int = 30
+
+data class Config(
+  val dataSource: DataSource = DataSource(),
+  val http: Http = Http(),
+  val auth: Auth = Auth(),
+) {
+  data class Http(
+    val host: String = getenv("HOST") ?: "0.0.0.0",
+    val port: Int = getenv("SERVER_PORT")?.toIntOrNull() ?: PORT,
+  )
 
   data class DataSource(
-    val url: String,
-    val username: String,
-    val password: String,
-    val driver: String = "org.postgresql.Driver"
+    val url: String = getenv("POSTGRES_URL") ?: JDBC_URL,
+    val username: String = getenv("POSTGRES_USERNAME") ?: JDBC_USER,
+    val password: String = getenv("POSTGRES_PASSWORD") ?: JDBC_PW,
+    val driver: String = JDBC_DRIVER,
   )
 
-  data class Auth(val secret: String, val issuer: String)
+  data class Auth(
+    val secret: String = getenv("JWT_SECRET") ?: AUTH_SECRET,
+    val issuer: String = getenv("JWT_ISSUER") ?: AUTH_ISSUER,
+    val duration: Duration = (getenv("JWT_DURATION")?.toIntOrNull() ?: AUTH_DURATION).days
+  )
 }
-
-private const val DEFAULT_PORT: Int = 8080
-
-fun envConfig(): Config = Config(envDataSource(), envHttp(), envAuth())
-
-fun envHttp(): Config.Http =
-  Config.Http(
-    host = System.getenv("HOST") ?: "0.0.0.0",
-    port = System.getenv("SERVER_PORT")?.toIntOrNull() ?: DEFAULT_PORT
-  )
-
-fun envDataSource(): Config.DataSource =
-  Config.DataSource(
-    url = System.getenv("POSTGRES_URL")
-        ?: "jdbc:postgresql://localhost:5432/ktor-arrow-example-database",
-    username = System.getenv("POSTGRES_USERNAME") ?: "postgres",
-    password = System.getenv("POSTGRES_PASSWORD") ?: "postgres",
-  )
-
-fun envAuth(): Config.Auth =
-  Config.Auth(
-    secret = System.getenv("JWT_SECRET") ?: "MySuperStrongSecret",
-    issuer = System.getenv("JWT_ISSUER") ?: "KtorArrowExampleIssuer",
-  )

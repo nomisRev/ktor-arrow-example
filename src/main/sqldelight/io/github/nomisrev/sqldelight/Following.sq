@@ -1,23 +1,23 @@
 CREATE TABLE IF NOT EXISTS following(
-    source_id BIGINT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-    target_id BIGINT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-    PRIMARY KEY (source_id, target_id)
+    followed_id BIGINT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    follower_id BIGINT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    PRIMARY KEY (followed_id, follower_id)
 );
 
 select:
-SELECT source_id, source_id
+SELECT followed_id, follower_id
 FROM following
-WHERE source_id = :sourceUserId AND source_id = :targetUserId;
+WHERE followed_id = :followedId AND follower_id = :followerId;
 
 selectFollowedUserIds:
-SELECT target_id
+SELECT follower_id
 FROM following
-WHERE source_id = :sourceUserId;
+WHERE followed_id = :followedId;
 
 insert:
-INSERT INTO following(source_id, target_id)
-VALUES (:sourceUserId, :targetUserId);
+INSERT INTO following(followed_id, follower_id)
+VALUES (:followedId, :followerId);
 
 delete:
 DELETE FROM following
-WHERE source_id = :sourceUserId AND source_id = :targetUserId;
+WHERE followed_id = :followedId AND follower_id = :followerId;

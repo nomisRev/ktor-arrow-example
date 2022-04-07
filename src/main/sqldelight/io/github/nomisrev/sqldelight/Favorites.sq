@@ -17,7 +17,7 @@ delete:
 DELETE FROM favorites
 WHERE article_id = :articleId AND user_id = :userId;
 
-selectArticleId:
+isFavorite:
 SELECT article_id
 FROM favorites
-WHERE user_id = :userId;
+WHERE user_id = :userId AND article_id = :articleId;
