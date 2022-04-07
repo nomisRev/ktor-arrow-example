@@ -1,9 +1,9 @@
 package io.github.nomisrev
 
-import io.github.nomisrev.config.Module
+import io.github.nomisrev.config.Config
+import io.github.nomisrev.config.Dependencies
 import io.github.nomisrev.config.configure
-import io.github.nomisrev.config.envConfig
-import io.github.nomisrev.config.module
+import io.github.nomisrev.config.dependencies
 import io.github.nomisrev.routes.healthRoute
 import io.github.nomisrev.routes.userRoutes
 import io.ktor.server.application.Application
@@ -14,8 +14,8 @@ import kotlinx.coroutines.runBlocking
 
 fun main(): Unit =
   runBlocking(Dispatchers.Default) {
-    val config = envConfig()
-    module(config).use { module ->
+    val config = Config()
+    dependencies(config).use { module ->
       embeddedServer(
           Netty,
           host = config.http.host,
@@ -25,8 +25,8 @@ fun main(): Unit =
     }
   }
 
-fun Application.app(module: Module) {
+fun Application.app(module: Dependencies) {
   configure()
   healthRoute(module.pool)
-  userRoutes(module.userService)
+  userRoutes(module.userService, module.jwtService)
 }

@@ -11,7 +11,7 @@ WHERE article_id = :articleId;
 
 insert:
 INSERT INTO tags(article_id, tag)
-VALUES (article_id, tag);
+VALUES (?, ?);
 
 selectArticleId:
 SELECT article_id

@@ -1,12 +1,12 @@
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 CREATE TABLE IF NOT EXISTS comments(
     id BIGSERIAL PRIMARY KEY,
     article_id BIGINT REFERENCES articles(id) ON DELETE CASCADE NOT NULL,
     body TEXT NOT NULL,
     author BIGINT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-    createdAt TIMESTAMP AS LocalDateTime NOT NULL,
-    updatedAt TIMESTAMP AS LocalDateTime NOT NULL
+    createdAt VARCHAR(50) AS OffsetDateTime NOT NULL,
+    updatedAt VARCHAR(50) AS OffsetDateTime NOT NULL
 );
 
 insert:

@@ -1,4 +1,4 @@
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 CREATE TABLE IF NOT EXISTS articles(
     id BIGSERIAL PRIMARY KEY,
@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS articles(
     description VARCHAR(255) NOT NULL,
     body TEXT NOT NULL,
     author_id BIGINT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-    createdAt TIMESTAMP AS LocalDateTime NOT NULL,
-    updatedAt TIMESTAMP AS LocalDateTime NOT NULL
+    createdAt VARCHAR(50) AS OffsetDateTime NOT NULL,
+    updatedAt VARCHAR(50) AS OffsetDateTime NOT NULL
 );
 
 amountOfArticleForAuthor:
@@ -40,6 +40,14 @@ selectBySlug:
 SELECT id, slug, title, description, body, author_id, createdAt, updatedAt
 FROM articles
 WHERE slug = :slug;
+
+slugExists:
+SELECT EXISTS(
+  SELECT 1
+  FROM articles
+  WHERE slug= :slug
+  LIMIT 1
+);
 
 delete:
 DELETE FROM articles
