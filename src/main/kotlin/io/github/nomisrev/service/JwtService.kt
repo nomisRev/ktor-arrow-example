@@ -22,7 +22,7 @@ import kotlin.time.toJavaDuration
 
 interface JwtService {
   /** Generate a new JWT token for userId and password. Doesn't invalidate old password */
-  suspend fun generateJwtToken(userId: Long, password: String): Either<JwtGeneration, JwtToken>
+  suspend fun generateJwtToken(userId: UserId): Either<JwtGeneration, JwtToken>
 
   /** Verify a JWT token. Checks if userId exists in database, and token is not expired. */
   suspend fun verifyJwtToken(token: JwtToken): Either<ApiError, UserId>
@@ -30,17 +30,14 @@ interface JwtService {
 
 fun jwtService(config: Config.Auth, repo: UserPersistence) =
   object : JwtService {
-    override suspend fun generateJwtToken(
-      userId: Long,
-      password: String
-    ): Either<JwtGeneration, JwtToken> =
+    override suspend fun generateJwtToken(userId: UserId): Either<JwtGeneration, JwtToken> =
       JWT
         .hs512 {
           val now = LocalDateTime.now(ZoneId.of("UTC"))
           issuedAt(now)
           expiresAt(now + config.duration.toJavaDuration())
           issuer(config.issuer)
-          claim("id", userId)
+          claim("id", userId.serial)
         }
         .sign(config.secret)
         .toUserServiceError()
