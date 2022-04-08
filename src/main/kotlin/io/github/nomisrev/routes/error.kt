@@ -7,6 +7,7 @@ import io.github.nomisrev.ApiError.CannotGenerateSlug
 import io.github.nomisrev.ApiError.CommentNotFound
 import io.github.nomisrev.ApiError.EmailAlreadyExists
 import io.github.nomisrev.ApiError.EmptyUpdate
+import io.github.nomisrev.ApiError.IncorrectInput
 import io.github.nomisrev.ApiError.JwtGeneration
 import io.github.nomisrev.ApiError.PasswordNotMatched
 import io.github.nomisrev.ApiError.ProfileNotFound
@@ -42,6 +43,12 @@ suspend inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>.resp
 suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: ApiError): Unit =
   when (error) {
     PasswordNotMatched -> call.respond(HttpStatusCode.Unauthorized)
+    is IncorrectInput ->
+      respondUnprocessable(
+        GenericErrorModel(
+          error.errors.joinToString { field -> "${field.field}: ${field.errors.joinToString()}" }
+        )
+      )
     is Unexpected ->
       call.respond(
         HttpStatusCode.InternalServerError,
@@ -82,17 +89,3 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: ApiError): Uni
 suspend inline fun PipelineContext<Unit, ApplicationCall>.respondUnprocessable(
   error: GenericErrorModel
 ): Unit = call.respond(HttpStatusCode.UnprocessableEntity, error)
-
-// Playing with Context Receivers
-
-// Fails to compile
-// context(EitherEffect<ApiError, *>)
-// suspend fun <A> Either<UserService.Error, A>.bind(): A =
-//    toGenericError().bind()
-
-// Fails at runtime :(
-context(PipelineContext<Unit, ApplicationCall>)
-
-@JvmName("respondContextReceiver")
-suspend inline fun <reified A : Any> Either<ApiError, A>.respond(status: HttpStatusCode): Unit =
-  respond(this@respond, status)

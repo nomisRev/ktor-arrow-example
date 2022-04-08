@@ -6,6 +6,9 @@ import io.github.nomisrev.ApiError
 import io.github.nomisrev.ApiError.Unexpected
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.service.JwtService
+import io.github.nomisrev.service.LoginUser
+import io.github.nomisrev.service.RegisterUser
+import io.github.nomisrev.service.UpdateUser
 import io.github.nomisrev.service.UserService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
@@ -20,13 +23,9 @@ import io.ktor.server.routing.routing
 import io.ktor.util.pipeline.PipelineContext
 import kotlinx.serialization.Serializable
 
-@Serializable data class NewUserRequest(val user: NewUser)
+@Serializable data class UserWrapper<T>(val user: T)
 
 @Serializable data class NewUser(val username: String, val email: String, val password: String)
-
-@Serializable data class UserResponse(val user: User)
-
-@Serializable data class UpdateUserRequest(val user: UpdateUser)
 
 @Serializable
 data class UpdateUser(
@@ -48,8 +47,6 @@ data class User(
 
 @Serializable data class LoginUser(val email: String, val password: String)
 
-@Serializable data class LoginUserRequest(val user: LoginUser)
-
 fun Application.userRoutes(
   userService: UserService,
   jwtService: JwtService,
@@ -58,19 +55,19 @@ fun Application.userRoutes(
     /* Registration: POST /api/users */
     post {
       val res =
-        either<ApiError, UserResponse> {
-          val (username, email, password) = receiveCatching<NewUserRequest>().bind().user
-          val token = userService.register(username, email, password).bind().value
-          UserResponse(User(email, token, username, "", ""))
+        either<ApiError, UserWrapper<User>> {
+          val (username, email, password) = receiveCatching<UserWrapper<NewUser>>().bind().user
+          val token = userService.register(RegisterUser(username, email, password)).bind().value
+          UserWrapper(User(email, token, username, "", ""))
         }
       respond(res, HttpStatusCode.Created)
     }
     post("/login") {
       val res =
-        either<ApiError, UserResponse> {
-          val (email, password) = receiveCatching<LoginUserRequest>().bind().user
-          val (token, info) = userService.login(email, password).bind()
-          UserResponse(User(email, token.value, info.username, info.bio, info.image))
+        either<ApiError, UserWrapper<User>> {
+          val (email, password) = receiveCatching<UserWrapper<LoginUser>>().bind().user
+          val (token, info) = userService.login(LoginUser(email, password)).bind()
+          UserWrapper(User(email, token.value, info.username, info.bio, info.image))
         }
       respond(res, HttpStatusCode.OK)
     }
@@ -80,9 +77,9 @@ fun Application.userRoutes(
   get("/user") {
     jwtAuth(jwtService) { (token, userId) ->
       val res =
-        either<ApiError, UserResponse> {
+        either<ApiError, UserWrapper<User>> {
           val info = userService.getUser(userId).bind()
-          UserResponse(User(info.email, token.value, info.username, info.bio, info.image))
+          UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
         }
       respond(res, HttpStatusCode.OK)
     }
@@ -92,11 +89,12 @@ fun Application.userRoutes(
   put("/user") {
     jwtAuth(jwtService) { (token, userId) ->
       val res =
-        either<ApiError, UserResponse> {
-          val (email, username, password, bio, image) =
-            receiveCatching<UpdateUserRequest>().bind().user
-          val info = userService.update(userId, email, username, password, bio, image).bind()
-          UserResponse(User(info.email, token.value, info.username, info.bio, info.image))
+        either<ApiError, UserWrapper<User>> {
+          val (_, username, email, password, bio, image) =
+            receiveCatching<UserWrapper<UpdateUser>>().bind().user
+          val info =
+            userService.update(UpdateUser(userId, username, email, password, bio, image)).bind()
+          UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
         }
       respond(res, HttpStatusCode.OK)
     }

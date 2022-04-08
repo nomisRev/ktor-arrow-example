@@ -1,15 +1,19 @@
 package io.github.nomisrev
 
+import arrow.core.NonEmptyList
 import io.github.nomisrev.routes.Profile
 
 @Suppress("ForbiddenComment")
-// TODO: Make sub-split between UserService & ArticleService
-//       sealed interface UserError : ApiError
+// TODO: Make split between service errors: i.e. UserService & ArticleService
+//       sealed interface UserError
 //       data class UserNotFound(val property: String) : UserError
+//       sealed interface ArticleError
+//       data class ArticleNotFound(val slug: Slug): ArticleError
 //       An error can even implement both:
-//          data class Unexpected(val error: Throwable) : UserError, ArticleError
+//          data class Unexpected(val error: Throwable): UserError, ArticleError
 sealed interface ApiError {
   object PasswordNotMatched : ApiError
+  data class IncorrectInput(val errors: NonEmptyList<InvalidField>) : ApiError
   data class EmptyUpdate(val description: String) : ApiError
   data class UserNotFound(val property: String) : ApiError
   data class UserFollowingHimself(val profile: Profile) : ApiError

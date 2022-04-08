@@ -10,53 +10,58 @@ import io.github.nomisrev.routes.Article
 import io.github.nomisrev.routes.Profile
 import java.time.OffsetDateTime
 
+data class CreateArticle(
+  val userId: UserId,
+  val title: String,
+  val description: String,
+  val body: String,
+  val tags: Set<String>
+)
+
 interface ArticleService {
-  suspend fun createArticle(
-    userId: UserId,
-    title: String,
-    description: String,
-    body: String,
-    tags: Set<String>
-  ): Either<ApiError, Article>
+  /** Creates a new article and returns the resulting Article */
+  suspend fun createArticle(input: CreateArticle): Either<ApiError, Article>
 }
 
-// TODO clean the hell out of this impl
-// Replace all the SqlDelight Queries by Repos
-@Suppress("LongParameterList")
 fun articleService(
   slugGenerator: SlugGenerator,
   articlePersistence: ArticlePersistence,
   userPersistence: UserPersistence,
 ): ArticleService =
   object : ArticleService {
-    override suspend fun createArticle(
-      userId: UserId,
-      title: String,
-      description: String,
-      body: String,
-      tags: Set<String>
-    ): Either<ApiError, Article> = either {
+    override suspend fun createArticle(input: CreateArticle): Either<ApiError, Article> = either {
       val slug =
-        slugGenerator.generateSlug(title) { slug -> articlePersistence.exists(slug).bind() }.bind()
+        slugGenerator
+          .generateSlug(input.title) { slug -> articlePersistence.exists(slug).bind() }
+          .bind()
       val createdAt = OffsetDateTime.now()
       val articleId =
         articlePersistence
-          .create(userId, slug, title, description, body, createdAt, createdAt, tags)
+          .create(
+            input.userId,
+            slug,
+            input.title,
+            input.description,
+            input.body,
+            createdAt,
+            createdAt,
+            input.tags
+          )
           .bind()
           .serial
-      val user = userPersistence.select(userId).bind()
+      val user = userPersistence.select(input.userId).bind()
       Article(
         articleId,
         slug.value,
-        title,
-        description,
-        body,
+        input.title,
+        input.description,
+        input.body,
         Profile(user.username, user.bio, user.image, false),
         false,
         0,
         createdAt,
         createdAt,
-        tags.toList()
+        input.tags.toList()
       )
     }
   }

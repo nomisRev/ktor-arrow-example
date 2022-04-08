@@ -6,7 +6,7 @@ import arrow.core.computations.ensureNotNull
 import io.github.nomisrev.ApiError
 import io.github.nomisrev.ApiError.Unexpected
 import io.github.nomisrev.ApiError.UserNotFound
-import io.github.nomisrev.service.UserService.UserInfo
+import io.github.nomisrev.service.UserInfo
 import io.github.nomisrev.sqldelight.UsersQueries
 import java.util.Base64
 import java.util.UUID
