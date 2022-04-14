@@ -7,7 +7,8 @@ import io.github.nomisrev.sqldelight.ArticlesQueries
 import io.github.nomisrev.sqldelight.TagsQueries
 import java.time.OffsetDateTime
 
-@JvmInline value class ArticleId(val serial: Long)
+@JvmInline
+value class ArticleId(val serial: Long)
 
 interface ArticlePersistence {
   @Suppress("LongParameterList")
@@ -40,42 +41,27 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
       tags: Set<String>
     ): Either<Unexpected, ArticleId> =
       Either.catch {
-          articles.transactionWithResult<Long> {
-            articles.insert(
-              slug.value,
-              title,
-              description,
-              body,
-              authorId.serial,
-              createdAt,
-              updatedAt
-            )
+        articles.transactionWithResult<Long> {
+          val articleId = articles.insertAndGetId(
+            slug.value,
+            title,
+            description,
+            body,
+            authorId.serial,
+            createdAt,
+            updatedAt
+          ).executeAsOne()
 
-            val articleId =
-              articles
-                .selectId(
-                  slug.value,
-                  title,
-                  description,
-                  body,
-                  authorId.serial,
-                  createdAt,
-                  updatedAt
-                )
-                .executeAsOne() // id needs to exist, or insert failed, so fatal
+          tags.forEach { tag -> tagsQueries.insert(articleId, tag) }
 
-            tags.forEach { tag -> tagsQueries.insert(articleId, tag) }
-
-            articleId
-          }
+          articleId
         }
-        .bimap(
-          { e -> Unexpected("Failed to create article: $authorId:$title:$tags", e) },
-          ::ArticleId
-        )
+      }.bimap(
+        { e -> Unexpected("Failed to create article: $authorId:$title:$tags", e) },
+        ::ArticleId
+      )
 
     override suspend fun exists(slug: Slug): Either<Unexpected, Boolean> =
-      Either.catch { articles.slugExists(slug.value).executeAsOne() }.mapLeft { e ->
-        Unexpected("Failed to check existence of $slug", e)
-      }
+      Either.catch { articles.slugExists(slug.value).executeAsOne() }
+        .mapLeft { e -> Unexpected("Failed to check existence of $slug", e) }
   }

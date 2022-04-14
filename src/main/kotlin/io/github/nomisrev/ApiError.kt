@@ -1,6 +1,7 @@
 package io.github.nomisrev
 
 import arrow.core.NonEmptyList
+import arrow.core.nonEmptyListOf
 import io.github.nomisrev.routes.Profile
 
 @Suppress("ForbiddenComment")
@@ -13,7 +14,14 @@ import io.github.nomisrev.routes.Profile
 //          data class Unexpected(val error: Throwable): UserError, ArticleError
 sealed interface ApiError {
   object PasswordNotMatched : ApiError
-  data class IncorrectInput(val errors: NonEmptyList<InvalidField>) : ApiError
+  data class IncorrectInput(val errors: NonEmptyList<InvalidField>) : ApiError {
+    constructor(field: InvalidField) : this(nonEmptyListOf(field))
+    @Suppress("SpreadOperator")
+    constructor(
+      field: InvalidField,
+      vararg fields: InvalidField
+    ) : this(nonEmptyListOf(field, *fields))
+  }
   data class EmptyUpdate(val description: String) : ApiError
   data class UserNotFound(val property: String) : ApiError
   data class UserFollowingHimself(val profile: Profile) : ApiError

@@ -23,9 +23,11 @@ import io.ktor.server.response.respond
 import io.ktor.util.pipeline.PipelineContext
 import kotlinx.serialization.Serializable
 
-@Serializable data class GenericErrorModel(val errors: GenericErrorModelErrors)
+@Serializable
+data class GenericErrorModel(val errors: GenericErrorModelErrors)
 
-@Serializable data class GenericErrorModelErrors(val body: List<String>)
+@Serializable
+data class GenericErrorModelErrors(val body: List<String>)
 
 fun GenericErrorModel(vararg msg: String): GenericErrorModel =
   GenericErrorModel(GenericErrorModelErrors(msg.toList()))
@@ -86,6 +88,6 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: ApiError): Uni
     is ApiError.JwtInvalid -> respondUnprocessable(GenericErrorModel(error.description))
   }
 
-suspend inline fun PipelineContext<Unit, ApplicationCall>.respondUnprocessable(
+private suspend inline fun PipelineContext<Unit, ApplicationCall>.respondUnprocessable(
   error: GenericErrorModel
 ): Unit = call.respond(HttpStatusCode.UnprocessableEntity, error)

@@ -19,7 +19,7 @@ application {
 sqldelight {
   database("SqlDelight") {
     packageName = "io.github.nomisrev.sqldelight"
-    dialect = "postgresql"
+    dialect = "app.cash.sqldelight:postgresql-dialect:2.0.0-alpha02"
   }
 }
 
@@ -70,6 +70,7 @@ dependencies {
 
   testImplementation(libs.testcontainers.postgresql)
   testImplementation(libs.ktor.server.tests)
+  testImplementation(libs.kotest.arrow)
   testImplementation(libs.kotest.runnerJUnit5)
   testImplementation(libs.kotest.frameworkEngine)
   testImplementation(libs.kotest.assertionsCore)

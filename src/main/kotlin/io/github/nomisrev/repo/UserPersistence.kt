@@ -1,8 +1,9 @@
 package io.github.nomisrev.repo
 
 import arrow.core.Either
-import arrow.core.computations.either
 import arrow.core.computations.ensureNotNull
+import arrow.core.continuations.either
+import arrow.core.continuations.ensureNotNull
 import io.github.nomisrev.ApiError
 import io.github.nomisrev.ApiError.Unexpected
 import io.github.nomisrev.ApiError.UserNotFound
@@ -60,12 +61,7 @@ fun userPersistence(
     ): Either<ApiError, UserId> {
       val salt = generateSalt()
       val key = generateKey(password, salt)
-      return Either.catch {
-          usersQueries.transactionWithResult<Long> {
-            usersQueries.create(salt, key, username, email)
-            usersQueries.selectId(username, email)
-          }
-        }
+      return Either.catch { usersQueries.create(salt, key, username, email) }
         .bimap(
           { error ->
             if (error is PSQLException && error.sqlState == PSQLState.UNIQUE_VIOLATION.state) {
@@ -127,21 +123,13 @@ fun userPersistence(
       val info =
         usersQueries.transactionWithResult<UserInfo?> {
           usersQueries.selectById(userId.serial).executeAsOneOrNull()?.let {
-            (oldEmail, oldUsername, saltString, passwordString, oldBio, oldImage) ->
-            val newPassword =
-              password?.let { password ->
-                val salt = Base64.getDecoder().decode(saltString)
-                val key = Base64.getDecoder().decode(passwordString)
-                val hash = generateKey(password, salt)
-                if (hash contentEquals key) passwordString
-                else Base64.getEncoder().encodeToString(hash)
-              }
-                ?: passwordString
+            (oldEmail, oldUsername, salt, oldPassword, oldBio, oldImage) ->
+            val newPassword = password?.let { generateKey(it, salt) } ?: oldPassword
             val newEmail = email ?: oldEmail
             val newUsername = username ?: oldUsername
             val newBio = bio ?: oldBio
             val newImage = image ?: oldImage
-            usersQueries.update(newEmail, newUsername, saltString, newPassword, newBio, newImage)
+            usersQueries.update(newEmail, newUsername, newPassword, newBio, newImage, userId.serial)
             UserInfo(newEmail, newUsername, newBio, newImage)
           }
         }
@@ -161,15 +149,13 @@ private fun UsersQueries.create(
   key: ByteArray,
   username: String,
   email: String
-): Unit =
-  insert(
-    username = username,
-    email = email,
-    salt = Base64.getEncoder().encodeToString(salt),
-    hashed_password = Base64.getEncoder().encodeToString(key),
-    bio = "",
-    image = ""
-  )
-
-private fun UsersQueries.selectId(username: String, email: String): Long =
-  selectId(username = username, email = email, bio = "", image = "").executeAsOne()
+): Long =
+  insertAndGetId(
+      username = username,
+      email = email,
+      salt = salt,
+      hashed_password = key,
+      bio = "",
+      image = ""
+    )
+    .executeAsOne()

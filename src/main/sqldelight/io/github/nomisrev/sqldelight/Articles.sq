@@ -27,14 +27,10 @@ update:
 UPDATE articles
 SET title = :title, description = :description, body = :body;
 
-insert:
+insertAndGetId:
 INSERT INTO articles(slug, title, description, body, author_id, createdAt, updatedAt)
-VALUES (:slug, :title, :description, :body, :authorId, :createdAt, :updatedAt);
-
-selectId:
-SELECT id
-FROM articles
-WHERE slug = :slug AND title = :title AND description = :description AND body = :body AND author_id = :authorId AND createdAt = :createdAt AND updatedAt = :updatedAt;
+VALUES (:slug, :title, :description, :body, :authorId, :createdAt, :updatedAt)
+RETURNING id;
 
 selectBySlug:
 SELECT id, slug, title, description, body, author_id, createdAt, updatedAt

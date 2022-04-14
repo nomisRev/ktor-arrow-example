@@ -1,7 +1,7 @@
 package io.github.nomisrev.service
 
 import arrow.core.Either
-import arrow.core.computations.either
+import arrow.core.continuations.either
 import io.github.nomisrev.ApiError
 import io.github.nomisrev.ApiError.EmptyUpdate
 import io.github.nomisrev.auth.JwtToken
