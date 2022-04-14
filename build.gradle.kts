@@ -65,8 +65,7 @@ dependencies {
   implementation(libs.sqldelight.jdbc)
   implementation(libs.hikari)
   implementation(libs.postgresql)
-
-  implementation("com.github.slugify:slugify:2.5")
+  implementation(libs.slugify)
 
   testImplementation(libs.testcontainers.postgresql)
   testImplementation(libs.ktor.server.tests)
