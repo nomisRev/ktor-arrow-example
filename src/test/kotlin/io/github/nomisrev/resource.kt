@@ -81,7 +81,6 @@ private class TestResource<A>(private val resource: Resource<A>) :
       when (it) {
         None ->
           resource.bind().let { a ->
-            println("Initialised in beforeSpec")
             Pair(Some(a), a)
           }
         is Some -> Pair(it, it.value)
