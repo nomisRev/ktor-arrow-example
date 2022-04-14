@@ -23,11 +23,9 @@ import io.ktor.server.response.respond
 import io.ktor.util.pipeline.PipelineContext
 import kotlinx.serialization.Serializable
 
-@Serializable
-data class GenericErrorModel(val errors: GenericErrorModelErrors)
+@Serializable data class GenericErrorModel(val errors: GenericErrorModelErrors)
 
-@Serializable
-data class GenericErrorModelErrors(val body: List<String>)
+@Serializable data class GenericErrorModelErrors(val body: List<String>)
 
 fun GenericErrorModel(vararg msg: String): GenericErrorModel =
   GenericErrorModel(GenericErrorModelErrors(msg.toList()))
