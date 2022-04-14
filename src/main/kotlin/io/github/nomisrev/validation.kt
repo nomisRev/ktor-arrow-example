@@ -128,12 +128,10 @@ private fun String.notBlank(): ValidatedNel<String, String> =
   if (isNotBlank()) validNel() else "Cannot be blank".invalidNel()
 
 private fun String.minSize(size: Int) =
-  if (length >= size) validNel()
-  else "is too short (minimum is $size characters)".invalidNel()
+  if (length >= size) validNel() else "is too short (minimum is $size characters)".invalidNel()
 
 private fun String.maxSize(size: Int) =
-  if (length <= size) validNel()
-  else "is too long (maximum is $size characters)".invalidNel()
+  if (length <= size) validNel() else "is too long (maximum is $size characters)".invalidNel()
 
 private val emailPattern = ".+@.+\\..+".toRegex()
 

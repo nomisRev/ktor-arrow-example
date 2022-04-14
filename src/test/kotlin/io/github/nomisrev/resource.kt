@@ -79,10 +79,7 @@ private class TestResource<A>(private val resource: Resource<A>) :
     super.beforeSpec(spec)
     value.modify {
       when (it) {
-        None ->
-          resource.bind().let { a ->
-            Pair(Some(a), a)
-          }
+        None -> resource.bind().let { a -> Pair(Some(a), a) }
         is Some -> Pair(it, it.value)
       }
     }

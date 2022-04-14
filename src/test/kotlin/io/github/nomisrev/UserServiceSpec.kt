@@ -98,18 +98,23 @@ class UserServiceSpec :
         }
       }
 
-    "update" - {
-      "Update with all null" {
-        val token = userService.register(RegisterUser(validUsername, validEmail, validPw)).shouldBeRight()
-        val res = userService.update(UpdateUser(token.id(), null, null, null, null, null))
-        res shouldBeLeft EmptyUpdate("Cannot update user with ${token.id()} with only null values")
+    "update" -
+      {
+        "Update with all null" {
+          val token =
+            userService.register(RegisterUser(validUsername, validEmail, validPw)).shouldBeRight()
+          val res = userService.update(UpdateUser(token.id(), null, null, null, null, null))
+          res shouldBeLeft
+            EmptyUpdate("Cannot update user with ${token.id()} with only null values")
+        }
       }
-    }
   })
 
 private fun JwtToken.id(): UserId =
-  JWT.decodeT(value, JWSHMAC512Algorithm)
+  JWT
+    .decodeT(value, JWSHMAC512Algorithm)
     .shouldBeRight { "JWToken $value should be valid JWT but found $it" }
-    .jwt.claimValueAsLong("id")
+    .jwt
+    .claimValueAsLong("id")
     .shouldBeSome { "JWTToken $value should have id but found None" }
     .let(::UserId)

@@ -8,7 +8,8 @@ import java.sql.ResultSet
 import java.sql.Types
 import javax.sql.DataSource
 
-private fun DataSource.connection(): Resource<Connection> = Resource.fromAutoCloseable { connection }
+private fun DataSource.connection(): Resource<Connection> =
+  Resource.fromAutoCloseable { connection }
 
 private fun DataSource.prepareStatement(
   sql: String,
@@ -23,9 +24,7 @@ private fun DataSource.prepareStatement(
   }
 
 suspend fun DataSource.query(sql: String): Unit =
-  prepareStatement(sql)
-    .map { it.executeUpdate() }
-    .use {}
+  prepareStatement(sql).map { it.executeUpdate() }.use {}
 
 suspend fun <A> DataSource.queryOneOrNull(
   sql: String,
