@@ -1,6 +1,7 @@
 package io.github.nomisrev.config
 
 import arrow.fx.coroutines.Resource
+import arrow.fx.coroutines.continuations.resource
 import io.github.nomisrev.repo.articleRepo
 import io.github.nomisrev.repo.userPersistence
 import io.github.nomisrev.service.ArticleService
@@ -20,20 +21,18 @@ class Dependencies(
   val articleService: ArticleService
 )
 
-fun dependencies(config: Config): Resource<Dependencies> =
-  hikari(config.dataSource).flatMap { hikari ->
-    sqlDelight(hikari).map { sqlDelight ->
-      val userRepo = userPersistence(sqlDelight.usersQueries)
-      val articleRepo = articleRepo(sqlDelight.articlesQueries, sqlDelight.tagsQueries)
-      val jwtService = jwtService(config.auth, userRepo)
-      val slugGenerator = slugifyGenerator()
-      val userService = userService(userRepo, jwtService)
-
-      Dependencies(
-        databasePool(hikari),
-        userService,
-        jwtService,
-        articleService(slugGenerator, articleRepo, userRepo)
-      )
-    }
-  }
+fun dependencies(config: Config): Resource<Dependencies> = resource {
+  val hikari = hikari(config.dataSource).bind()
+  val sqlDelight = sqlDelight(hikari).bind()
+  val userRepo = userPersistence(sqlDelight.usersQueries)
+  val articleRepo = articleRepo(sqlDelight.articlesQueries, sqlDelight.tagsQueries)
+  val jwtService = jwtService(config.auth, userRepo)
+  val slugGenerator = slugifyGenerator()
+  val userService = userService(userRepo, jwtService)
+  Dependencies(
+    databasePool(hikari),
+    userService,
+    jwtService,
+    articleService(slugGenerator, articleRepo, userRepo)
+  )
+}

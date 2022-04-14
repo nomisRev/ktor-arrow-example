@@ -1,5 +1,5 @@
 [versions]
-arrow = "1.0.1"
+arrow = "1.0.3-alpha.39"
 arrowGradleConfig = "0.10.0"
 coroutines = "1.6.1"
 dokka = "1.6.20"
@@ -10,11 +10,13 @@ kover = "0.5.0"
 detekt = "1.19.0"
 ktor = "2.0.0"
 logback = "1.2.11"
-sqldelight="1.5.3"
+sqldelight="2.0.0-alpha02"
 testcontainers="1.17.1"
 hikari="5.0.1"
 postgresql="42.3.3"
 kjwt="0.5.1"
+kotest-arrow="1.2.5"
+slugify="2.5"
 
 [libraries]
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
@@ -27,6 +29,7 @@ kotest-assertionsCore = { module = "io.kotest:kotest-assertions-core", version.r
 kotest-frameworkEngine = { module = "io.kotest:kotest-framework-engine", version.ref = "kotest" }
 kotest-property = { module = "io.kotest:kotest-property", version.ref = "kotest" }
 kotest-runnerJUnit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
+kotest-arrow = { module = "io.kotest.extensions:kotest-assertions-arrow", version.ref = "kotest-arrow" }
 ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
 ktor-server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktor" }
@@ -46,9 +49,10 @@ kotlin-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.
 detekt-gradle = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
 hikari = { module = "com.zaxxer:HikariCP", version.ref="hikari" }
-sqldelight-jdbc = { module = "com.squareup.sqldelight:jdbc-driver", version.ref="sqldelight" }
+sqldelight-jdbc = { module = "app.cash.sqldelight:jdbc-driver", version.ref="sqldelight" }
 postgresql = { module="org.postgresql:postgresql", version.ref="postgresql" }
 kjwt-core = { module="io.github.nefilim.kjwt:kjwt-core", version.ref="kjwt" }
+slugify = { module="com.github.slugify:slugify", version.ref="slugify" }
 
 [plugins]
 arrowGradleConfig-formatter = { id = "io.arrow-kt.arrow-gradle-config-formatter", version.ref = "arrowGradleConfig" }
@@ -59,4 +63,4 @@ kotest-multiplatform = { id = "io.kotest.multiplatform", version.ref = "kotest-p
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-sqldelight = { id = "com.squareup.sqldelight", version.ref = "sqldelight" }
+sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }

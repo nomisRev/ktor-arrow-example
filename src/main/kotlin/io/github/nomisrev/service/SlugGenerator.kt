@@ -1,7 +1,7 @@
 package io.github.nomisrev.service
 
 import arrow.core.Either
-import arrow.core.computations.either
+import arrow.core.continuations.either
 import com.github.slugify.Slugify
 import io.github.nomisrev.ApiError.CannotGenerateSlug
 import kotlin.random.Random

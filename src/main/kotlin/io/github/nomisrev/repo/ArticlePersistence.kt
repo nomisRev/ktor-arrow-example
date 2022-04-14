@@ -41,19 +41,9 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
     ): Either<Unexpected, ArticleId> =
       Either.catch {
           articles.transactionWithResult<Long> {
-            articles.insert(
-              slug.value,
-              title,
-              description,
-              body,
-              authorId.serial,
-              createdAt,
-              updatedAt
-            )
-
             val articleId =
               articles
-                .selectId(
+                .insertAndGetId(
                   slug.value,
                   title,
                   description,
@@ -62,7 +52,7 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
                   createdAt,
                   updatedAt
                 )
-                .executeAsOne() // id needs to exist, or insert failed, so fatal
+                .executeAsOne()
 
             tags.forEach { tag -> tagsQueries.insert(articleId, tag) }
 

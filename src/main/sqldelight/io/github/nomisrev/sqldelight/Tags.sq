@@ -9,10 +9,6 @@ SELECT tag
 FROM tags
 WHERE article_id = :articleId;
 
-insert:
-INSERT INTO tags(article_id, tag)
-VALUES (?, ?);
-
 selectArticleId:
 SELECT article_id
 FROM tags
@@ -21,3 +17,7 @@ WHERE tag = :tag;
 selectTags:
 SELECT DISTINCT tag
 FROM tags;
+
+insert:
+INSERT INTO tags(article_id, tag)
+VALUES (:articleId, :tag);

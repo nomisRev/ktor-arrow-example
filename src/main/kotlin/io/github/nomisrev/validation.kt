@@ -7,7 +7,7 @@ import arrow.core.Validated
 import arrow.core.ValidatedNel
 import arrow.core.invalidNel
 import arrow.core.nonEmptyListOf
-import arrow.core.traverseValidated
+import arrow.core.traverse
 import arrow.core.validNel
 import arrow.core.zip
 import io.github.nomisrev.ApiError.IncorrectInput
@@ -118,7 +118,7 @@ private fun String.validBody(): ValidatedNel<InvalidBody, String> =
 
 @Suppress("UnusedPrivateMember")
 private fun validTags(tags: List<String>): ValidatedNel<InvalidTag, Set<String>> =
-  tags.traverseValidated { it.trim().notBlank() }.bimap(toInvalidField(::InvalidTag)) { it.toSet() }
+  tags.traverse { it.trim().notBlank() }.bimap(toInvalidField(::InvalidTag)) { it.toSet() }
 
 private fun <A : InvalidField> toInvalidField(
   transform: (NonEmptyList<String>) -> A
@@ -128,10 +128,12 @@ private fun String.notBlank(): ValidatedNel<String, String> =
   if (isNotBlank()) validNel() else "Cannot be blank".invalidNel()
 
 private fun String.minSize(size: Int) =
-  if (length >= size) validNel() else "$this is too short (minimum is $size character)".invalidNel()
+  if (length >= size) validNel()
+  else "'$this' is too short (minimum is $size character)".invalidNel()
 
 private fun String.maxSize(size: Int) =
-  if (length <= size) validNel() else "$this is too long (maximum is $size character)".invalidNel()
+  if (length <= size) validNel()
+  else "'$this' is too long (maximum is $size character)".invalidNel()
 
 private val emailPattern = ".+@.+\\..+".toRegex()
 

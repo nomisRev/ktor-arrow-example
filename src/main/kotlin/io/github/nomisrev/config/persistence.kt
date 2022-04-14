@@ -1,9 +1,10 @@
 package io.github.nomisrev.config
 
+import app.cash.sqldelight.ColumnAdapter
+import app.cash.sqldelight.driver.jdbc.asJdbcDriver
 import arrow.fx.coroutines.Resource
+import arrow.fx.coroutines.continuations.resource
 import arrow.fx.coroutines.fromCloseable
-import com.squareup.sqldelight.ColumnAdapter
-import com.squareup.sqldelight.sqlite.driver.asJdbcDriver
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.github.nomisrev.sqldelight.Articles
@@ -24,18 +25,17 @@ fun hikari(config: Config.DataSource): Resource<HikariDataSource> =
     )
   }
 
-fun sqlDelight(dataSource: DataSource): Resource<SqlDelight> =
-  Resource.fromCloseable(dataSource::asJdbcDriver).map { driver ->
-    SqlDelight.Schema.create(driver)
-    SqlDelight(
-      driver,
-      Articles.Adapter(OffsetDateTimeAdapter, OffsetDateTimeAdapter),
-      Comments.Adapter(OffsetDateTimeAdapter, OffsetDateTimeAdapter)
-    )
-  }
+fun sqlDelight(dataSource: DataSource): Resource<SqlDelight> = resource {
+  val driver = Resource.fromCloseable(dataSource::asJdbcDriver).bind()
+  SqlDelight.Schema.create(driver)
+  SqlDelight(
+    driver,
+    Articles.Adapter(OffsetDateTimeAdapter, OffsetDateTimeAdapter),
+    Comments.Adapter(OffsetDateTimeAdapter, OffsetDateTimeAdapter)
+  )
+}
 
 private object OffsetDateTimeAdapter : ColumnAdapter<OffsetDateTime, String> {
   override fun decode(databaseValue: String): OffsetDateTime = OffsetDateTime.parse(databaseValue)
-
   override fun encode(value: OffsetDateTime): String = value.toString()
 }
