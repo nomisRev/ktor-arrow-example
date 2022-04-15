@@ -12,7 +12,6 @@ import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.assertSoftly
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import io.ktor.client.call.body
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -34,8 +33,7 @@ class UserRouteSpec :
     afterTest { dataSource.query("TRUNCATE users CASCADE") }
 
     "Can log in a registered user" {
-      val token =
-        userService.register(RegisterUser(validUsername, validEmail, validPw)).shouldBeRight()
+      userService.register(RegisterUser(validUsername, validEmail, validPw)).shouldBeRight()
       withService(dependencies) {
         val response =
           client.post("/users/login") {
