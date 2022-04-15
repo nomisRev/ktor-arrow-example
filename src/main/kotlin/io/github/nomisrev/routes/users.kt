@@ -8,7 +8,7 @@ import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.service.JwtService
 import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
-import io.github.nomisrev.service.UpdateUser
+import io.github.nomisrev.service.Update
 import io.github.nomisrev.service.UserService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
@@ -90,10 +90,10 @@ fun Application.userRoutes(
     jwtAuth(jwtService) { (token, userId) ->
       val res =
         either<ApiError, UserWrapper<User>> {
-          val (_, username, email, password, bio, image) =
+          val (email, username, password, bio, image) =
             receiveCatching<UserWrapper<UpdateUser>>().bind().user
           val info =
-            userService.update(UpdateUser(userId, username, email, password, bio, image)).bind()
+            userService.update(Update(userId, username, email, password, bio, image)).bind()
           UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
         }
       respond(res, HttpStatusCode.OK)

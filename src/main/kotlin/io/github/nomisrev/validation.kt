@@ -13,7 +13,7 @@ import arrow.core.zip
 import io.github.nomisrev.ApiError.IncorrectInput
 import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
-import io.github.nomisrev.service.UpdateUser
+import io.github.nomisrev.service.Update
 
 sealed interface InvalidField {
   val errors: NonEmptyList<String>
@@ -61,14 +61,14 @@ fun RegisterUser.validate(): Validated<IncorrectInput, RegisterUser> =
     .zip(email.validEmail(), password.validPassword(), ::RegisterUser)
     .mapLeft(::IncorrectInput)
 
-fun UpdateUser.validate(): Validated<IncorrectInput, UpdateUser> =
+fun Update.validate(): Validated<IncorrectInput, Update> =
   username
     .traverse(String::validUsername)
     .zip(email.traverse(String::validEmail), password.traverse(String::validPassword)) {
       username,
       email,
       password ->
-      UpdateUser(userId, username, email, password, bio, image)
+      Update(userId, username, email, password, bio, image)
     }
     .mapLeft(::IncorrectInput)
 

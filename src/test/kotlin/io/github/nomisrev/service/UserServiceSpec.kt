@@ -105,7 +105,7 @@ class UserServiceSpec :
         "Update with all null" {
           val token =
             userService.register(RegisterUser(validUsername, validEmail, validPw)).shouldBeRight()
-          val res = userService.update(UpdateUser(token.id(), null, null, null, null, null))
+          val res = userService.update(Update(token.id(), null, null, null, null, null))
           res shouldBeLeft
             EmptyUpdate("Cannot update user with ${token.id()} with only null values")
         }
