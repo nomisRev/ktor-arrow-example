@@ -1,5 +1,7 @@
+import io.github.nomisrev.repo.UserId;
+
 CREATE TABLE IF NOT EXISTS users(
-    id BIGSERIAL PRIMARY KEY,
+    id BIGSERIAL AS UserId PRIMARY KEY,
     email VARCHAR(200) NOT NULL UNIQUE,
     username VARCHAR(100) NOT NULL UNIQUE,
     salt BYTEA NOT NULL,
