@@ -24,6 +24,7 @@ import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
 // TODO move this to Kotest Arrow Extensions
+// https://github.com/kotest/kotest-extensions-arrow/pull/143
 public fun <A> TestConfiguration.resource(resource: Resource<A>): ReadOnlyProperty<Any?, A> =
   TestResource(resource).also(::listener)
 
@@ -79,11 +80,7 @@ private class TestResource<A>(private val resource: Resource<A>) :
     super.beforeSpec(spec)
     value.modify {
       when (it) {
-        None ->
-          resource.bind().let { a ->
-            println("Initialised in beforeSpec")
-            Pair(Some(a), a)
-          }
+        None -> resource.bind().let { a -> Pair(Some(a), a) }
         is Some -> Pair(it, it.value)
       }
     }

@@ -9,7 +9,6 @@ import io.github.nomisrev.ApiError.Unexpected
 import io.github.nomisrev.ApiError.UserNotFound
 import io.github.nomisrev.service.UserInfo
 import io.github.nomisrev.sqldelight.UsersQueries
-import java.util.Base64
 import java.util.UUID
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
@@ -78,13 +77,11 @@ fun userPersistence(
       email: String,
       password: String
     ): Either<ApiError, Pair<UserId, UserInfo>> = either {
-      val (userId, username, saltString, passwordString, bio, image) =
+      val (userId, username, salt, key, bio, image) =
         ensureNotNull(usersQueries.selectSecurityByEmail(email).executeAsOneOrNull()) {
           UserNotFound("email=$email")
         }
 
-      val salt = Base64.getDecoder().decode(saltString)
-      val key = Base64.getDecoder().decode(passwordString)
       val hash = generateKey(password, salt)
       ensure(hash contentEquals key) { ApiError.PasswordNotMatched }
       Pair(UserId(userId), UserInfo(email, username, bio, image))

@@ -11,9 +11,9 @@ import arrow.core.traverse
 import arrow.core.validNel
 import arrow.core.zip
 import io.github.nomisrev.ApiError.IncorrectInput
-import io.github.nomisrev.service.LoginUser
+import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
-import io.github.nomisrev.service.UpdateUser
+import io.github.nomisrev.service.Update
 
 sealed interface InvalidField {
   val errors: NonEmptyList<String>
@@ -52,8 +52,8 @@ data class InvalidEmailOrPassword(override val errors: NonEmptyList<String>) : I
   override val field: String = "email or password"
 }
 
-fun LoginUser.validate(): Validated<IncorrectInput, LoginUser> =
-  email.validEmail().zip(password.validPassword(), ::LoginUser).mapLeft(::IncorrectInput)
+fun Login.validate(): Validated<IncorrectInput, Login> =
+  email.validEmail().zip(password.validPassword(), ::Login).mapLeft(::IncorrectInput)
 
 fun RegisterUser.validate(): Validated<IncorrectInput, RegisterUser> =
   username
@@ -61,14 +61,14 @@ fun RegisterUser.validate(): Validated<IncorrectInput, RegisterUser> =
     .zip(email.validEmail(), password.validPassword(), ::RegisterUser)
     .mapLeft(::IncorrectInput)
 
-fun UpdateUser.validate(): Validated<IncorrectInput, UpdateUser> =
+fun Update.validate(): Validated<IncorrectInput, Update> =
   username
     .traverse(String::validUsername)
     .zip(email.traverse(String::validEmail), password.traverse(String::validPassword)) {
       username,
       email,
       password ->
-      UpdateUser(userId, username, email, password, bio, image)
+      Update(userId, username, email, password, bio, image)
     }
     .mapLeft(::IncorrectInput)
 
@@ -128,14 +128,12 @@ private fun String.notBlank(): ValidatedNel<String, String> =
   if (isNotBlank()) validNel() else "Cannot be blank".invalidNel()
 
 private fun String.minSize(size: Int) =
-  if (length >= size) validNel()
-  else "'$this' is too short (minimum is $size character)".invalidNel()
+  if (length >= size) validNel() else "is too short (minimum is $size characters)".invalidNel()
 
 private fun String.maxSize(size: Int) =
-  if (length <= size) validNel()
-  else "'$this' is too long (maximum is $size character)".invalidNel()
+  if (length <= size) validNel() else "is too long (maximum is $size characters)".invalidNel()
 
 private val emailPattern = ".+@.+\\..+".toRegex()
 
 private fun String.looksLikeEmail() =
-  if (emailPattern.matches(this)) validNel() else "is invalid".invalidNel()
+  if (emailPattern.matches(this)) validNel() else "'$this' is invalid email".invalidNel()

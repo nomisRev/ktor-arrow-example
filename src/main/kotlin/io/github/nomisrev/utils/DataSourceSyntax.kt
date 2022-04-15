@@ -8,9 +8,10 @@ import java.sql.ResultSet
 import java.sql.Types
 import javax.sql.DataSource
 
-fun DataSource.connection(): Resource<Connection> = Resource.fromAutoCloseable { connection }
+private fun DataSource.connection(): Resource<Connection> =
+  Resource.fromAutoCloseable { connection }
 
-fun DataSource.prepareStatement(
+private fun DataSource.prepareStatement(
   sql: String,
   binders: (SqlPreparedStatement.() -> Unit)? = null
 ): Resource<PreparedStatement> =
@@ -23,9 +24,7 @@ fun DataSource.prepareStatement(
   }
 
 suspend fun DataSource.query(sql: String): Unit =
-  prepareStatement(sql)
-    .flatMap { preparedStatement -> Resource({ preparedStatement.executeUpdate() }, { _, _ -> }) }
-    .use {}
+  prepareStatement(sql).map { it.executeUpdate() }.use {}
 
 suspend fun <A> DataSource.queryOneOrNull(
   sql: String,
@@ -56,11 +55,11 @@ suspend fun <A> DataSource.queryAsList(
       }
     }
     .use { rs ->
-      val buffer = mutableListOf<A>()
-      while (rs.next()) {
-        mapper(SqlCursor(rs))?.let(buffer::add)
+      buildList {
+        while (rs.next()) {
+          mapper(SqlCursor(rs))?.let(::add)
+        }
       }
-      buffer
     }
 
 class SqlPreparedStatement(private val preparedStatement: PreparedStatement) {

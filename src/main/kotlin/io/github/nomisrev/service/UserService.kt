@@ -11,7 +11,7 @@ import io.github.nomisrev.validate
 
 data class RegisterUser(val username: String, val email: String, val password: String)
 
-data class UpdateUser(
+data class Update(
   val userId: UserId,
   val username: String?,
   val email: String?,
@@ -20,7 +20,7 @@ data class UpdateUser(
   val image: String?
 )
 
-data class LoginUser(val email: String, val password: String)
+data class Login(val email: String, val password: String)
 
 data class UserInfo(val email: String, val username: String, val bio: String, val image: String)
 
@@ -29,10 +29,10 @@ interface UserService {
   suspend fun register(input: RegisterUser): Either<ApiError, JwtToken>
 
   /** Updates a user with all the provided fields, returns resulting info */
-  suspend fun update(input: UpdateUser): Either<ApiError, UserInfo>
+  suspend fun update(input: Update): Either<ApiError, UserInfo>
 
   /** Logs in a user based on email and password. */
-  suspend fun login(input: LoginUser): Either<ApiError, Pair<JwtToken, UserInfo>>
+  suspend fun login(input: Login): Either<ApiError, Pair<JwtToken, UserInfo>>
 
   /** Retrieve used based on userId */
   suspend fun getUser(userId: UserId): Either<ApiError, UserInfo>
@@ -49,15 +49,14 @@ fun userService(repo: UserPersistence, jwtService: JwtService) =
       jwtService.generateJwtToken(userId).bind()
     }
 
-    override suspend fun login(input: LoginUser): Either<ApiError, Pair<JwtToken, UserInfo>> =
-        either {
+    override suspend fun login(input: Login): Either<ApiError, Pair<JwtToken, UserInfo>> = either {
       val (email, password) = input.validate().bind()
       val (userId, info) = repo.verifyPassword(email, password).bind()
       val token = jwtService.generateJwtToken(userId).bind()
       Pair(token, info)
     }
 
-    override suspend fun update(input: UpdateUser): Either<ApiError, UserInfo> = either {
+    override suspend fun update(input: Update): Either<ApiError, UserInfo> = either {
       val (userId, username, email, password, bio, image) = input.validate().bind()
       ensure(email != null || username != null || bio != null || image != null) {
         EmptyUpdate("Cannot update user with $userId with only null values")
