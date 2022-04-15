@@ -11,7 +11,7 @@ import arrow.core.traverse
 import arrow.core.validNel
 import arrow.core.zip
 import io.github.nomisrev.ApiError.IncorrectInput
-import io.github.nomisrev.service.LoginUser
+import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.service.UpdateUser
 
@@ -52,8 +52,8 @@ data class InvalidEmailOrPassword(override val errors: NonEmptyList<String>) : I
   override val field: String = "email or password"
 }
 
-fun LoginUser.validate(): Validated<IncorrectInput, LoginUser> =
-  email.validEmail().zip(password.validPassword(), ::LoginUser).mapLeft(::IncorrectInput)
+fun Login.validate(): Validated<IncorrectInput, Login> =
+  email.validEmail().zip(password.validPassword(), ::Login).mapLeft(::IncorrectInput)
 
 fun RegisterUser.validate(): Validated<IncorrectInput, RegisterUser> =
   username

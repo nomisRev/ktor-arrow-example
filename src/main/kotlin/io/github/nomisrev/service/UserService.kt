@@ -20,7 +20,7 @@ data class UpdateUser(
   val image: String?
 )
 
-data class LoginUser(val email: String, val password: String)
+data class Login(val email: String, val password: String)
 
 data class UserInfo(val email: String, val username: String, val bio: String, val image: String)
 
@@ -32,7 +32,7 @@ interface UserService {
   suspend fun update(input: UpdateUser): Either<ApiError, UserInfo>
 
   /** Logs in a user based on email and password. */
-  suspend fun login(input: LoginUser): Either<ApiError, Pair<JwtToken, UserInfo>>
+  suspend fun login(input: Login): Either<ApiError, Pair<JwtToken, UserInfo>>
 
   /** Retrieve used based on userId */
   suspend fun getUser(userId: UserId): Either<ApiError, UserInfo>
@@ -49,8 +49,7 @@ fun userService(repo: UserPersistence, jwtService: JwtService) =
       jwtService.generateJwtToken(userId).bind()
     }
 
-    override suspend fun login(input: LoginUser): Either<ApiError, Pair<JwtToken, UserInfo>> =
-        either {
+    override suspend fun login(input: Login): Either<ApiError, Pair<JwtToken, UserInfo>> = either {
       val (email, password) = input.validate().bind()
       val (userId, info) = repo.verifyPassword(email, password).bind()
       val token = jwtService.generateJwtToken(userId).bind()

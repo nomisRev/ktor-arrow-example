@@ -1,4 +1,4 @@
-package io.github.nomisrev
+package io.github.nomisrev.service
 
 import arrow.core.nonEmptyListOf
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
@@ -6,14 +6,16 @@ import io.github.nefilim.kjwt.JWT
 import io.github.nomisrev.ApiError.EmptyUpdate
 import io.github.nomisrev.ApiError.IncorrectInput
 import io.github.nomisrev.ApiError.UsernameAlreadyExists
+import io.github.nomisrev.InvalidEmail
+import io.github.nomisrev.InvalidPassword
+import io.github.nomisrev.InvalidUsername
+import io.github.nomisrev.PostgreSQLContainer
 import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.config.Config
 import io.github.nomisrev.config.dependencies
 import io.github.nomisrev.config.hikari
 import io.github.nomisrev.repo.UserId
-import io.github.nomisrev.service.RegisterUser
-import io.github.nomisrev.service.UpdateUser
-import io.github.nomisrev.service.userService
+import io.github.nomisrev.resource
 import io.github.nomisrev.utils.query
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight

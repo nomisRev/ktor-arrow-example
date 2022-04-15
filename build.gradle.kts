@@ -67,6 +67,8 @@ dependencies {
   implementation(libs.postgresql)
   implementation(libs.slugify)
 
+  testImplementation(libs.ktor.client.content.negotiation)
+  testImplementation(libs.ktor.client.serialization)
   testImplementation(libs.testcontainers.postgresql)
   testImplementation(libs.ktor.server.tests)
   testImplementation(libs.kotest.arrow)

@@ -6,7 +6,7 @@ import io.github.nomisrev.ApiError
 import io.github.nomisrev.ApiError.Unexpected
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.service.JwtService
-import io.github.nomisrev.service.LoginUser
+import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.service.UpdateUser
 import io.github.nomisrev.service.UserService
@@ -23,7 +23,7 @@ import io.ktor.server.routing.routing
 import io.ktor.util.pipeline.PipelineContext
 import kotlinx.serialization.Serializable
 
-@Serializable data class UserWrapper<T>(val user: T)
+@Serializable data class UserWrapper<T : Any>(val user: T)
 
 @Serializable data class NewUser(val username: String, val email: String, val password: String)
 
@@ -66,7 +66,7 @@ fun Application.userRoutes(
       val res =
         either<ApiError, UserWrapper<User>> {
           val (email, password) = receiveCatching<UserWrapper<LoginUser>>().bind().user
-          val (token, info) = userService.login(LoginUser(email, password)).bind()
+          val (token, info) = userService.login(Login(email, password)).bind()
           UserWrapper(User(email, token.value, info.username, info.bio, info.image))
         }
       respond(res, HttpStatusCode.OK)
