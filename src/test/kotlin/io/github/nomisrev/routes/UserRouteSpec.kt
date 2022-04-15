@@ -75,12 +75,10 @@ class UserRouteSpec :
     }
 
     "Can get current user" {
-      val token = userService.register(RegisterUser(validUsername, validEmail, validPw)).shouldBeRight()
+      val token =
+        userService.register(RegisterUser(validUsername, validEmail, validPw)).shouldBeRight()
       withService(dependencies) {
-        val response =
-          client.get("/user") {
-            bearerAuth(token.value)
-          }
+        val response = client.get("/user") { bearerAuth(token.value) }
 
         response.status shouldBe HttpStatusCode.OK
         assertSoftly {
@@ -95,7 +93,8 @@ class UserRouteSpec :
     }
 
     "Update user" {
-      val token = userService.register(RegisterUser(validUsername, validEmail, validPw)).shouldBeRight()
+      val token =
+        userService.register(RegisterUser(validUsername, validEmail, validPw)).shouldBeRight()
       val newUsername = "newUsername"
       withService(dependencies) {
         val response =
@@ -118,7 +117,8 @@ class UserRouteSpec :
     }
 
     "Update user invalid email" {
-      val token = userService.register(RegisterUser(validUsername, validEmail, validPw)).shouldBeRight()
+      val token =
+        userService.register(RegisterUser(validUsername, validEmail, validPw)).shouldBeRight()
       val inalidEmail = "invalidEmail"
       withService(dependencies) {
         val response =
@@ -129,8 +129,8 @@ class UserRouteSpec :
           }
 
         response.status shouldBe HttpStatusCode.UnprocessableEntity
-        response.body<GenericErrorModel>()
-          .errors.body shouldBe listOf("email: 'invalidEmail' is invalid email")
+        response.body<GenericErrorModel>().errors.body shouldBe
+          listOf("email: 'invalidEmail' is invalid email")
       }
     }
   })
