@@ -40,29 +40,18 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
       tags: Set<String>
     ): Either<Unexpected, ArticleId> =
       Either.catch {
-          articles.transactionWithResult<Long> {
-            val articleId =
-              articles
-                .insertAndGetId(
-                  slug.value,
-                  title,
-                  description,
-                  body,
-                  authorId.serial,
-                  createdAt,
-                  updatedAt
-                )
-                .executeAsOne()
+        articles.transactionWithResult<ArticleId> {
+          val articleId =
+            articles
+              .insertAndGetId(slug.value, title, description, body, authorId, createdAt, updatedAt)
+              .executeAsOne()
 
-            tags.forEach { tag -> tagsQueries.insert(articleId, tag) }
+          tags.forEach { tag -> tagsQueries.insert(articleId, tag) }
 
-            articleId
-          }
+          articleId
         }
-        .bimap(
-          { e -> Unexpected("Failed to create article: $authorId:$title:$tags", e) },
-          ::ArticleId
-        )
+      }
+        .mapLeft { e -> Unexpected("Failed to create article: $authorId:$title:$tags", e) }
 
     override suspend fun exists(slug: Slug): Either<Unexpected, Boolean> =
       Either.catch { articles.slugExists(slug.value).executeAsOne() }.mapLeft { e ->

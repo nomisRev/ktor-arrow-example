@@ -60,17 +60,13 @@ fun userPersistence(
     ): Either<ApiError, UserId> {
       val salt = generateSalt()
       val key = generateKey(password, salt)
-      return Either.catch { usersQueries.create(salt, key, username, email) }
-        .bimap(
-          { error ->
-            if (error is PSQLException && error.sqlState == PSQLState.UNIQUE_VIOLATION.state) {
-              ApiError.UsernameAlreadyExists(username)
-            } else {
-              Unexpected("Failed to persist user: $username:$email", error)
-            }
-          },
-          ::UserId
-        )
+      return Either.catch { usersQueries.create(salt, key, username, email) }.mapLeft { error ->
+        if (error is PSQLException && error.sqlState == PSQLState.UNIQUE_VIOLATION.state) {
+          ApiError.UsernameAlreadyExists(username)
+        } else {
+          Unexpected("Failed to persist user: $username:$email", error)
+        }
+      }
     }
 
     override suspend fun verifyPassword(
@@ -84,14 +80,14 @@ fun userPersistence(
 
       val hash = generateKey(password, salt)
       ensure(hash contentEquals key) { ApiError.PasswordNotMatched }
-      Pair(UserId(userId), UserInfo(email, username, bio, image))
+      Pair(userId, UserInfo(email, username, bio, image))
     }
 
     override suspend fun select(userId: UserId): Either<ApiError, UserInfo> = either {
       val userInfo =
         Either.catch {
             usersQueries
-              .selectById(userId.serial) { email, username, _, _, bio, image ->
+              .selectById(userId) { email, username, _, _, bio, image ->
                 UserInfo(email, username, bio, image)
               }
               .executeAsOneOrNull()
@@ -119,14 +115,14 @@ fun userPersistence(
     ): Either<ApiError, UserInfo> = either {
       val info =
         usersQueries.transactionWithResult<UserInfo?> {
-          usersQueries.selectById(userId.serial).executeAsOneOrNull()?.let {
+          usersQueries.selectById(userId).executeAsOneOrNull()?.let {
             (oldEmail, oldUsername, salt, oldPassword, oldBio, oldImage) ->
             val newPassword = password?.let { generateKey(it, salt) } ?: oldPassword
             val newEmail = email ?: oldEmail
             val newUsername = username ?: oldUsername
             val newBio = bio ?: oldBio
             val newImage = image ?: oldImage
-            usersQueries.update(newEmail, newUsername, newPassword, newBio, newImage, userId.serial)
+            usersQueries.update(newEmail, newUsername, newPassword, newBio, newImage, userId)
             UserInfo(newEmail, newUsername, newBio, newImage)
           }
         }
@@ -146,7 +142,7 @@ private fun UsersQueries.create(
   key: ByteArray,
   username: String,
   email: String
-): Long =
+): UserId =
   insertAndGetId(
       username = username,
       email = email,
