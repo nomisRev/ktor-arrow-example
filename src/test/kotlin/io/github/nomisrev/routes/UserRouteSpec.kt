@@ -48,7 +48,6 @@ class UserRouteSpec :
           val user = response.body<UserWrapper<User>>().user
           user.username shouldBe validUsername
           user.email shouldBe validEmail
-          user.token shouldNotBe token.value
           user.bio shouldBe ""
           user.image shouldBe ""
         }
