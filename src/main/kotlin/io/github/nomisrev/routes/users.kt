@@ -54,49 +54,45 @@ fun Application.userRoutes(
   route("/users") {
     /* Registration: POST /api/users */
     post {
-      val res =
-        either<ApiError, UserWrapper<User>> {
+      either<ApiError, UserWrapper<User>> {
           val (username, email, password) = receiveCatching<UserWrapper<NewUser>>().bind().user
           val token = userService.register(RegisterUser(username, email, password)).bind().value
           UserWrapper(User(email, token, username, "", ""))
         }
-      respond(res, HttpStatusCode.Created)
+        .respond(HttpStatusCode.Created)
     }
     post("/login") {
-      val res =
-        either<ApiError, UserWrapper<User>> {
+      either<ApiError, UserWrapper<User>> {
           val (email, password) = receiveCatching<UserWrapper<LoginUser>>().bind().user
           val (token, info) = userService.login(Login(email, password)).bind()
           UserWrapper(User(email, token.value, info.username, info.bio, info.image))
         }
-      respond(res, HttpStatusCode.OK)
+        .respond(HttpStatusCode.OK)
     }
   }
 
   /* Get Current User: GET /api/user */
   get("/user") {
     jwtAuth(jwtService) { (token, userId) ->
-      val res =
-        either<ApiError, UserWrapper<User>> {
+      either<ApiError, UserWrapper<User>> {
           val info = userService.getUser(userId).bind()
           UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
         }
-      respond(res, HttpStatusCode.OK)
+        .respond(HttpStatusCode.OK)
     }
   }
 
   /* Update current user: PUT /api/user */
   put("/user") {
     jwtAuth(jwtService) { (token, userId) ->
-      val res =
-        either<ApiError, UserWrapper<User>> {
+      either<ApiError, UserWrapper<User>> {
           val (email, username, password, bio, image) =
             receiveCatching<UserWrapper<UpdateUser>>().bind().user
           val info =
             userService.update(Update(userId, username, email, password, bio, image)).bind()
           UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
         }
-      respond(res, HttpStatusCode.OK)
+        .respond(HttpStatusCode.OK)
     }
   }
 }

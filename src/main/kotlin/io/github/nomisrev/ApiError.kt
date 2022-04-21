@@ -16,11 +16,6 @@ sealed interface ApiError {
   object PasswordNotMatched : ApiError
   data class IncorrectInput(val errors: NonEmptyList<InvalidField>) : ApiError {
     constructor(field: InvalidField) : this(nonEmptyListOf(field))
-    @Suppress("SpreadOperator")
-    constructor(
-      field: InvalidField,
-      vararg fields: InvalidField
-    ) : this(nonEmptyListOf(field, *fields))
   }
   data class EmptyUpdate(val description: String) : ApiError
   data class UserNotFound(val property: String) : ApiError

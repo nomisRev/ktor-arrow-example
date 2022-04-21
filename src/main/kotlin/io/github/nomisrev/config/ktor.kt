@@ -6,12 +6,10 @@ import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
-import io.ktor.server.application.log
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.CORS
 import io.ktor.server.plugins.cors.maxAgeDuration
 import io.ktor.server.plugins.defaultheaders.DefaultHeaders
-import io.ktor.server.routing.routing
 import kotlin.time.Duration.Companion.days
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
@@ -33,7 +31,6 @@ val kotlinXSerializersModule = SerializersModule {
 }
 
 fun Application.configure() {
-  routing { trace { application.log.trace(it.buildText()) } }
   install(DefaultHeaders)
   install(ContentNegotiation) {
     json(

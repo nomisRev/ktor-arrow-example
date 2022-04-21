@@ -19,33 +19,31 @@ import io.ktor.util.pipeline.PipelineContext
 data class JwtContext(val token: JwtToken, val userId: UserId)
 
 // Small middleware to validate JWT token without using Ktor Auth / Nullable principle
-suspend fun PipelineContext<Unit, ApplicationCall>.jwtAuth(
+suspend inline fun PipelineContext<Unit, ApplicationCall>.jwtAuth(
   jwtService: JwtService,
-  body: suspend PipelineContext<Unit, ApplicationCall>.(JwtContext) -> Unit
+  crossinline body: suspend PipelineContext<Unit, ApplicationCall>.(JwtContext) -> Unit
 ) {
-  jwtToken()?.let { token -> jwtAuth(jwtService, token, body) }
-    ?: call.respond(HttpStatusCode.Unauthorized)
+  optionalJwtAuth(jwtService) { context ->
+    context?.let { body(this, it) } ?: call.respond(HttpStatusCode.Unauthorized)
+  }
 }
 
-suspend fun PipelineContext<Unit, ApplicationCall>.optionalJwtAuth(
+suspend inline fun PipelineContext<Unit, ApplicationCall>.optionalJwtAuth(
   jwtService: JwtService,
-  body: suspend PipelineContext<Unit, ApplicationCall>.(JwtContext?) -> Unit
+  crossinline body: suspend PipelineContext<Unit, ApplicationCall>.(JwtContext?) -> Unit
 ) {
-  jwtToken()?.let { token -> jwtAuth(jwtService, token, body) } ?: body(this, null)
+  jwtToken()?.let { token ->
+    jwtService
+      .verifyJwtToken(JwtToken(token))
+      .fold(
+        { error -> respond(error) },
+        { userId -> body(this, JwtContext(JwtToken(token), userId)) }
+      )
+  }
+    ?: body(this, null)
 }
 
-private suspend fun PipelineContext<Unit, ApplicationCall>.jwtAuth(
-  jwtService: JwtService,
-  token: String,
-  body: suspend PipelineContext<Unit, ApplicationCall>.(JwtContext) -> Unit
-) {
-  jwtService
-    .verifyJwtToken(JwtToken(token))
-    .fold(
-      { error -> respond(error) },
-      { userId -> body(this, JwtContext(JwtToken(token), userId)) }
-    )
-}
-
-private fun PipelineContext<Unit, ApplicationCall>.jwtToken(): String? =
-  Either.catch { (call.request.parseAuthorizationHeader() as HttpAuthHeader.Single) }.orNull()?.blob
+fun PipelineContext<Unit, ApplicationCall>.jwtToken(): String? =
+  Either.catch { (call.request.parseAuthorizationHeader() as? HttpAuthHeader.Single) }
+    .orNull()
+    ?.blob

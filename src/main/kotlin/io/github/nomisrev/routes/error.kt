@@ -30,13 +30,12 @@ import kotlinx.serialization.Serializable
 fun GenericErrorModel(vararg msg: String): GenericErrorModel =
   GenericErrorModel(GenericErrorModelErrors(msg.toList()))
 
-suspend inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>.respond(
-  either: Either<ApiError, A>,
-  status: HttpStatusCode
-): Unit =
-  when (either) {
-    is Either.Left -> respond(either.value)
-    is Either.Right -> call.respond(status, either.value)
+context(PipelineContext<Unit, ApplicationCall>)
+
+suspend inline fun <reified A : Any> Either<ApiError, A>.respond(status: HttpStatusCode): Unit =
+  when (this) {
+    is Either.Left -> respond(value)
+    is Either.Right -> call.respond(status, value)
   }
 
 @Suppress("ComplexMethod")
@@ -44,48 +43,36 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: ApiError): Uni
   when (error) {
     PasswordNotMatched -> call.respond(HttpStatusCode.Unauthorized)
     is IncorrectInput ->
-      respondUnprocessable(
-        GenericErrorModel(
-          error.errors.joinToString { field -> "${field.field}: ${field.errors.joinToString()}" }
-        )
+      unprocessable(
+        error.errors.joinToString { field -> "${field.field}: ${field.errors.joinToString()}" }
       )
     is Unexpected ->
-      call.respond(
-        HttpStatusCode.InternalServerError,
-        GenericErrorModel(
-          """
-                        Unexpected failure occurred:
-                          - description: ${error.description}
-                          - cause: ${error.error}
-                    """.trimIndent()
-        )
+      internal(
+        """
+        Unexpected failure occurred:
+          - description: ${error.description}
+          - cause: ${error.error}
+        """.trimIndent()
       )
-    is EmptyUpdate -> respondUnprocessable(GenericErrorModel(error.description))
-    is ArticleNotFound ->
-      respondUnprocessable(GenericErrorModel("Article ${error.slug} does not exist"))
-    is CannotGenerateSlug -> respondUnprocessable(GenericErrorModel(error.description))
-    is CommentNotFound ->
-      respondUnprocessable(GenericErrorModel("Comment for id ${error.commentId} not found"))
-    is EmailAlreadyExists ->
-      respondUnprocessable(GenericErrorModel("${error.email} is already registered"))
-    is JwtGeneration -> respondUnprocessable(GenericErrorModel(error.description))
-    is ProfileNotFound ->
-      respondUnprocessable(GenericErrorModel("Profile for ${error.profile.username} not found"))
+    is EmptyUpdate -> unprocessable(error.description)
+    is ArticleNotFound -> unprocessable("Article ${error.slug} does not exist")
+    is CannotGenerateSlug -> unprocessable(error.description)
+    is CommentNotFound -> unprocessable("Comment for id ${error.commentId} not found")
+    is EmailAlreadyExists -> unprocessable("${error.email} is already registered")
+    is JwtGeneration -> unprocessable(error.description)
+    is ProfileNotFound -> unprocessable("Profile for ${error.profile.username} not found")
     is UserFollowingHimself ->
-      respondUnprocessable(
-        GenericErrorModel("${error.profile.username} cannot follow ${error.profile.username}")
-      )
-    is UserNotFound ->
-      respondUnprocessable(GenericErrorModel("User with ${error.property} not found"))
+      unprocessable("${error.profile.username} cannot follow ${error.profile.username}")
+    is UserNotFound -> unprocessable("User with ${error.property} not found")
     is UserUnfollowingHimself ->
-      respondUnprocessable(
-        GenericErrorModel("${error.profile.username} cannot unfollow ${error.profile.username}")
-      )
-    is UsernameAlreadyExists ->
-      respondUnprocessable(GenericErrorModel("Username ${error.username} already exists"))
-    is ApiError.JwtInvalid -> respondUnprocessable(GenericErrorModel(error.description))
+      unprocessable("${error.profile.username} cannot unfollow ${error.profile.username}")
+    is UsernameAlreadyExists -> unprocessable("Username ${error.username} already exists")
+    is ApiError.JwtInvalid -> unprocessable(error.description)
   }
 
-private suspend inline fun PipelineContext<Unit, ApplicationCall>.respondUnprocessable(
-  error: GenericErrorModel
-): Unit = call.respond(HttpStatusCode.UnprocessableEntity, error)
+private suspend inline fun PipelineContext<Unit, ApplicationCall>.unprocessable(
+  error: String
+): Unit = call.respond(HttpStatusCode.UnprocessableEntity, GenericErrorModel(error))
+
+private suspend inline fun PipelineContext<Unit, ApplicationCall>.internal(error: String): Unit =
+  call.respond(HttpStatusCode.InternalServerError, GenericErrorModel(error))
