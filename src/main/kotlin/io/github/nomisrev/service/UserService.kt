@@ -1,7 +1,6 @@
 package io.github.nomisrev.service
 
-import arrow.core.Either
-import arrow.core.continuations.either
+import arrow.core.continuations.EffectScope
 import io.github.nomisrev.ApiError
 import io.github.nomisrev.ApiError.EmptyUpdate
 import io.github.nomisrev.auth.JwtToken
@@ -26,46 +25,57 @@ data class UserInfo(val email: String, val username: String, val bio: String, va
 
 interface UserService {
   /** Registers the user and returns its unique identifier */
-  suspend fun register(input: RegisterUser): Either<ApiError, JwtToken>
+  context(EffectScope<ApiError>)
+  suspend fun register(input: RegisterUser): JwtToken
 
   /** Updates a user with all the provided fields, returns resulting info */
-  suspend fun update(input: Update): Either<ApiError, UserInfo>
+  context(EffectScope<ApiError>)
+  suspend fun update(input: Update): UserInfo
 
   /** Logs in a user based on email and password. */
-  suspend fun login(input: Login): Either<ApiError, Pair<JwtToken, UserInfo>>
+  context(EffectScope<ApiError>)
+  suspend fun login(input: Login): Pair<JwtToken, UserInfo>
 
   /** Retrieve used based on userId */
-  suspend fun getUser(userId: UserId): Either<ApiError, UserInfo>
+  context(EffectScope<ApiError>)
+  suspend fun getUser(userId: UserId): UserInfo
 
   /** Retrieve used based on username */
-  suspend fun getUser(username: String): Either<ApiError, UserInfo>
+  context(EffectScope<ApiError>)
+  suspend fun getUser(username: String): UserInfo
 }
 
 fun userService(repo: UserPersistence, jwtService: JwtService) =
   object : UserService {
-    override suspend fun register(input: RegisterUser): Either<ApiError, JwtToken> = either {
+    context(EffectScope<ApiError>)
+    override suspend fun register(input: RegisterUser): JwtToken {
       val (username, email, password) = input.validate().bind()
-      val userId = repo.insert(username, email, password).bind()
-      jwtService.generateJwtToken(userId).bind()
+      val userId = repo.insert(username, email, password)
+      return jwtService.generateJwtToken(userId)
     }
 
-    override suspend fun login(input: Login): Either<ApiError, Pair<JwtToken, UserInfo>> = either {
+    context(EffectScope<ApiError>)
+    override suspend fun login(input: Login): Pair<JwtToken, UserInfo> {
       val (email, password) = input.validate().bind()
-      val (userId, info) = repo.verifyPassword(email, password).bind()
-      val token = jwtService.generateJwtToken(userId).bind()
-      Pair(token, info)
+      val (userId, info) = repo.verifyPassword(email, password)
+      val token = jwtService.generateJwtToken(userId)
+      return Pair(token, info)
     }
 
-    override suspend fun update(input: Update): Either<ApiError, UserInfo> = either {
+    context(EffectScope<ApiError>)
+    override suspend fun update(input: Update): UserInfo {
       val (userId, username, email, password, bio, image) = input.validate().bind()
       ensure(email != null || username != null || bio != null || image != null) {
         EmptyUpdate("Cannot update user with $userId with only null values")
       }
-      repo.update(userId, email, username, password, bio, image).bind()
+      return repo.update(userId, email, username, password, bio, image)
     }
 
-    override suspend fun getUser(userId: UserId): Either<ApiError, UserInfo> = repo.select(userId)
+    context(EffectScope<ApiError>)
+    override suspend fun getUser(userId: UserId): UserInfo =
+      repo.select(userId)
 
-    override suspend fun getUser(username: String): Either<ApiError, UserInfo> =
+    context(EffectScope<ApiError>)
+    override suspend fun getUser(username: String): UserInfo =
       repo.select(username)
   }

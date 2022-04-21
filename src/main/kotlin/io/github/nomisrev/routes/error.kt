@@ -9,6 +9,7 @@ import io.github.nomisrev.ApiError.EmailAlreadyExists
 import io.github.nomisrev.ApiError.EmptyUpdate
 import io.github.nomisrev.ApiError.IncorrectInput
 import io.github.nomisrev.ApiError.JwtGeneration
+import io.github.nomisrev.ApiError.JwtInvalid
 import io.github.nomisrev.ApiError.PasswordNotMatched
 import io.github.nomisrev.ApiError.ProfileNotFound
 import io.github.nomisrev.ApiError.Unexpected
@@ -23,16 +24,17 @@ import io.ktor.server.response.respond
 import io.ktor.util.pipeline.PipelineContext
 import kotlinx.serialization.Serializable
 
-@Serializable data class GenericErrorModel(val errors: GenericErrorModelErrors)
+@Serializable
+data class GenericErrorModel(val errors: GenericErrorModelErrors)
 
-@Serializable data class GenericErrorModelErrors(val body: List<String>)
+@Serializable
+data class GenericErrorModelErrors(val body: List<String>)
 
 fun GenericErrorModel(vararg msg: String): GenericErrorModel =
   GenericErrorModel(GenericErrorModelErrors(msg.toList()))
 
 context(PipelineContext<Unit, ApplicationCall>)
-
-suspend inline fun <reified A : Any> Either<ApiError, A>.respond(status: HttpStatusCode): Unit =
+  suspend inline fun <reified A : Any> Either<ApiError, A>.respond(status: HttpStatusCode): Unit =
   when (this) {
     is Either.Left -> respond(value)
     is Either.Right -> call.respond(status, value)
@@ -43,9 +45,7 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: ApiError): Uni
   when (error) {
     PasswordNotMatched -> call.respond(HttpStatusCode.Unauthorized)
     is IncorrectInput ->
-      unprocessable(
-        error.errors.joinToString { field -> "${field.field}: ${field.errors.joinToString()}" }
-      )
+      unprocessable(error.errors.joinToString { field -> "${field.field}: ${field.errors.joinToString()}" })
     is Unexpected ->
       internal(
         """
@@ -61,13 +61,11 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: ApiError): Uni
     is EmailAlreadyExists -> unprocessable("${error.email} is already registered")
     is JwtGeneration -> unprocessable(error.description)
     is ProfileNotFound -> unprocessable("Profile for ${error.profile.username} not found")
-    is UserFollowingHimself ->
-      unprocessable("${error.profile.username} cannot follow ${error.profile.username}")
+    is UserFollowingHimself -> unprocessable("${error.profile.username} cannot follow ${error.profile.username}")
     is UserNotFound -> unprocessable("User with ${error.property} not found")
-    is UserUnfollowingHimself ->
-      unprocessable("${error.profile.username} cannot unfollow ${error.profile.username}")
+    is UserUnfollowingHimself -> unprocessable("${error.profile.username} cannot unfollow ${error.profile.username}")
     is UsernameAlreadyExists -> unprocessable("Username ${error.username} already exists")
-    is ApiError.JwtInvalid -> unprocessable(error.description)
+    is JwtInvalid -> unprocessable(error.description)
   }
 
 private suspend inline fun PipelineContext<Unit, ApplicationCall>.unprocessable(

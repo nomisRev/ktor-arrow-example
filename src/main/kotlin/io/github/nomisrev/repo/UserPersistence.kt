@@ -2,6 +2,7 @@ package io.github.nomisrev.repo
 
 import arrow.core.Either
 import arrow.core.computations.ensureNotNull
+import arrow.core.continuations.EffectScope
 import arrow.core.continuations.either
 import arrow.core.continuations.ensureNotNull
 import io.github.nomisrev.ApiError
@@ -19,20 +20,25 @@ import org.postgresql.util.PSQLState
 
 interface UserPersistence {
   /** Creates a new user in the database, and returns the [UserId] of the newly created user */
-  suspend fun insert(username: String, email: String, password: String): Either<ApiError, UserId>
+  context(EffectScope<ApiError>)
+  suspend fun insert(username: String, email: String, password: String): UserId
 
   /** Verifies is a password is correct for a given email */
+  context(EffectScope<ApiError>)
   suspend fun verifyPassword(
     email: String,
     password: String
-  ): Either<ApiError, Pair<UserId, UserInfo>>
+  ): Pair<UserId, UserInfo>
 
   /** Select a User by its [UserId] */
-  suspend fun select(userId: UserId): Either<ApiError, UserInfo>
+  context(EffectScope<ApiError>)
+  suspend fun select(userId: UserId): UserInfo
 
   /** Select a User by its username */
-  suspend fun select(username: String): Either<ApiError, UserInfo>
+  context(EffectScope<ApiError>)
+  suspend fun select(username: String): UserInfo
 
+  context(EffectScope<ApiError>)
   @Suppress("LongParameterList")
   suspend fun update(
     userId: UserId,
@@ -41,7 +47,7 @@ interface UserPersistence {
     password: String?,
     bio: String?,
     image: String?
-  ): Either<ApiError, UserInfo>
+  ): UserInfo
 }
 
 /** UserPersistence implementation based on SqlDelight and JavaX Crypto */
@@ -53,11 +59,12 @@ fun userPersistence(
 ) =
   object : UserPersistence {
 
+    context(EffectScope<ApiError>)
     override suspend fun insert(
       username: String,
       email: String,
       password: String
-    ): Either<ApiError, UserId> {
+    ): UserId {
       val salt = generateSalt()
       val key = generateKey(password, salt)
       return Either.catch { usersQueries.create(salt, key, username, email) }.mapLeft { error ->
@@ -66,13 +73,14 @@ fun userPersistence(
         } else {
           Unexpected("Failed to persist user: $username:$email", error)
         }
-      }
+      }.bind()
     }
 
+    context(EffectScope<ApiError>)
     override suspend fun verifyPassword(
       email: String,
       password: String
-    ): Either<ApiError, Pair<UserId, UserInfo>> = either {
+    ): Pair<UserId, UserInfo> {
       val (userId, username, salt, key, bio, image) =
         ensureNotNull(usersQueries.selectSecurityByEmail(email).executeAsOneOrNull()) {
           UserNotFound("email=$email")
@@ -80,10 +88,11 @@ fun userPersistence(
 
       val hash = generateKey(password, salt)
       ensure(hash contentEquals key) { ApiError.PasswordNotMatched }
-      Pair(userId, UserInfo(email, username, bio, image))
+      return Pair(userId, UserInfo(email, username, bio, image))
     }
 
-    override suspend fun select(userId: UserId): Either<ApiError, UserInfo> = either {
+    context(EffectScope<ApiError>)
+    override suspend fun select(userId: UserId): UserInfo {
       val userInfo =
         Either.catch {
             usersQueries
@@ -94,17 +103,19 @@ fun userPersistence(
           }
           .mapLeft { e -> Unexpected("Failed to select user with userId: $userId", e) }
           .bind()
-      ensureNotNull(userInfo) { UserNotFound("userId=$userId") }
+      return ensureNotNull(userInfo) { UserNotFound("userId=$userId") }
     }
 
-    override suspend fun select(username: String): Either<ApiError, UserInfo> = either {
+    context(EffectScope<ApiError>)
+    override suspend fun select(username: String): UserInfo {
       val userInfo =
         Either.catch { usersQueries.selectByUsername(username, ::UserInfo).executeAsOneOrNull() }
           .mapLeft { e -> Unexpected("Failed to select user with username: $username", e) }
           .bind()
-      ensureNotNull(userInfo) { UserNotFound("username=$username") }
+      return ensureNotNull(userInfo) { UserNotFound("username=$username") }
     }
 
+    context(EffectScope<ApiError>)
     override suspend fun update(
       userId: UserId,
       email: String?,
@@ -112,7 +123,7 @@ fun userPersistence(
       password: String?,
       bio: String?,
       image: String?
-    ): Either<ApiError, UserInfo> = either {
+    ): UserInfo {
       val info =
         usersQueries.transactionWithResult<UserInfo?> {
           usersQueries.selectById(userId).executeAsOneOrNull()?.let {
@@ -126,7 +137,7 @@ fun userPersistence(
             UserInfo(newEmail, newUsername, newBio, newImage)
           }
         }
-      ensureNotNull(info) { UserNotFound("userId=$userId") }
+      return ensureNotNull(info) { UserNotFound("userId=$userId") }
     }
 
     private fun generateSalt(): ByteArray = UUID.randomUUID().toString().toByteArray()

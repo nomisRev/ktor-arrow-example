@@ -2,6 +2,7 @@ package io.github.nomisrev.service
 
 import arrow.core.Either
 import arrow.core.computations.ensureNotNull
+import arrow.core.continuations.EffectScope
 import arrow.core.continuations.either
 import arrow.core.continuations.ensureNotNull
 import io.github.nefilim.kjwt.JWSAlgorithm
@@ -23,15 +24,18 @@ import kotlin.time.toJavaDuration
 
 interface JwtService {
   /** Generate a new JWT token for userId and password. Doesn't invalidate old password */
-  suspend fun generateJwtToken(userId: UserId): Either<JwtGeneration, JwtToken>
+  context(EffectScope<ApiError>)
+  suspend fun generateJwtToken(userId: UserId): JwtToken
 
   /** Verify a JWT token. Checks if userId exists in database, and token is not expired. */
-  suspend fun verifyJwtToken(token: JwtToken): Either<ApiError, UserId>
+  context(EffectScope<ApiError>)
+  suspend fun verifyJwtToken(token: JwtToken): UserId
 }
 
 fun jwtService(config: Config.Auth, repo: UserPersistence) =
   object : JwtService {
-    override suspend fun generateJwtToken(userId: UserId): Either<JwtGeneration, JwtToken> =
+    context(EffectScope<ApiError>)
+    override suspend fun generateJwtToken(userId: UserId): JwtToken =
       JWT
         .hs512 {
           val now = LocalDateTime.now(ZoneId.of("UTC"))
@@ -41,10 +45,11 @@ fun jwtService(config: Config.Auth, repo: UserPersistence) =
           claim("id", userId.serial)
         }
         .sign(config.secret)
-        .toUserServiceError()
-        .map { JwtToken(it.rendered) }
+        .bind()
+        .let { JwtToken(it.rendered) }
 
-    override suspend fun verifyJwtToken(token: JwtToken): Either<ApiError, UserId> = either {
+    context(EffectScope<ApiError>)
+    override suspend fun verifyJwtToken(token: JwtToken): UserId {
       val jwt =
         JWT.decodeT(token.value, JWSHMAC512Algorithm).mapLeft { JwtInvalid(it.toString()) }.bind()
       val userId =
@@ -54,17 +59,18 @@ fun jwtService(config: Config.Auth, repo: UserPersistence) =
       val expiresAt =
         ensureNotNull(jwt.expiresAt().orNull()) { JwtInvalid("exp missing from JWT Token") }
       ensure(expiresAt.isAfter(LocalDateTime.now())) { JwtInvalid("JWT Token expired") }
-      repo.select(UserId(userId)).bind()
-      UserId(userId)
+      repo.select(UserId(userId))
+      return UserId(userId)
     }
   }
 
-private fun <A : JWSAlgorithm> Either<KJWTSignError, SignedJWT<A>>.toUserServiceError():
-  Either<JwtGeneration, SignedJWT<A>> = mapLeft { jwtError ->
-  when (jwtError) {
-    KJWTSignError.InvalidKey -> JwtGeneration("JWT singing error: invalid Secret Key.")
-    KJWTSignError.InvalidJWTData ->
-      JwtGeneration("JWT singing error: Generated with incorrect JWT data")
-    is KJWTSignError.SigningError -> JwtGeneration("JWT singing error: ${jwtError.cause}")
-  }
-}
+context(EffectScope<ApiError>)
+private suspend fun <A : JWSAlgorithm> Either<KJWTSignError, SignedJWT<A>>.bind(): SignedJWT<A> =
+  mapLeft { jwtError ->
+    when (jwtError) {
+      KJWTSignError.InvalidKey -> JwtGeneration("JWT singing error: invalid Secret Key.")
+      KJWTSignError.InvalidJWTData ->
+        JwtGeneration("JWT singing error: Generated with incorrect JWT data")
+      is KJWTSignError.SigningError -> JwtGeneration("JWT singing error: ${jwtError.cause}")
+    }
+  }.bind()

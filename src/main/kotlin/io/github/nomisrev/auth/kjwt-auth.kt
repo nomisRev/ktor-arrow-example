@@ -2,7 +2,8 @@
 
 package io.github.nomisrev.auth
 
-import arrow.core.Either
+import arrow.core.continuations.effect
+import io.github.nomisrev.ApiError
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.routes.respond
 import io.github.nomisrev.service.JwtService
@@ -14,7 +15,8 @@ import io.ktor.server.auth.parseAuthorizationHeader
 import io.ktor.server.response.respond
 import io.ktor.util.pipeline.PipelineContext
 
-@JvmInline value class JwtToken(val value: String)
+@JvmInline
+value class JwtToken(val value: String)
 
 data class JwtContext(val token: JwtToken, val userId: UserId)
 
@@ -31,19 +33,16 @@ suspend inline fun PipelineContext<Unit, ApplicationCall>.jwtAuth(
 suspend inline fun PipelineContext<Unit, ApplicationCall>.optionalJwtAuth(
   jwtService: JwtService,
   crossinline body: suspend PipelineContext<Unit, ApplicationCall>.(JwtContext?) -> Unit
-) {
+) = effect<ApiError, JwtContext?> {
   jwtToken()?.let { token ->
-    jwtService
-      .verifyJwtToken(JwtToken(token))
-      .fold(
-        { error -> respond(error) },
-        { userId -> body(this, JwtContext(JwtToken(token), userId)) }
-      )
+    val userId = jwtService.verifyJwtToken(JwtToken(token))
+    JwtContext(JwtToken(token), userId)
   }
-    ?: body(this, null)
-}
+}.fold(
+  { error -> respond(error) },
+  { context -> body(this, context) }
+)
 
 fun PipelineContext<Unit, ApplicationCall>.jwtToken(): String? =
-  Either.catch { (call.request.parseAuthorizationHeader() as? HttpAuthHeader.Single) }
-    .orNull()
+  (call.request.parseAuthorizationHeader() as? HttpAuthHeader.Single)
     ?.blob

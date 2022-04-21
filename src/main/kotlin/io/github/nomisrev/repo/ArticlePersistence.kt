@@ -1,6 +1,8 @@
 package io.github.nomisrev.repo
 
 import arrow.core.Either
+import arrow.core.continuations.EffectScope
+import io.github.nomisrev.ApiError
 import io.github.nomisrev.ApiError.Unexpected
 import io.github.nomisrev.service.Slug
 import io.github.nomisrev.sqldelight.ArticlesQueries
@@ -10,8 +12,9 @@ import java.time.OffsetDateTime
 @JvmInline value class ArticleId(val serial: Long)
 
 interface ArticlePersistence {
-  @Suppress("LongParameterList")
   /** Creates a new Article with the specified tags */
+  context(EffectScope<ApiError>)
+  @Suppress("LongParameterList")
   suspend fun create(
     authorId: UserId,
     slug: Slug,
@@ -21,14 +24,16 @@ interface ArticlePersistence {
     createdAt: OffsetDateTime,
     updatedAt: OffsetDateTime,
     tags: Set<String>
-  ): Either<Unexpected, ArticleId>
+  ): ArticleId
 
   /** Verifies if a certain slug already exists or not */
-  suspend fun exists(slug: Slug): Either<Unexpected, Boolean>
+  context(EffectScope<ApiError>)
+  suspend fun exists(slug: Slug): Boolean
 }
 
 fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
   object : ArticlePersistence {
+    context(EffectScope<Unexpected>)
     override suspend fun create(
       authorId: UserId,
       slug: Slug,
@@ -38,7 +43,7 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
       createdAt: OffsetDateTime,
       updatedAt: OffsetDateTime,
       tags: Set<String>
-    ): Either<Unexpected, ArticleId> =
+    ): ArticleId =
       Either.catch {
         articles.transactionWithResult<ArticleId> {
           val articleId =
@@ -52,9 +57,11 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
         }
       }
         .mapLeft { e -> Unexpected("Failed to create article: $authorId:$title:$tags", e) }
+        .bind()
 
-    override suspend fun exists(slug: Slug): Either<Unexpected, Boolean> =
+    context(EffectScope<Unexpected>)
+    override suspend fun exists(slug: Slug): Boolean =
       Either.catch { articles.slugExists(slug.value).executeAsOne() }.mapLeft { e ->
         Unexpected("Failed to check existence of $slug", e)
-      }
+      }.bind()
   }

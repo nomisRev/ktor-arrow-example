@@ -1,7 +1,6 @@
 package io.github.nomisrev.service
 
-import arrow.core.Either
-import arrow.core.continuations.either
+import arrow.core.continuations.EffectScope
 import io.github.nomisrev.ApiError
 import io.github.nomisrev.repo.ArticlePersistence
 import io.github.nomisrev.repo.UserId
@@ -20,7 +19,8 @@ data class CreateArticle(
 
 interface ArticleService {
   /** Creates a new article and returns the resulting Article */
-  suspend fun createArticle(input: CreateArticle): Either<ApiError, Article>
+  context(EffectScope<ApiError>)
+  suspend fun createArticle(input: CreateArticle): Article
 }
 
 fun articleService(
@@ -29,11 +29,12 @@ fun articleService(
   userPersistence: UserPersistence,
 ): ArticleService =
   object : ArticleService {
-    override suspend fun createArticle(input: CreateArticle): Either<ApiError, Article> = either {
+    context(EffectScope<ApiError>)
+    override suspend fun createArticle(input: CreateArticle): Article {
       val slug =
         slugGenerator
-          .generateSlug(input.title) { slug -> articlePersistence.exists(slug).bind() }
-          .bind()
+          .generateSlug(input.title) { slug -> articlePersistence.exists(slug) }
+
       val createdAt = OffsetDateTime.now()
       val articleId =
         articlePersistence
@@ -46,11 +47,9 @@ fun articleService(
             createdAt,
             createdAt,
             input.tags
-          )
-          .bind()
-          .serial
-      val user = userPersistence.select(input.userId).bind()
-      Article(
+          ).serial
+      val user = userPersistence.select(input.userId)
+      return Article(
         articleId,
         slug.value,
         input.title,

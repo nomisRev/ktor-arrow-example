@@ -1,6 +1,9 @@
 package io.github.nomisrev.routes
 
+import arrow.core.continuations.either
+import io.github.nomisrev.ApiError
 import io.github.nomisrev.PostgreSQLContainer
+import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.config.Config
 import io.github.nomisrev.config.dependencies
 import io.github.nomisrev.config.hikari
@@ -35,6 +38,10 @@ class UserRouteSpec :
 
     afterTest { dataSource.query("TRUNCATE users CASCADE") }
 
+    suspend fun registerUser(): JwtToken = either<ApiError, JwtToken> {
+      userService.register(RegisterUser(validUsername, validEmail, validPw))
+    }.shouldBeRight()
+
     "Can register user" {
       withService(dependencies) {
         val response =
@@ -55,7 +62,7 @@ class UserRouteSpec :
     }
 
     "Can log in a registered user" {
-      userService.register(RegisterUser(validUsername, validEmail, validPw)).shouldBeRight()
+      registerUser()
       withService(dependencies) {
         val response =
           client.post("/users/login") {
@@ -75,8 +82,7 @@ class UserRouteSpec :
     }
 
     "Can get current user" {
-      val token =
-        userService.register(RegisterUser(validUsername, validEmail, validPw)).shouldBeRight()
+      val token = registerUser()
       withService(dependencies) {
         val response = client.get("/user") { bearerAuth(token.value) }
 
@@ -93,8 +99,7 @@ class UserRouteSpec :
     }
 
     "Update user" {
-      val token =
-        userService.register(RegisterUser(validUsername, validEmail, validPw)).shouldBeRight()
+      val token = registerUser()
       val newUsername = "newUsername"
       withService(dependencies) {
         val response =
@@ -117,8 +122,7 @@ class UserRouteSpec :
     }
 
     "Update user invalid email" {
-      val token =
-        userService.register(RegisterUser(validUsername, validEmail, validPw)).shouldBeRight()
+      val token = registerUser()
       val inalidEmail = "invalidEmail"
       withService(dependencies) {
         val response =
