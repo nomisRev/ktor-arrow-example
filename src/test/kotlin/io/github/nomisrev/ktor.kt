@@ -18,20 +18,20 @@ interface ServiceTest {
 
 /** DSL to test MainKt server with setup [HttpClient] through [ServiceTest] */
 suspend fun withService(dep: Dependencies, test: suspend ServiceTest.() -> Unit): Unit =
-    testApplication {
-  application { app(dep) }
-  createClient {
-    expectSuccess = false
-    install(ContentNegotiation) { json(Json { serializersModule = kotlinXSerializersModule }) }
-  }
-    .use { client ->
-      test(
-        object : ServiceTest {
-          override val client: HttpClient = client
-        }
-      )
+  testApplication {
+    application { app(dep) }
+    createClient {
+      expectSuccess = false
+      install(ContentNegotiation) { json(Json { serializersModule = kotlinXSerializersModule }) }
     }
-}
+      .use { client ->
+        test(
+          object : ServiceTest {
+            override val client: HttpClient = client
+          }
+        )
+      }
+  }
 
 // Small optimisation to avoid runBlocking from Ktor impl
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
