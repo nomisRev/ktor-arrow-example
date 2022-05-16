@@ -31,7 +31,7 @@ interface ArticlePersistence {
   suspend fun exists(slug: Slug): Boolean
 }
 
-fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
+fun articlePersistence(articles: ArticlesQueries, tagsQueries: TagsQueries) =
   object : ArticlePersistence {
     context(EffectScope<Unexpected>)
     override suspend fun create(

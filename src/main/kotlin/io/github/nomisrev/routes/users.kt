@@ -3,14 +3,18 @@ package io.github.nomisrev.routes
 import arrow.core.Either
 import arrow.core.continuations.EffectScope
 import arrow.core.continuations.either
+import io.github.nomisrev.with
 import io.github.nomisrev.ApiError
 import io.github.nomisrev.ApiError.Unexpected
 import io.github.nomisrev.auth.jwtAuth
-import io.github.nomisrev.service.JwtService
+import io.github.nomisrev.config.Config
+import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.service.Update
-import io.github.nomisrev.service.UserService
+import io.github.nomisrev.service.login
+import io.github.nomisrev.service.register
+import io.github.nomisrev.service.update
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -52,47 +56,50 @@ data class User(
 data class LoginUser(val email: String, val password: String)
 
 fun Application.userRoutes(
-  userService: UserService,
-  jwtService: JwtService,
+  userPersistence: UserPersistence,
+  auth: Config.Auth
 ) = routing {
-  route("/users") {
-    /* Registration: POST /api/users */
-    post {
-      either<ApiError, UserWrapper<User>> {
-        val (username, email, password) = receiveCatching<UserWrapper<NewUser>>().user
-        val token = userService.register(RegisterUser(username, email, password)).value
-        UserWrapper(User(email, token, username, "", ""))
-      }.respond(HttpStatusCode.Created)
-    }
-    post("/login") {
-      either<ApiError, UserWrapper<User>> {
-        val (email, password) = receiveCatching<UserWrapper<LoginUser>>().user
-        val (token, info) = userService.login(Login(email, password))
-        UserWrapper(User(email, token.value, info.username, info.bio, info.image))
-      }.respond(HttpStatusCode.OK)
-    }
+  with(userPersistence, auth) {
+    route("/users") {
+      /* Registration: POST /api/users */
+      post {
+        either<ApiError, UserWrapper<User>> {
+          val (username, email, password) = receiveCatching<UserWrapper<NewUser>>().user
+          val token = register(RegisterUser(username, email, password)).value
+          UserWrapper(User(email, token, username, "", ""))
+        }.respond(HttpStatusCode.Created)
+      }
+
+      /* Login: POST /api/users/login */
+      post("/login") {
+        either<ApiError, UserWrapper<User>> {
+          val (email, password) = receiveCatching<UserWrapper<LoginUser>>().user
+          val (token, info) = login(Login(email, password))
+          UserWrapper(User(email, token.value, info.username, info.bio, info.image))
+        }.respond(HttpStatusCode.OK)
+      }
   }
 
-  /* Get Current User: GET /api/user */
-  get("/user") {
-    jwtAuth(jwtService) { (token, userId) ->
-      either<ApiError, UserWrapper<User>> {
-        val info = userService.getUser(userId)
-        UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
-      }.respond(HttpStatusCode.OK)
+    /* Get Current User: GET /api/user */
+    get("/user") {
+      jwtAuth { (token, userId) ->
+        either<ApiError, UserWrapper<User>> {
+          val info = select(userId)
+          UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
+        }.respond(HttpStatusCode.OK)
+      }
     }
-  }
 
-  /* Update current user: PUT /api/user */
-  put("/user") {
-    jwtAuth(jwtService) { (token, userId) ->
-      either<ApiError, UserWrapper<User>> {
-        val (email, username, password, bio, image) =
-          receiveCatching<UserWrapper<UpdateUser>>().user
-        val info =
-          userService.update(Update(userId, username, email, password, bio, image))
-        UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
-      }.respond(HttpStatusCode.OK)
+    /* Update current user: PUT /api/user */
+    put("/user") {
+      jwtAuth { (token, userId) ->
+        either<ApiError, UserWrapper<User>> {
+          val (email, username, password, bio, image) =
+            receiveCatching<UserWrapper<UpdateUser>>().user
+          val info = update(Update(userId, username, email, password, bio, image))
+          UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
+        }.respond(HttpStatusCode.OK)
+      }
     }
   }
 }

@@ -36,7 +36,7 @@ tasks {
   withType<KotlinCompile>().configureEach {
     kotlinOptions {
       jvmTarget = "1.8"
-      freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
+      freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers" + "-opt-in=kotlin.RequiresOptIn"
     }
     sourceCompatibility = "1.8"
     targetCompatibility = "1.8"

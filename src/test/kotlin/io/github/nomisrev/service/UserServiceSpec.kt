@@ -4,6 +4,7 @@ import arrow.core.continuations.either
 import arrow.core.nonEmptyListOf
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
+import io.github.nomisrev.with
 import io.github.nomisrev.ApiError
 import io.github.nomisrev.ApiError.EmptyUpdate
 import io.github.nomisrev.ApiError.IncorrectInput
@@ -28,7 +29,7 @@ class UserServiceSpec :
   FreeSpec({
     val config = Config().copy(dataSource = PostgreSQLContainer.config())
     val dataSource by resource(hikari(config.dataSource))
-    val userService by resource(dependencies(config).map { it.userService })
+    val dep by resource(dependencies(config))
 
     val validUsername = "username"
     val validEmail = "valid@domain.com"
@@ -36,13 +37,15 @@ class UserServiceSpec :
 
     afterTest { dataSource.query("TRUNCATE users CASCADE") }
 
+    with(dep.userPersistence, config.auth) {
+
     "register" -
       {
         "username cannot be empty" {
           val errors = nonEmptyListOf("Cannot be blank", "is too short (minimum is 1 characters)")
           val expected = IncorrectInput(InvalidUsername(errors))
           either<ApiError, JwtToken> {
-            userService.register(RegisterUser("", validEmail, validPw))
+            register(RegisterUser("", validEmail, validPw))
           } shouldBeLeft expected
         }
 
@@ -51,7 +54,7 @@ class UserServiceSpec :
           val errors = nonEmptyListOf("is too long (maximum is 25 characters)")
           val expected = IncorrectInput(InvalidUsername(errors))
           either<ApiError, JwtToken> {
-            userService.register(RegisterUser(name, validEmail, validPw))
+            register(RegisterUser(name, validEmail, validPw))
           } shouldBeLeft expected
         }
 
@@ -59,7 +62,7 @@ class UserServiceSpec :
           val errors = nonEmptyListOf("Cannot be blank", "'' is invalid email")
           val expected = IncorrectInput(InvalidEmail(errors))
           either<ApiError, JwtToken> {
-            userService.register(RegisterUser(validUsername, "", validPw))
+            register(RegisterUser(validUsername, "", validPw))
           } shouldBeLeft expected
         }
 
@@ -68,7 +71,7 @@ class UserServiceSpec :
           val errors = nonEmptyListOf("is too long (maximum is 350 characters)")
           val expected = IncorrectInput(InvalidEmail(errors))
           either<ApiError, JwtToken> {
-            userService.register(RegisterUser(validUsername, email, validPw))
+            register(RegisterUser(validUsername, email, validPw))
           } shouldBeLeft expected
         }
 
@@ -77,7 +80,7 @@ class UserServiceSpec :
           val errors = nonEmptyListOf("'$email' is invalid email")
           val expected = IncorrectInput(InvalidEmail(errors))
           either<ApiError, JwtToken> {
-            userService.register(RegisterUser(validUsername, email, validPw))
+            register(RegisterUser(validUsername, email, validPw))
           } shouldBeLeft expected
         }
 
@@ -85,7 +88,7 @@ class UserServiceSpec :
           val errors = nonEmptyListOf("Cannot be blank", "is too short (minimum is 8 characters)")
           val expected = IncorrectInput(InvalidPassword(errors))
           either<ApiError, JwtToken> {
-            userService.register(RegisterUser(validUsername, validEmail, ""))
+            register(RegisterUser(validUsername, validEmail, ""))
           } shouldBeLeft expected
         }
 
@@ -94,20 +97,20 @@ class UserServiceSpec :
           val errors = nonEmptyListOf("is too long (maximum is 100 characters)")
           val expected = IncorrectInput(InvalidPassword(errors))
           either<ApiError, JwtToken> {
-            userService.register(RegisterUser(validUsername, validEmail, password))
+            register(RegisterUser(validUsername, validEmail, password))
           } shouldBeLeft expected
         }
 
         "All valid returns a token" {
           either<ApiError, JwtToken> {
-            userService.register(RegisterUser(validUsername, validEmail, validPw))
+            register(RegisterUser(validUsername, validEmail, validPw))
           }.shouldBeRight()
         }
 
         "Register twice results in UsernameAlreadyExists" {
           either<ApiError, JwtToken> {
-            userService.register(RegisterUser(validUsername, validEmail, validPw))
-            userService.register(RegisterUser(validUsername, validEmail, validPw))
+            register(RegisterUser(validUsername, validEmail, validPw))
+            register(RegisterUser(validUsername, validEmail, validPw))
           } shouldBeLeft UsernameAlreadyExists(validUsername)
         }
       }
@@ -117,14 +120,15 @@ class UserServiceSpec :
         "Update with all null" {
           val token =
             either<ApiError, JwtToken> {
-              userService.register(RegisterUser(validUsername, validEmail, validPw))
+              register(RegisterUser(validUsername, validEmail, validPw))
             }.shouldBeRight()
 
           either<ApiError, UserInfo> {
-            userService.update(Update(token.id(), null, null, null, null, null))
+            update(Update(token.id(), null, null, null, null, null))
           } shouldBeLeft EmptyUpdate("Cannot update user with ${token.id()} with only null values")
         }
       }
+    }
   })
 
 private fun JwtToken.id(): UserId =

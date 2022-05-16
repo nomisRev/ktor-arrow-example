@@ -2,11 +2,11 @@
 
 package io.github.nomisrev.routes
 
-import arrow.core.Either
-import arrow.core.computations.ensureNotNull
+import arrow.core.continuations.EffectScope
 import arrow.core.continuations.either
-import arrow.core.continuations.ensureNotNull
-import io.github.nomisrev.service.DatabasePool
+import com.zaxxer.hikari.HikariDataSource
+import io.github.nomisrev.ensureNotNull
+import io.github.nomisrev.utils.queryOneOrNull
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
@@ -14,21 +14,29 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import javax.sql.DataSource
 import kotlinx.serialization.Serializable
 
 @Serializable data class HealthCheck(val postgresVersion: String)
 
-fun Application.healthRoute(pool: DatabasePool): Routing = routing {
+fun Application.healthRoute(pool: HikariDataSource): Routing = routing {
   get("/health") {
-    when (val res = pool.healthCheck()) {
-      is Either.Right -> call.respond(HttpStatusCode.OK, res.value)
-      is Either.Left -> call.respond(HttpStatusCode.InternalServerError, res.value)
-    }
+    either<String, HealthCheck> {
+      with(pool) { healthCheck() }
+    }.fold(
+      { internal(it) },
+      { call.respond(HttpStatusCode.OK, it) }
+    )
   }
 }
 
-private suspend fun DatabasePool.healthCheck(): Either<String, HealthCheck> = either {
-  ensure(isRunning()) { "DatabasePool is not running" }
-  val version = ensureNotNull(version()) { "Could not reach database. ConnectionPool is running." }
-  HealthCheck(version)
+context(HikariDataSource, EffectScope<String>)
+private suspend fun healthCheck(): HealthCheck {
+  ensure(isRunning) { "DatabasePool is not running" }
+  val version = ensureNotNull(showPostgresVersion()) { "Could not reach database. ConnectionPool is running." }
+  return HealthCheck(version)
 }
+
+context(DataSource)
+private suspend fun showPostgresVersion(): String? =
+  queryOneOrNull("SHOW server_version;") { string() }

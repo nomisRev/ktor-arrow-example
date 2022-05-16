@@ -1,6 +1,7 @@
 package io.github.nomisrev.routes
 
 import arrow.core.continuations.either
+import io.github.nomisrev.with
 import io.github.nomisrev.ApiError
 import io.github.nomisrev.PostgreSQLContainer
 import io.github.nomisrev.auth.JwtToken
@@ -9,6 +10,7 @@ import io.github.nomisrev.config.dependencies
 import io.github.nomisrev.config.hikari
 import io.github.nomisrev.resource
 import io.github.nomisrev.service.RegisterUser
+import io.github.nomisrev.service.register
 import io.github.nomisrev.utils.query
 import io.github.nomisrev.withService
 import io.kotest.assertions.arrow.core.shouldBeRight
@@ -30,7 +32,6 @@ class UserRouteSpec :
     val config = Config().copy(dataSource = PostgreSQLContainer.config())
     val dataSource by resource(hikari(config.dataSource))
     val dependencies by resource(dependencies(config))
-    val userService by lazy { dependencies.userService }
 
     val username = "username"
     val email = "valid@domain.com"
@@ -39,7 +40,9 @@ class UserRouteSpec :
     afterTest { dataSource.query("TRUNCATE users CASCADE") }
 
     suspend fun registerUser(): JwtToken = either<ApiError, JwtToken> {
-      userService.register(RegisterUser(username, email, password))
+      with(dependencies.userPersistence, dependencies.config.auth) {
+        register(RegisterUser(username, email, password))
+      }
     }.shouldBeRight()
 
     "Can register user" {
