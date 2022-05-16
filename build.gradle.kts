@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
   alias(libs.plugins.kover)
   alias(libs.plugins.kotlinx.serialization)
   alias(libs.plugins.sqldelight)
+  id("com.google.cloud.tools.jib") version "3.2.1"
 }
 
 application {
@@ -32,7 +33,49 @@ repositories {
   mavenCentral()
 }
 
+jib {
+  from {
+    image = "openjdk:8-jre-slim"
+  }
+  container {
+    ports = listOf("8080")
+    mainClass = "io.github.nomisrev.MainKt"
+  }
+  to {
+    image = "nomisrev/${project.name}"
+    tags = setOf("0.0.1")
+  }
+}
+
 tasks {
+  val copyJarToDockerDir by creating(Copy::class) {
+    from("$buildDir/libs")
+    include("**/*.jar")
+    into("$buildDir/docker")
+    dependsOn(build)
+  }
+
+  val preparedDockerDir by creating(Copy::class) {
+    from(file("Dockerfile"))
+    into("$buildDir/docker")
+  }
+
+  val buildDockerImage by creating(Exec::class) {
+    workingDir = buildDir
+    commandLine("docker", "build", "-t", "nomisrev/${project.name}:${project.version}", "docker")
+    dependsOn(preparedDockerDir, copyJarToDockerDir)
+  }
+
+  val runDockerImage by creating(Exec::class) {
+    commandLine("docker", "run", "-p", "8080:8080", "nomisrev/${project.name}:${project.version}", "docker")
+    dependsOn(buildDockerImage)
+  }
+
+  val pushDockerImage by creating(Exec::class) {
+    commandLine("docker", "push", "nomisrev/${project.name}:${project.version}")
+    dependsOn(buildDockerImage)
+  }
+
   withType<KotlinCompile>().configureEach {
     kotlinOptions {
       jvmTarget = "1.8"
