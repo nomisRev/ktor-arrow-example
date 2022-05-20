@@ -8,6 +8,7 @@ import arrow.core.continuations.ensureNotNull
 import io.github.nomisrev.ApiError
 import io.github.nomisrev.ApiError.Unexpected
 import io.github.nomisrev.ApiError.UserNotFound
+import io.github.nomisrev.ApiError.UsernameAlreadyExists
 import io.github.nomisrev.service.UserInfo
 import io.github.nomisrev.sqldelight.UsersQueries
 import java.util.UUID
@@ -69,7 +70,7 @@ fun userPersistence(
       val key = generateKey(password, salt)
       return Either.catch { usersQueries.create(salt, key, username, email) }.mapLeft { error ->
         if (error is PSQLException && error.sqlState == PSQLState.UNIQUE_VIOLATION.state) {
-          ApiError.UsernameAlreadyExists(username)
+          UsernameAlreadyExists(username)
         } else {
           Unexpected("Failed to persist user: $username:$email", error)
         }
@@ -90,6 +91,7 @@ fun userPersistence(
       ensure(hash contentEquals key) { ApiError.PasswordNotMatched }
       return Pair(userId, UserInfo(email, username, bio, image))
     }
+
 
     context(EffectScope<ApiError>)
     override suspend fun select(userId: UserId): UserInfo {

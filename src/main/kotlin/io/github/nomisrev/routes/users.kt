@@ -55,56 +55,51 @@ data class User(
 @Serializable
 data class LoginUser(val email: String, val password: String)
 
-fun Application.userRoutes(
-  userPersistence: UserPersistence,
-  auth: Config.Auth
-) = routing {
-  with(userPersistence, auth) {
-    route("/users") {
-      /* Registration: POST /api/users */
-      post {
-        either<ApiError, UserWrapper<User>> {
-          val (username, email, password) = receiveCatching<UserWrapper<NewUser>>().user
-          val token = register(RegisterUser(username, email, password)).value
-          UserWrapper(User(email, token, username, "", ""))
-        }.respond(HttpStatusCode.Created)
-      }
-
-      /* Login: POST /api/users/login */
-      post("/login") {
-        either<ApiError, UserWrapper<User>> {
-          val (email, password) = receiveCatching<UserWrapper<LoginUser>>().user
-          val (token, info) = login(Login(email, password))
-          UserWrapper(User(email, token.value, info.username, info.bio, info.image))
-        }.respond(HttpStatusCode.OK)
-      }
-  }
-
-    /* Get Current User: GET /api/user */
-    get("/user") {
-      jwtAuth { (token, userId) ->
-        either<ApiError, UserWrapper<User>> {
-          val info = select(userId)
-          UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
-        }.respond(HttpStatusCode.OK)
+context(Application, UserPersistence, Config.Auth)
+fun userRoutes() = routing {
+  route("/users") {
+    /* Registration: POST /api/users */
+    post {
+      conduit(HttpStatusCode.Created) {
+        val (username, email, password) = receiveCatching<UserWrapper<NewUser>>().user
+        val token = register(RegisterUser(username, email, password)).value
+        UserWrapper(User(email, token, username, "", ""))
       }
     }
 
-    /* Update current user: PUT /api/user */
-    put("/user") {
-      jwtAuth { (token, userId) ->
-        either<ApiError, UserWrapper<User>> {
-          val (email, username, password, bio, image) =
-            receiveCatching<UserWrapper<UpdateUser>>().user
-          val info = update(Update(userId, username, email, password, bio, image))
-          UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
-        }.respond(HttpStatusCode.OK)
+    /* Login: POST /api/users/login */
+    post("/login") {
+      conduit(HttpStatusCode.OK) {
+        val (email, password) = receiveCatching<UserWrapper<LoginUser>>().user
+        val (token, info) = login(Login(email, password))
+        UserWrapper(User(email, token.value, info.username, info.bio, info.image))
+      }
+    }
+  }
+
+  /* Get Current User: GET /api/user */
+  get("/user") {
+    jwtAuth { (token, userId) ->
+      conduit(HttpStatusCode.OK) {
+        val info = select(userId)
+        UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
+      }
+    }
+  }
+
+  /* Update current user: PUT /api/user */
+  put("/user") {
+    jwtAuth { (token, userId) ->
+      conduit(HttpStatusCode.OK) {
+        val (email, username, password, bio, image) =
+          receiveCatching<UserWrapper<UpdateUser>>().user
+        val info = update(Update(userId, username, email, password, bio, image))
+        UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
       }
     }
   }
 }
 
-// TODO improve how we receive models with validation
 context(EffectScope<ApiError>)
   private suspend inline fun <reified A : Any> PipelineContext<
   Unit, ApplicationCall>.receiveCatching(): A =

@@ -27,6 +27,8 @@ fun main(): Unit =
 
 fun Application.app(module: Dependencies) {
   configure()
-  healthRoute(module.hikariDataSource)
-  userRoutes(module.userPersistence, module.config.auth)
+  with(module.userPersistence, module.config.auth, module.hikariDataSource) {
+    healthRoute()
+    userRoutes()
+  }
 }

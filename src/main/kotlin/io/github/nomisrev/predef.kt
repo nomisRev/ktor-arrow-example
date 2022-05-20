@@ -6,11 +6,11 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
 @OptIn(ExperimentalContracts::class)
-inline fun <A, B, R> with(a: A, b: B, block: context(A, B) (TypeWrapper<B>) -> R): R {
+inline fun <A, B, C, R> with(a: A, b: B, c: C, block: context(A, B, C) (TypeWrapper<C>) -> R): R {
     contract {
         callsInPlace(block, InvocationKind.EXACTLY_ONCE)
     }
-    return block(a, b, TypeWrapper.IMPL)
+    return block(a, b, c, TypeWrapper.IMPL)
 }
 
 sealed interface TypeWrapper<out A> {

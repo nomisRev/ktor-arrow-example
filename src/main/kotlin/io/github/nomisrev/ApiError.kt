@@ -14,9 +14,7 @@ import io.github.nomisrev.routes.Profile
 //          data class Unexpected(val error: Throwable): UserError, ArticleError
 sealed interface ApiError {
   object PasswordNotMatched : ApiError
-  data class IncorrectInput(val errors: NonEmptyList<InvalidField>) : ApiError {
-    constructor(field: InvalidField) : this(nonEmptyListOf(field))
-  }
+  data class IncorrectInput(val errors: NonEmptyList<InvalidField>) : ApiError
   data class EmptyUpdate(val description: String) : ApiError
   data class UserNotFound(val property: String) : ApiError
   data class UserFollowingHimself(val profile: Profile) : ApiError

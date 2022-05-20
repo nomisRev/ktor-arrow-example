@@ -24,7 +24,7 @@ data class JwtContext(val token: JwtToken, val userId: UserId)
 
 // Small middleware to validate JWT token without using Ktor Auth / Nullable principle
 context(UserPersistence, Config.Auth, PipelineContext<Unit, ApplicationCall>)
-suspend inline fun jwtAuth(
+suspend inline fun jwtAuth( // BUG: inline + same context as lambda as function
   crossinline body: suspend /*context(PipelineContext<Unit, ApplicationCall>)*/ (JwtContext) -> Unit
 ) {
   optionalJwtAuth { context ->
@@ -32,12 +32,12 @@ suspend inline fun jwtAuth(
   }
 }
 
-// TODO - read Pipeline context to lambda context
+// TODO Report YT: BUG: inline + same context as lambda as function
 context(PipelineContext<Unit, ApplicationCall>, UserPersistence, Config.Auth)
-suspend inline fun optionalJwtAuth(
+suspend inline fun optionalJwtAuth( // BUG: inline + same context as lambda as function
   crossinline body: suspend /*context(PipelineContext<Unit, ApplicationCall>)*/ (JwtContext?) -> Unit
 ) = effect<ApiError, JwtContext?> {
-  jwtToken()?.let { token ->
+  jwtTokenStringOrNul()?.let { token ->
     val userId = verifyJwtToken(JwtToken(token))
     JwtContext(JwtToken(token), userId)
   }
@@ -47,6 +47,6 @@ suspend inline fun optionalJwtAuth(
 )
 
 context(PipelineContext<Unit, ApplicationCall>)
-fun jwtToken(): String? =
+fun jwtTokenStringOrNul(): String? =
   (call.request.parseAuthorizationHeader() as? HttpAuthHeader.Single)
     ?.blob

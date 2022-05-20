@@ -3,7 +3,7 @@
 package io.github.nomisrev.routes
 
 import arrow.core.continuations.EffectScope
-import arrow.core.continuations.either
+import arrow.core.continuations.effect
 import com.zaxxer.hikari.HikariDataSource
 import io.github.nomisrev.ensureNotNull
 import io.github.nomisrev.utils.queryOneOrNull
@@ -19,10 +19,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class HealthCheck(val postgresVersion: String)
 
-fun Application.healthRoute(pool: HikariDataSource): Routing = routing {
+context(Application, HikariDataSource)
+fun healthRoute(): Routing = routing {
   get("/health") {
-    either<String, HealthCheck> {
-      with(pool) { healthCheck() }
+    effect<String, HealthCheck> {
+      healthCheck()
     }.fold(
       { internal(it) },
       { call.respond(HttpStatusCode.OK, it) }

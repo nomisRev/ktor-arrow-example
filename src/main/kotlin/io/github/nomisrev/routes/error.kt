@@ -1,6 +1,8 @@
 package io.github.nomisrev.routes
 
 import arrow.core.Either
+import arrow.core.continuations.EffectScope
+import arrow.core.continuations.effect
 import io.github.nomisrev.ApiError
 import io.github.nomisrev.ApiError.ArticleNotFound
 import io.github.nomisrev.ApiError.CannotGenerateSlug
@@ -32,6 +34,14 @@ data class GenericErrorModelErrors(val body: List<String>)
 
 fun GenericErrorModel(vararg msg: String): GenericErrorModel =
   GenericErrorModel(GenericErrorModelErrors(msg.toList()))
+
+context(PipelineContext<Unit, ApplicationCall>)
+suspend inline fun <reified A : Any> conduit(
+    status: HttpStatusCode,
+    crossinline block: suspend context(EffectScope<ApiError>) () -> A
+): Unit = effect<ApiError, A> {
+    block(this)
+}.fold({ respond(it) }, { call.respond(status, it) })
 
 context(PipelineContext<Unit, ApplicationCall>)
   suspend inline fun <reified A : Any> Either<ApiError, A>.respond(status: HttpStatusCode): Unit =
