@@ -2,8 +2,6 @@ package io.github.nomisrev.routes
 
 import arrow.core.Either
 import arrow.core.continuations.EffectScope
-import arrow.core.continuations.either
-import io.github.nomisrev.with
 import io.github.nomisrev.ApiError
 import io.github.nomisrev.ApiError.Unexpected
 import io.github.nomisrev.auth.jwtAuth

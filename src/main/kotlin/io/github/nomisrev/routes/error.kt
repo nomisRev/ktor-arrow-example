@@ -1,6 +1,5 @@
 package io.github.nomisrev.routes
 
-import arrow.core.Either
 import arrow.core.continuations.EffectScope
 import arrow.core.continuations.effect
 import io.github.nomisrev.ApiError
@@ -19,6 +18,7 @@ import io.github.nomisrev.ApiError.UserFollowingHimself
 import io.github.nomisrev.ApiError.UserNotFound
 import io.github.nomisrev.ApiError.UserUnfollowingHimself
 import io.github.nomisrev.ApiError.UsernameAlreadyExists
+import io.github.nomisrev.KtorCtx
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
@@ -35,7 +35,7 @@ data class GenericErrorModelErrors(val body: List<String>)
 fun GenericErrorModel(vararg msg: String): GenericErrorModel =
   GenericErrorModel(GenericErrorModelErrors(msg.toList()))
 
-context(PipelineContext<Unit, ApplicationCall>)
+context(KtorCtx)
 suspend inline fun <reified A : Any> conduit(
     status: HttpStatusCode,
     crossinline block: suspend context(EffectScope<ApiError>) () -> A
@@ -43,15 +43,8 @@ suspend inline fun <reified A : Any> conduit(
     block(this)
 }.fold({ respond(it) }, { call.respond(status, it) })
 
-context(PipelineContext<Unit, ApplicationCall>)
-  suspend inline fun <reified A : Any> Either<ApiError, A>.respond(status: HttpStatusCode): Unit =
-  when (this) {
-    is Either.Left -> respond(value)
-    is Either.Right -> call.respond(status, value)
-  }
-
 @Suppress("ComplexMethod")
-suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: ApiError): Unit =
+suspend fun KtorCtx.respond(error: ApiError): Unit =
   when (error) {
     PasswordNotMatched -> call.respond(HttpStatusCode.Unauthorized)
     is IncorrectInput ->
@@ -78,9 +71,9 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: ApiError): Uni
     is JwtInvalid -> unprocessable(error.description)
   }
 
-private suspend inline fun PipelineContext<Unit, ApplicationCall>.unprocessable(
+private suspend inline fun KtorCtx.unprocessable(
   error: String
 ): Unit = call.respond(HttpStatusCode.UnprocessableEntity, GenericErrorModel(error))
 
-suspend inline fun PipelineContext<Unit, ApplicationCall>.internal(error: String): Unit =
+suspend inline fun KtorCtx.internal(error: String): Unit =
   call.respond(HttpStatusCode.InternalServerError, GenericErrorModel(error))

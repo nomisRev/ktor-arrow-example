@@ -22,19 +22,20 @@ import kotlinx.serialization.Serializable
 context(Application, HikariDataSource)
 fun healthRoute(): Routing = routing {
   get("/health") {
-    effect<String, HealthCheck> {
+    effect<Unit, HealthCheck> {
       healthCheck()
     }.fold(
-      { internal(it) },
+      { call.respond(HttpStatusCode.ServiceUnavailable) },
       { call.respond(HttpStatusCode.OK, it) }
     )
   }
 }
 
-context(HikariDataSource, EffectScope<String>)
+context(HikariDataSource, EffectScope<Unit>)
 private suspend fun healthCheck(): HealthCheck {
-  ensure(isRunning) { "DatabasePool is not running" }
-  val version = ensureNotNull(showPostgresVersion()) { "Could not reach database. ConnectionPool is running." }
+  val version = ensureNotNull(showPostgresVersion()) { }
+  ensure(isRunning) { }
+  isRunning
   return HealthCheck(version)
 }
 

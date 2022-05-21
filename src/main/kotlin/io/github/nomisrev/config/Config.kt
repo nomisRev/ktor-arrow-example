@@ -13,6 +13,7 @@ private const val AUTH_SECRET: String = "MySuperStrongSecret"
 private const val AUTH_ISSUER: String = "KtorArrowExampleIssuer"
 private const val AUTH_DURATION: Int = 30
 
+/** Config that is creating from System Env Variables, and default values */
 data class Config(
   val dataSource: DataSource = DataSource(),
   val http: Http = Http(),
