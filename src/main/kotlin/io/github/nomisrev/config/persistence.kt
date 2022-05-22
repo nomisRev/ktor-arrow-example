@@ -7,14 +7,9 @@ import arrow.fx.coroutines.continuations.resource
 import arrow.fx.coroutines.fromCloseable
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import io.github.nomisrev.repo.ArticleId
 import io.github.nomisrev.repo.UserId
-import io.github.nomisrev.sqldelight.Articles
-import io.github.nomisrev.sqldelight.Comments
 import io.github.nomisrev.sqldelight.SqlDelight
-import io.github.nomisrev.sqldelight.Tags
 import io.github.nomisrev.sqldelight.Users
-import java.time.OffsetDateTime
 import javax.sql.DataSource
 
 fun hikari(config: Config.DataSource): Resource<HikariDataSource> =
@@ -32,18 +27,10 @@ fun hikari(config: Config.DataSource): Resource<HikariDataSource> =
 fun sqlDelight(dataSource: DataSource): Resource<SqlDelight> = resource {
   val driver = Resource.fromCloseable(dataSource::asJdbcDriver).bind()
   SqlDelight.Schema.create(driver)
-  SqlDelight(
-    driver,
-    Articles.Adapter(articleIdAdapter, userIdAdapter, offsetDateTimeAdapter, offsetDateTimeAdapter),
-    Comments.Adapter(offsetDateTimeAdapter, offsetDateTimeAdapter),
-    Tags.Adapter(articleIdAdapter),
-    Users.Adapter(userIdAdapter)
-  )
+  SqlDelight(driver, Users.Adapter(userIdAdapter))
 }
 
-private val articleIdAdapter = columnAdapter(::ArticleId, ArticleId::serial)
 private val userIdAdapter = columnAdapter(::UserId, UserId::serial)
-private val offsetDateTimeAdapter = columnAdapter(OffsetDateTime::parse, OffsetDateTime::toString)
 
 private inline fun <A : Any, B> columnAdapter(
   crossinline decode: (databaseValue: B) -> A,
