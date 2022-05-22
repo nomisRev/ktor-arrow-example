@@ -28,28 +28,8 @@ data class InvalidPassword(override val errors: NonEmptyList<String>) : InvalidF
   override val field: String = "password"
 }
 
-data class InvalidTag(override val errors: NonEmptyList<String>) : InvalidField {
-  override val field: String = "tag"
-}
-
 data class InvalidUsername(override val errors: NonEmptyList<String>) : InvalidField {
   override val field: String = "username"
-}
-
-data class InvalidTitle(override val errors: NonEmptyList<String>) : InvalidField {
-  override val field: String = "title"
-}
-
-data class InvalidDescription(override val errors: NonEmptyList<String>) : InvalidField {
-  override val field: String = "description"
-}
-
-data class InvalidBody(override val errors: NonEmptyList<String>) : InvalidField {
-  override val field: String = "body"
-}
-
-data class InvalidEmailOrPassword(override val errors: NonEmptyList<String>) : InvalidField {
-  override val field: String = "email or password"
 }
 
 fun Login.validate(): Validated<IncorrectInput, Login> =
@@ -103,22 +83,6 @@ private fun String.validUsername(): ValidatedNel<InvalidUsername, String> {
     }
     .mapLeft(toInvalidField(::InvalidUsername))
 }
-
-@Suppress("UnusedPrivateMember")
-private fun String.validTitle(): ValidatedNel<InvalidTitle, String> =
-  trim().notBlank().mapLeft(toInvalidField(::InvalidTitle))
-
-@Suppress("UnusedPrivateMember")
-private fun String.validDescription(): ValidatedNel<InvalidDescription, String> =
-  trim().notBlank().mapLeft(toInvalidField(::InvalidDescription))
-
-@Suppress("UnusedPrivateMember")
-private fun String.validBody(): ValidatedNel<InvalidBody, String> =
-  trim().notBlank().mapLeft(toInvalidField(::InvalidBody))
-
-@Suppress("UnusedPrivateMember")
-private fun validTags(tags: List<String>): ValidatedNel<InvalidTag, Set<String>> =
-  tags.traverse { it.trim().notBlank() }.bimap(toInvalidField(::InvalidTag)) { it.toSet() }
 
 private fun <A : InvalidField> toInvalidField(
   transform: (NonEmptyList<String>) -> A

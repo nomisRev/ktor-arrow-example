@@ -99,7 +99,7 @@ fun userRoutes() = routing {
 }
 
 context(EffectScope<ApiError>)
-  private suspend inline fun <reified A : Any> PipelineContext<
+private suspend inline fun <reified A : Any> PipelineContext<
   Unit, ApplicationCall>.receiveCatching(): A =
   Either.catch { call.receive<A>() }.mapLeft { e ->
     Unexpected(e.message ?: "Received malformed JSON for ${A::class.simpleName}", e)

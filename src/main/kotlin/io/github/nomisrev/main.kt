@@ -4,7 +4,6 @@ import io.github.nomisrev.config.Config
 import io.github.nomisrev.config.Dependencies
 import io.github.nomisrev.config.configure
 import io.github.nomisrev.config.dependencies
-import io.github.nomisrev.routes.healthRoute
 import io.github.nomisrev.routes.userRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.engine.embeddedServer
@@ -27,8 +26,7 @@ fun main(): Unit =
 
 fun Application.app(module: Dependencies) {
   configure()
-  with(module.userPersistence, module.config.auth, module.hikariDataSource) {
-    healthRoute()
+  with(module.userPersistence, module.config.auth) {
     userRoutes()
   }
 }

@@ -25,3 +25,5 @@ gradleEnterprise {
     termsOfServiceAgree = "yes"
   }
 }
+
+include("bcrypt")
