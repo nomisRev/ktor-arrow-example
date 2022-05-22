@@ -19,12 +19,12 @@ import io.ktor.server.response.respond
 import kotlinx.serialization.Serializable
 
 @Serializable
-private data class GenericErrorModel(val errors: GenericErrorModelErrors) {
+internal data class GenericErrorModel(val errors: GenericErrorModelErrors) {
   constructor(msg: String): this(GenericErrorModelErrors(listOf(msg)))
 }
 
 @Serializable
-private data class GenericErrorModelErrors(val body: List<String>)
+internal data class GenericErrorModelErrors(val body: List<String>)
 
 context(KtorCtx)
 suspend inline fun <reified A : Any> conduit(

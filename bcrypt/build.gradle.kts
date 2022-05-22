@@ -1,6 +1,10 @@
+import de.undercouch.gradle.tasks.download.Download
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
+
 plugins {
   kotlin("multiplatform")
-  kotlin("native.cocoapods")
+//  kotlin("native.cocoapods")
 }
 
 kotlin {
@@ -21,51 +25,66 @@ kotlin {
   watchosX64()
   watchosX86()
 
-  cocoapods {
-    version = "1.0.0"
-    summary = "Kotlin MPP ...TODO"
-    pod("BCryptSwift")
+//  cocoapods {
+//    version = "1.0.0"
+//    summary = "Kotlin MPP ...TODO"
+//    pod("BCryptSwift")
+//  }
+
+  val commonMain by sourceSets.getting
+  val iosArm32Main by sourceSets.getting
+  val iosArm64Main by sourceSets.getting
+  val iosSimulatorArm64Main by sourceSets.getting
+  val iosX64Main by sourceSets.getting
+  val macosArm64Main by sourceSets.getting
+  val macosX64Main by sourceSets.getting
+  val tvosArm64Main by sourceSets.getting
+  val tvosSimulatorArm64Main by sourceSets.getting
+  val tvosX64Main by sourceSets.getting
+  val watchosArm32Main by sourceSets.getting
+  val watchosArm64Main by sourceSets.getting
+  val watchosSimulatorArm64Main by sourceSets.getting
+  val watchosX64Main by sourceSets.getting
+  val watchosX86Main by sourceSets.getting
+
+  val nativeMain by sourceSets.creating {
+    dependsOn(commonMain)
   }
-
-  sourceSets {
-    val commonMain by getting
-    val iosArm32Main by getting
-    val iosArm64Main by getting
-    val iosSimulatorArm64Main by getting
-    val iosX64Main by getting
-    val macosArm64Main by getting
-    val macosX64Main by getting
-    val tvosArm64Main by getting
-    val tvosSimulatorArm64Main by getting
-    val tvosX64Main by getting
-    val watchosArm32Main by getting
-    val watchosArm64Main by getting
-    val watchosSimulatorArm64Main by getting
-    val watchosX64Main by getting
-    val watchosX86Main by getting
-
-    create("darwinMain") {
-      dependsOn(commonMain)
-      iosArm32Main.dependsOn(this)
-      iosArm64Main.dependsOn(this)
-      iosSimulatorArm64Main.dependsOn(this)
-      iosX64Main.dependsOn(this)
-      macosArm64Main.dependsOn(this)
-      macosX64Main.dependsOn(this)
-      tvosArm64Main.dependsOn(this)
-      tvosSimulatorArm64Main.dependsOn(this)
-      tvosX64Main.dependsOn(this)
-      watchosArm32Main.dependsOn(this)
-      watchosArm64Main.dependsOn(this)
-      watchosSimulatorArm64Main.dependsOn(this)
-      watchosX64Main.dependsOn(this)
-      watchosX86Main.dependsOn(this)
+  targets.withType<KotlinNativeTarget> {
+    sourceSets["${targetName}Main"].apply {
+      dependsOn(nativeMain)
     }
-
-    named("jvmMain") {
-      dependencies {
-        implementation("at.favre.lib:bycrypt:0.9.0")
+    compilations["main"].apply {
+      cinterops.create("libbcrypt") {
+        includeDirs("$buildDir/libbcrypt/${konanTarget.name}")
       }
+      kotlinOptions.freeCompilerArgs = listOf(
+        "-include-binary", "$buildDir/libbcrypt/${konanTarget.name}/libbcrypt.a"
+      )
     }
   }
+
+  sourceSets.named("jvmMain") {
+    dependencies {
+      implementation("at.favre.lib:bycrypt:0.9.0")
+    }
+  }
+}
+
+tasks.withType<CInteropProcess> {
+  val archiveFile = File("$buildDir/libbcrypt/${konanTarget.name}", "libbcrypt.zip")
+
+  val downloadArchive = tasks.register<Download>(name.replaceFirst("cinterop", "download")) {
+    src("https://github.com/rg3/libbcrypt/archive/refs/heads/master.zip")
+    dest(archiveFile)
+    overwrite(false)
+  }
+
+  val unpackArchive = tasks.register<Copy>(name.replaceFirst("cinterop", "unpack")) {
+    from(zipTree(archiveFile))
+    into("$buildDir/libbcrypt/${konanTarget.name}")
+    dependsOn(downloadArchive)
+  }
+
+  dependsOn(unpackArchive)
 }

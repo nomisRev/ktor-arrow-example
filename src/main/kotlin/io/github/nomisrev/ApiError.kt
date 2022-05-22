@@ -2,7 +2,6 @@ package io.github.nomisrev
 
 import arrow.core.NonEmptyList
 import arrow.core.nonEmptyListOf
-import io.github.nomisrev.routes.Profile
 
 sealed interface ApiError {
   object PasswordNotMatched : ApiError
