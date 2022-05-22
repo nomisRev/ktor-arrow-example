@@ -66,7 +66,7 @@ fun userRoutes() = routing {
 
     /* Login: POST /api/users/login */
     post("/login") {
-      conduit(HttpStatusCode.OK) {
+      conduit2(HttpStatusCode.OK) {
         val (email, password) = receiveCatching<UserWrapper<LoginUser>>().user
         val (token, info) = login(Login(email, password))
         UserWrapper(User(email, token.value, info.username, info.bio, info.image))
