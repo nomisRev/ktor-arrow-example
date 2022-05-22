@@ -1,3 +1,4 @@
+import kotlinx.kover.api.KoverTaskExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 @Suppress("DSL_SCOPE_VIOLATION") plugins {
@@ -44,7 +45,7 @@ tasks {
 
   test {
     useJUnitPlatform()
-    extensions.configure(kotlinx.kover.api.KoverTaskExtension::class) {
+    extensions.configure<KoverTaskExtension> {
       includes = listOf("io.github.nomisrev.*")
     }
   }
@@ -66,6 +67,7 @@ dependencies {
   implementation(libs.hikari)
   implementation(libs.postgresql)
   implementation(libs.slugify)
+  implementation("at.favre.lib:bcrypt:0.9.0")
 
   testImplementation(libs.ktor.client.content.negotiation)
   testImplementation(libs.ktor.client.serialization)

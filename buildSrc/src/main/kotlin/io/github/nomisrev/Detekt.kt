@@ -15,6 +15,8 @@ fun Project.setupDetekt() {
 
   tasks.withType<Detekt>().configureEach {
     exclude { "generated/sqldelight" in it.file.absolutePath }
+    exclude { "Effect.kt" in it.file.absolutePath }
+    exclude { "EffectScope.kt" in it.file.absolutePath }
     reports {
       html.required by true
       sarif.required by true

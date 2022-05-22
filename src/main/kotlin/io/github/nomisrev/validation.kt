@@ -7,10 +7,9 @@ import arrow.core.Validated
 import arrow.core.ValidatedNel
 import arrow.core.invalidNel
 import arrow.core.nonEmptyListOf
-import arrow.core.traverse
 import arrow.core.validNel
 import arrow.core.zip
-import io.github.nomisrev.ApiError.IncorrectInput
+import io.github.nomisrev.IncorrectInput
 import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.service.Update
