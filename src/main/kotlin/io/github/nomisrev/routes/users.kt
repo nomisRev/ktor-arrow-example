@@ -2,8 +2,7 @@ package io.github.nomisrev.routes
 
 import arrow.core.Either
 import arrow.core.continuations.EffectScope
-import io.github.nomisrev.ApiError
-import io.github.nomisrev.ApiError.Unexpected
+import io.github.nomisrev.Unexpected
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.config.Config
 import io.github.nomisrev.repo.UserPersistence
@@ -98,7 +97,7 @@ fun userRoutes() = routing {
   }
 }
 
-context(EffectScope<ApiError>)
+context(EffectScope<Unexpected>)
 private suspend inline fun <reified A : Any> PipelineContext<
   Unit, ApplicationCall>.receiveCatching(): A =
   Either.catch { call.receive<A>() }.mapLeft { e ->

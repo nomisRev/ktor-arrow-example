@@ -3,15 +3,18 @@ package io.github.nomisrev.routes
 import arrow.core.continuations.EffectScope
 import arrow.core.continuations.effect
 import io.github.nomisrev.ApiError
-import io.github.nomisrev.ApiError.EmailAlreadyExists
-import io.github.nomisrev.ApiError.EmptyUpdate
-import io.github.nomisrev.ApiError.IncorrectInput
-import io.github.nomisrev.ApiError.JwtGeneration
-import io.github.nomisrev.ApiError.JwtInvalid
-import io.github.nomisrev.ApiError.PasswordNotMatched
-import io.github.nomisrev.ApiError.Unexpected
-import io.github.nomisrev.ApiError.UserNotFound
-import io.github.nomisrev.ApiError.UsernameAlreadyExists
+import io.github.nomisrev.UserError
+import io.github.nomisrev.JwtError
+import io.github.nomisrev.ValidationError
+import io.github.nomisrev.UserNotFound
+import io.github.nomisrev.UsernameAlreadyExists
+import io.github.nomisrev.EmailAlreadyExists
+import io.github.nomisrev.PasswordNotMatched
+import io.github.nomisrev.JwtGeneration
+import io.github.nomisrev.JwtInvalid
+import io.github.nomisrev.EmptyUpdate
+import io.github.nomisrev.IncorrectInput
+import io.github.nomisrev.Unexpected
 import io.github.nomisrev.KtorCtx
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
@@ -35,26 +38,43 @@ context(KtorCtx)
   block(this)
 }.fold({ respond(it) }, { call.respond(status, it) })
 
-@Suppress("ComplexMethod")
-suspend fun KtorCtx.respond(error: ApiError): Unit =
-  when (error) {
-    PasswordNotMatched -> call.respond(HttpStatusCode.Unauthorized)
-    is IncorrectInput ->
-      unprocessable(error.errors.joinToString { field -> "${field.field}: ${field.errors.joinToString()}" })
-    is Unexpected ->
-      internal(
-        """
+suspend fun KtorCtx.respond(error: Unexpected): Unit =
+  internal(
+    """
         Unexpected failure occurred:
           - description: ${error.description}
           - cause: ${error.error}
         """.trimIndent()
-      )
-    is EmptyUpdate -> unprocessable(error.description)
-    is EmailAlreadyExists -> unprocessable("${error.email} is already registered")
-    is JwtGeneration -> unprocessable(error.description)
+  )
+
+suspend fun KtorCtx.respond(error: UserError): Unit =
+  when (error) {
     is UserNotFound -> unprocessable("User with ${error.property} not found")
+    is EmailAlreadyExists -> unprocessable("${error.email} is already registered")
     is UsernameAlreadyExists -> unprocessable("Username ${error.username} already exists")
+    PasswordNotMatched -> call.respond(HttpStatusCode.Unauthorized)
+    is Unexpected -> respond(error)
+  }
+
+suspend fun KtorCtx.respond(error: JwtError): Unit =
+  when (error) {
+    is JwtGeneration -> unprocessable(error.description)
     is JwtInvalid -> unprocessable(error.description)
+  }
+
+suspend fun KtorCtx.respond(error: ValidationError): Unit =
+  when (error) {
+    is EmptyUpdate -> unprocessable(error.description)
+    is IncorrectInput ->
+      unprocessable(error.errors.joinToString { field -> "${field.field}: ${field.errors.joinToString()}" })
+  }
+
+suspend fun KtorCtx.respond(error: ApiError): Unit =
+  when (error) {
+    is Unexpected -> respond(error)
+    is JwtError -> respond(error)
+    is UserError -> respond(error)
+    is ValidationError -> respond(error)
   }
 
 private suspend inline fun KtorCtx.unprocessable(

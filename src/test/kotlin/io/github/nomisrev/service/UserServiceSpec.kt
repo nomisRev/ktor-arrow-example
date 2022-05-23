@@ -6,9 +6,9 @@ import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
 import io.github.nomisrev.with
 import io.github.nomisrev.ApiError
-import io.github.nomisrev.ApiError.EmptyUpdate
-import io.github.nomisrev.ApiError.IncorrectInput
-import io.github.nomisrev.ApiError.UsernameAlreadyExists
+import io.github.nomisrev.EmptyUpdate
+import io.github.nomisrev.IncorrectInput
+import io.github.nomisrev.UsernameAlreadyExists
 import io.github.nomisrev.InvalidEmail
 import io.github.nomisrev.InvalidPassword
 import io.github.nomisrev.InvalidUsername

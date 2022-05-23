@@ -9,8 +9,9 @@ import io.github.nefilim.kjwt.KJWTSignError
 import io.github.nefilim.kjwt.SignedJWT
 import io.github.nefilim.kjwt.sign
 import io.github.nomisrev.ApiError
-import io.github.nomisrev.ApiError.JwtGeneration
-import io.github.nomisrev.ApiError.JwtInvalid
+import io.github.nomisrev.JwtError
+import io.github.nomisrev.JwtGeneration
+import io.github.nomisrev.JwtInvalid
 import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.config.Config
 import io.github.nomisrev.ensureNotNull
@@ -21,7 +22,7 @@ import java.time.ZoneId
 import kotlin.time.toJavaDuration
 
 /** Generate a new JWT token for userId and password. Doesn't invalidate old password */
-context(EffectScope<ApiError>, Config.Auth)
+context(EffectScope<JwtError>, Config.Auth)
 suspend fun generateJwtToken(userId: UserId): JwtToken =
   JWT
     .hs512 {
@@ -51,7 +52,7 @@ suspend fun verifyJwtToken(token: JwtToken): UserId {
   return UserId(userId)
 }
 
-context(EffectScope<ApiError>)
+context(EffectScope<JwtError>)
 private suspend fun <A : JWSAlgorithm> Either<KJWTSignError, SignedJWT<A>>.bind(): SignedJWT<A> =
   mapLeft { jwtError ->
     when (jwtError) {

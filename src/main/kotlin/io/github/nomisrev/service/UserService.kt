@@ -2,7 +2,7 @@ package io.github.nomisrev.service
 
 import arrow.core.continuations.EffectScope
 import io.github.nomisrev.ApiError
-import io.github.nomisrev.ApiError.EmptyUpdate
+import io.github.nomisrev.EmptyUpdate
 import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.config.Config
 import io.github.nomisrev.repo.UserId

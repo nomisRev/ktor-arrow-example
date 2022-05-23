@@ -3,19 +3,22 @@ package io.github.nomisrev
 import arrow.core.NonEmptyList
 import arrow.core.nonEmptyListOf
 
-sealed interface ApiError {
-  object PasswordNotMatched : ApiError
-  data class EmptyUpdate(val description: String) : ApiError
-  data class IncorrectInput(val errors: NonEmptyList<InvalidField>) : ApiError {
-    constructor(head: InvalidField): this(nonEmptyListOf(head))
-  }
+sealed interface ApiError
 
-  data class UserNotFound(val property: String) : ApiError
-  data class EmailAlreadyExists(val email: String) : ApiError
-  data class UsernameAlreadyExists(val username: String) : ApiError
-
-  data class JwtGeneration(val description: String) : ApiError
-  data class JwtInvalid(val description: String) : ApiError
-
-  data class Unexpected(val description: String, val error: Throwable) : ApiError
+sealed interface ValidationError : ApiError
+data class EmptyUpdate(val description: String) : ValidationError
+data class IncorrectInput(val errors: NonEmptyList<InvalidField>) : ValidationError {
+  constructor(head: InvalidField) : this(nonEmptyListOf(head))
 }
+
+sealed interface UserError : ApiError
+data class UserNotFound(val property: String) : UserError
+data class EmailAlreadyExists(val email: String) : UserError
+data class UsernameAlreadyExists(val username: String) : UserError
+object PasswordNotMatched : UserError
+
+sealed interface JwtError : ApiError
+data class JwtGeneration(val description: String) : JwtError
+data class JwtInvalid(val description: String) : JwtError
+
+data class Unexpected(val description: String, val error: Throwable) : UserError

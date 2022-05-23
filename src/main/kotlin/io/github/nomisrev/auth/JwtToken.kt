@@ -12,7 +12,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.auth.HttpAuthHeader
 import io.ktor.server.application.call
 import io.ktor.server.auth.parseAuthorizationHeader
-import io.ktor.server.response.respond
+import io.ktor.server.response.respond as ktorRespond
 
 @JvmInline
 value class JwtToken(val value: String)
@@ -25,7 +25,7 @@ suspend inline fun jwtAuth( // BUG: inline + same context as lambda as function
   crossinline body: suspend /*context(KtorCtx)*/ (JwtContext) -> Unit
 ) {
   optionalJwtAuth { context ->
-    context?.let { body(it) } ?: call.respond(HttpStatusCode.Unauthorized)
+    context?.let { body(it) } ?: call.ktorRespond(HttpStatusCode.Unauthorized)
   }
 }
 
