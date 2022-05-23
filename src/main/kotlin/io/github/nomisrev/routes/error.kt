@@ -47,7 +47,7 @@ context(KtorCtx)
 
 // We can make the _all_ effect concrete by the summoning the common ancestor effect.
 context(KtorCtx)
-  suspend inline fun <reified A : Any> conduit2(
+suspend inline fun <reified A : Any> conduit2(
   status: HttpStatusCode,
   crossinline block: suspend context(EffectScope<ApiError>) () -> A
 ): Unit =

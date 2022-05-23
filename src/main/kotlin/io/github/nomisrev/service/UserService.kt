@@ -1,16 +1,17 @@
 package io.github.nomisrev.service
 
 import arrow.core.continuations.EffectScope
+import io.github.nomisrev.ApiError
 import io.github.nomisrev.UserError
 import io.github.nomisrev.JwtError
 import io.github.nomisrev.ValidationError
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.EmptyUpdate
+import io.github.nomisrev.validate
 import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.config.Config
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.repo.UserPersistence
-import io.github.nomisrev.validate
 
 data class RegisterUser(val username: String, val email: String, val password: String)
 
@@ -42,13 +43,14 @@ suspend fun register(input: RegisterUser): JwtToken {
 }
 
 /** Logs in a user based on email and password. */
-context(
-  EffectScope<JwtError>,
-  EffectScope<UserError>,
-  EffectScope<ValidationError>,
-  UserPersistence,
-  Config.Auth
-)
+//context(
+//  EffectScope<JwtError>,
+//  EffectScope<UserError>,
+//  EffectScope<ValidationError>,
+//  UserPersistence,
+//  Config.Auth
+//)
+context(EffectScope<ApiError>, UserPersistence, Config.Auth)
 suspend fun login(input: Login): Pair<JwtToken, UserInfo> {
   val (email, password) = input.validate().bind()
   val (userId, info) = verifyPassword(email, password)
