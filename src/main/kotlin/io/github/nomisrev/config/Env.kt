@@ -14,7 +14,7 @@ private const val AUTH_ISSUER: String = "KtorArrowExampleIssuer"
 private const val AUTH_DURATION: Int = 30
 
 /** Config that is creating from System Env Variables, and default values */
-data class Config(
+data class Env(
   val dataSource: DataSource = DataSource(),
   val http: Http = Http(),
   val auth: Auth = Auth(),

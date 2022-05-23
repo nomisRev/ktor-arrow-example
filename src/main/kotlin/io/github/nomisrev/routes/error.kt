@@ -1,8 +1,8 @@
 package io.github.nomisrev.routes
 
-import arrow.core.continuations.EffectScope
 import arrow.core.continuations.effect
-import io.github.nomisrev.ApiError
+import io.github.nomisrev.DomainError
+import io.github.nomisrev.DomainErrors
 import io.github.nomisrev.UserError
 import io.github.nomisrev.JwtError
 import io.github.nomisrev.ValidationError
@@ -33,8 +33,8 @@ fun GenericErrorModel(vararg msg: String): GenericErrorModel =
 context(KtorCtx)
   suspend inline fun <reified A : Any> conduit(
   status: HttpStatusCode,
-  crossinline block: suspend context(EffectScope<ApiError>) () -> A
-): Unit = effect<ApiError, A> {
+  crossinline block: suspend context(DomainErrors) () -> A
+): Unit = effect<DomainError, A> {
   block(this)
 }.fold({ respond(it) }, { call.respond(status, it) })
 
@@ -69,7 +69,7 @@ suspend fun KtorCtx.respond(error: ValidationError): Unit =
       unprocessable(error.errors.joinToString { field -> "${field.field}: ${field.errors.joinToString()}" })
   }
 
-suspend fun KtorCtx.respond(error: ApiError): Unit =
+suspend fun KtorCtx.respond(error: DomainError): Unit =
   when (error) {
     is Unexpected -> respond(error)
     is JwtError -> respond(error)

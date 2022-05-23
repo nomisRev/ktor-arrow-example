@@ -12,14 +12,14 @@ import io.github.nomisrev.sqldelight.SqlDelight
 import io.github.nomisrev.sqldelight.Users
 import javax.sql.DataSource
 
-fun hikari(config: Config.DataSource): Resource<HikariDataSource> =
+fun hikari(env: Env.DataSource): Resource<HikariDataSource> =
   Resource.fromCloseable {
     HikariDataSource(
       HikariConfig().apply {
-        jdbcUrl = config.url
-        username = config.username
-        password = config.password
-        driverClassName = config.driver
+        jdbcUrl = env.url
+        username = env.username
+        password = env.password
+        driverClassName = env.driver
       }
     )
   }

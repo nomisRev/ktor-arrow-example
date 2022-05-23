@@ -4,7 +4,7 @@ import arrow.core.Either
 import arrow.core.continuations.EffectScope
 import io.github.nomisrev.Unexpected
 import io.github.nomisrev.auth.jwtAuth
-import io.github.nomisrev.config.Config
+import io.github.nomisrev.config.Env
 import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
@@ -52,7 +52,7 @@ data class User(
 @Serializable
 data class LoginUser(val email: String, val password: String)
 
-context(Application, UserPersistence, Config.Auth)
+context(Application, UserPersistence, Env.Auth)
 fun userRoutes() = routing {
   route("/users") {
     /* Registration: POST /api/users */

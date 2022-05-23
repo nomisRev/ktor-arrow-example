@@ -2,10 +2,10 @@ package io.github.nomisrev.routes
 
 import arrow.core.continuations.either
 import io.github.nomisrev.with
-import io.github.nomisrev.ApiError
+import io.github.nomisrev.DomainError
 import io.github.nomisrev.PostgreSQLContainer
 import io.github.nomisrev.auth.JwtToken
-import io.github.nomisrev.config.Config
+import io.github.nomisrev.config.Env
 import io.github.nomisrev.config.dependencies
 import io.github.nomisrev.config.hikari
 import io.github.nomisrev.resource
@@ -29,9 +29,9 @@ import io.ktor.http.contentType
 
 class UserRouteSpec :
   StringSpec({
-    val config = Config().copy(dataSource = PostgreSQLContainer.config())
-    val dataSource by resource(hikari(config.dataSource))
-    val dependencies by resource(dependencies(config))
+    val env = Env().copy(dataSource = PostgreSQLContainer.config())
+    val dataSource by resource(hikari(env.dataSource))
+    val dependencies by resource(dependencies(env))
 
     val username = "username"
     val email = "valid@domain.com"
@@ -39,8 +39,8 @@ class UserRouteSpec :
 
     afterTest { dataSource.query("TRUNCATE users CASCADE") }
 
-    suspend fun registerUser(): JwtToken = either<ApiError, JwtToken> {
-      with(dependencies.userPersistence, dependencies.config.auth) {
+    suspend fun registerUser(): JwtToken = either<DomainError, JwtToken> {
+      with(dependencies.userPersistence, dependencies.env.auth) {
         register(RegisterUser(username, email, password))
       }
     }.shouldBeRight()

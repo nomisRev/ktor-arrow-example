@@ -1,6 +1,6 @@
 package io.github.nomisrev
 
-import io.github.nomisrev.config.Config
+import io.github.nomisrev.config.Env
 import io.github.nomisrev.config.Dependencies
 import io.github.nomisrev.config.configure
 import io.github.nomisrev.config.dependencies
@@ -13,12 +13,12 @@ import kotlinx.coroutines.runBlocking
 
 fun main(): Unit =
   runBlocking(Dispatchers.Default) {
-    val config = Config()
-    dependencies(config).use { module ->
+    val env = Env()
+    dependencies(env).use { module ->
       embeddedServer(
           Netty,
-          host = config.http.host,
-          port = config.http.port,
+          host = env.http.host,
+          port = env.http.port,
         ) { app(module) }
         .start(wait = true)
     }
@@ -26,7 +26,7 @@ fun main(): Unit =
 
 fun Application.app(module: Dependencies) {
   configure()
-  with(module.userPersistence, module.config.auth) {
+  with(module.userPersistence, module.env.auth) {
     userRoutes()
   }
 }

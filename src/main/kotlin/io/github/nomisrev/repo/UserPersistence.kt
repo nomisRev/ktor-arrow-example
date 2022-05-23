@@ -14,31 +14,32 @@ import io.github.nomisrev.sqldelight.UsersQueries
 import org.postgresql.util.PSQLException
 import org.postgresql.util.PSQLState
 
-@JvmInline value class UserId(val serial: Long)
+@JvmInline
+value class UserId(val serial: Long)
 
 interface UserPersistence {
   /** Creates a new user in the database, and returns the [UserId] of the newly created user */
   context(EffectScope<UserError>)
-  suspend fun insert(username: String, email: String, password: String): UserId
+    suspend fun insert(username: String, email: String, password: String): UserId
 
   /** Verifies is a password is correct for a given email */
   context(EffectScope<UserError>)
-  suspend fun verifyPassword(
+    suspend fun verifyPassword(
     email: String,
     password: String
   ): Pair<UserId, UserInfo>
 
   /** Select a User by its [UserId] */
   context(EffectScope<UserError>)
-  suspend fun select(userId: UserId): UserInfo
+    suspend fun select(userId: UserId): UserInfo
 
   /** Select a User by its username */
   context(EffectScope<UserError>)
-  suspend fun select(username: String): UserInfo
+    suspend fun select(username: String): UserInfo
 
   context(EffectScope<UserNotFound>)
-  @Suppress("LongParameterList")
-  suspend fun update(
+    @Suppress("LongParameterList")
+    suspend fun update(
     userId: UserId,
     email: String?,
     username: String?,
@@ -56,7 +57,7 @@ fun userPersistence(
   object : UserPersistence {
 
     context(EffectScope<UserError>)
-    override suspend fun insert(
+      override suspend fun insert(
       username: String,
       email: String,
       password: String
@@ -72,14 +73,14 @@ fun userPersistence(
     }
 
     context(EffectScope<UserError>)
-    override suspend fun verifyPassword(
+      override suspend fun verifyPassword(
       email: String,
       password: String
     ): Pair<UserId, UserInfo> {
-      val (userId, username, hash, bio, image) =
-        ensureNotNull(usersQueries.selectSecurityByEmail(email).executeAsOneOrNull()) {
-          UserNotFound("email=$email")
-        }
+      val select = usersQueries.selectSecurityByEmail(email).executeAsOneOrNull()
+      val (userId, username, hash, bio, image) = ensureNotNull(select) {
+        UserNotFound("email=$email")
+      }
 
       val result = BCrypt.verifyer().verify(password.toByteArray(), hash)
       ensure(result.verified) { PasswordNotMatched }
@@ -88,22 +89,22 @@ fun userPersistence(
 
 
     context(EffectScope<UserError>)
-    override suspend fun select(userId: UserId): UserInfo {
+      override suspend fun select(userId: UserId): UserInfo {
       val userInfo =
         Either.catch {
-            usersQueries
-              .selectById(userId) { email, username, _, bio, image ->
-                UserInfo(email, username, bio, image)
-              }
-              .executeAsOneOrNull()
-          }
+          usersQueries
+            .selectById(userId) { email, username, _, bio, image ->
+              UserInfo(email, username, bio, image)
+            }
+            .executeAsOneOrNull()
+        }
           .mapLeft { e -> Unexpected("Failed to select user with userId: $userId", e) }
           .bind()
       return ensureNotNull(userInfo) { UserNotFound("userId=$userId") }
     }
 
     context(EffectScope<UserError>)
-    override suspend fun select(username: String): UserInfo {
+      override suspend fun select(username: String): UserInfo {
       val userInfo =
         Either.catch { usersQueries.selectByUsername(username, ::UserInfo).executeAsOneOrNull() }
           .mapLeft { e -> Unexpected("Failed to select user with username: $username", e) }
@@ -112,7 +113,7 @@ fun userPersistence(
     }
 
     context(EffectScope<UserNotFound>)
-    override suspend fun update(
+      override suspend fun update(
       userId: UserId,
       email: String?,
       username: String?,
@@ -120,20 +121,17 @@ fun userPersistence(
       bio: String?,
       image: String?
     ): UserInfo {
-      val info =
-        usersQueries.transactionWithResult<UserInfo?> {
-          usersQueries.selectById(userId).executeAsOneOrNull()?.let {
-            (oldEmail, oldUsername, oldPassword, oldBio, oldImage) ->
-            val newPassword = password?.let {
-              BCrypt.withDefaults().hash(rounds, password.toByteArray())
-            } ?: oldPassword
-            val newEmail = email ?: oldEmail
-            val newUsername = username ?: oldUsername
-            val newBio = bio ?: oldBio
-            val newImage = image ?: oldImage
-            usersQueries.update(newEmail, newUsername, newPassword, newBio, newImage, userId)
-            UserInfo(newEmail, newUsername, newBio, newImage)
-          }
+      val info = usersQueries.selectById(userId).executeAsOneOrNull()
+        ?.let { (oldEmail, oldUsername, oldPassword, oldBio, oldImage) ->
+          val newPassword = password?.let {
+            BCrypt.withDefaults().hash(rounds, password.toByteArray())
+          } ?: oldPassword
+          val newEmail = email ?: oldEmail
+          val newUsername = username ?: oldUsername
+          val newBio = bio ?: oldBio
+          val newImage = image ?: oldImage
+          usersQueries.update(newEmail, newUsername, newPassword, newBio, newImage, userId)
+          UserInfo(newEmail, newUsername, newBio, newImage)
         }
       return ensureNotNull(info) { UserNotFound("userId=$userId") }
     }
@@ -145,10 +143,10 @@ private fun UsersQueries.create(
   email: String
 ): UserId =
   insertAndGetId(
-      username = username,
-      email = email,
-      hashed_password = hash,
-      bio = "",
-      image = ""
-    )
+    username = username,
+    email = email,
+    hashed_password = hash,
+    bio = "",
+    image = ""
+  )
     .executeAsOne()

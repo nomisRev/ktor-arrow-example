@@ -5,11 +5,11 @@ import arrow.fx.coroutines.continuations.resource
 import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.repo.userPersistence
 
-class Dependencies(val config: Config, val userPersistence: UserPersistence)
+class Dependencies(val env: Env, val userPersistence: UserPersistence)
 
-fun dependencies(config: Config): Resource<Dependencies> = resource {
-  val hikari = hikari(config.dataSource).bind()
+fun dependencies(env: Env): Resource<Dependencies> = resource {
+  val hikari = hikari(env.dataSource).bind()
   val sqlDelight = sqlDelight(hikari).bind()
   val userPersistence = userPersistence(sqlDelight.usersQueries)
-  Dependencies(config, userPersistence)
+  Dependencies(env, userPersistence)
 }

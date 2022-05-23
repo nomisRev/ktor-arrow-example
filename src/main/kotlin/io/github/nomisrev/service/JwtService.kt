@@ -8,13 +8,13 @@ import io.github.nefilim.kjwt.JWT
 import io.github.nefilim.kjwt.KJWTSignError
 import io.github.nefilim.kjwt.SignedJWT
 import io.github.nefilim.kjwt.sign
-import io.github.nomisrev.ApiError
+import io.github.nomisrev.ensureNotNull
+import io.github.nomisrev.DomainErrors
 import io.github.nomisrev.JwtError
 import io.github.nomisrev.JwtGeneration
 import io.github.nomisrev.JwtInvalid
 import io.github.nomisrev.auth.JwtToken
-import io.github.nomisrev.config.Config
-import io.github.nomisrev.ensureNotNull
+import io.github.nomisrev.config.Env
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.repo.UserPersistence
 import java.time.LocalDateTime
@@ -22,7 +22,7 @@ import java.time.ZoneId
 import kotlin.time.toJavaDuration
 
 /** Generate a new JWT token for userId and password. Doesn't invalidate old password */
-context(EffectScope<JwtError>, Config.Auth)
+context(EffectScope<JwtError>, Env.Auth)
 suspend fun generateJwtToken(userId: UserId): JwtToken =
   JWT
     .hs512 {
@@ -37,7 +37,7 @@ suspend fun generateJwtToken(userId: UserId): JwtToken =
     .let { JwtToken(it.rendered) }
 
 /** Verify a JWT token. Checks if userId exists in database, and token is not expired. */
-context(EffectScope<ApiError>, UserPersistence)
+context(DomainErrors, UserPersistence)
 suspend fun verifyJwtToken(token: JwtToken): UserId {
   val jwt =
     JWT.decodeT(token.value, JWSHMAC512Algorithm).mapLeft { JwtInvalid(it.toString()) }.bind()
