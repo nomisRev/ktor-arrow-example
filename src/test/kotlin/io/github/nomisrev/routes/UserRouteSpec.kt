@@ -5,9 +5,9 @@ import io.github.nomisrev.with
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.PostgreSQLContainer
 import io.github.nomisrev.auth.JwtToken
-import io.github.nomisrev.config.Env
-import io.github.nomisrev.config.dependencies
-import io.github.nomisrev.config.hikari
+import io.github.nomisrev.env.Env
+import io.github.nomisrev.env.dependencies
+import io.github.nomisrev.env.hikari
 import io.github.nomisrev.resource
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.service.register

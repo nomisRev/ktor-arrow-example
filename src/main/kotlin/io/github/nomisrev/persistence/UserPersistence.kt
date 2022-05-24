@@ -1,4 +1,4 @@
-package io.github.nomisrev.repo
+package io.github.nomisrev.persistence
 
 import arrow.core.Either
 import arrow.core.continuations.EffectScope

@@ -14,9 +14,9 @@ import io.github.nomisrev.JwtError
 import io.github.nomisrev.JwtGeneration
 import io.github.nomisrev.JwtInvalid
 import io.github.nomisrev.auth.JwtToken
-import io.github.nomisrev.config.Env
-import io.github.nomisrev.repo.UserId
-import io.github.nomisrev.repo.UserPersistence
+import io.github.nomisrev.env.Env
+import io.github.nomisrev.persistence.UserId
+import io.github.nomisrev.persistence.UserPersistence
 import java.time.LocalDateTime
 import java.time.ZoneId
 import kotlin.time.toJavaDuration

@@ -1,4 +1,4 @@
-package io.github.nomisrev.config
+package io.github.nomisrev.env
 
 import app.cash.sqldelight.ColumnAdapter
 import app.cash.sqldelight.driver.jdbc.asJdbcDriver
@@ -7,7 +7,7 @@ import arrow.fx.coroutines.continuations.resource
 import arrow.fx.coroutines.fromCloseable
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import io.github.nomisrev.repo.UserId
+import io.github.nomisrev.persistence.UserId
 import io.github.nomisrev.sqldelight.SqlDelight
 import io.github.nomisrev.sqldelight.Users
 import javax.sql.DataSource

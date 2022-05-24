@@ -3,9 +3,9 @@ package io.github.nomisrev.auth
 import arrow.core.continuations.effect
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.KtorCtx
-import io.github.nomisrev.config.Env
-import io.github.nomisrev.repo.UserId
-import io.github.nomisrev.repo.UserPersistence
+import io.github.nomisrev.env.Env
+import io.github.nomisrev.persistence.UserId
+import io.github.nomisrev.persistence.UserPersistence
 import io.github.nomisrev.routes.respond
 import io.github.nomisrev.service.verifyJwtToken
 import io.ktor.http.HttpStatusCode

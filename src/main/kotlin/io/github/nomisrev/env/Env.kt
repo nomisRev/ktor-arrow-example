@@ -1,4 +1,4 @@
-package io.github.nomisrev.config
+package io.github.nomisrev.env
 
 import java.lang.System.getenv
 import kotlin.time.Duration

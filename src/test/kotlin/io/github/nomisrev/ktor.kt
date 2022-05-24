@@ -2,8 +2,8 @@
 
 package io.github.nomisrev
 
-import io.github.nomisrev.config.Dependencies
-import io.github.nomisrev.config.kotlinXSerializersModule
+import io.github.nomisrev.env.Dependencies
+import io.github.nomisrev.env.kotlinXSerializersModule
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json

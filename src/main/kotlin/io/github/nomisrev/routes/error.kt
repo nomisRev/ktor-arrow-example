@@ -21,6 +21,7 @@ import io.ktor.server.application.call
 import io.ktor.server.response.respond
 import kotlinx.serialization.Serializable
 
+// Conduit OpenAPI error types
 @Serializable
 data class GenericErrorModel(val errors: GenericErrorModelErrors)
 
@@ -31,7 +32,7 @@ fun GenericErrorModel(vararg msg: String): GenericErrorModel =
   GenericErrorModel(GenericErrorModelErrors(msg.toList()))
 
 context(KtorCtx)
-  suspend inline fun <reified A : Any> conduit(
+suspend inline fun <reified A : Any> conduit(
   status: HttpStatusCode,
   crossinline block: suspend context(DomainErrors) () -> A
 ): Unit = effect<DomainError, A> {

@@ -1,6 +1,6 @@
 package io.github.nomisrev
 
-import io.github.nomisrev.config.Env
+import io.github.nomisrev.env.Env
 
 /**
  * A singleton `PostgreSQLContainer` Test Container. There is no need to `close` or `stop` the

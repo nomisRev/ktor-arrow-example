@@ -1,4 +1,4 @@
-import io.github.nomisrev.repo.UserId;
+import io.github.nomisrev.persistence.UserId;
 
 CREATE TABLE IF NOT EXISTS users(
     id BIGSERIAL AS UserId PRIMARY KEY,

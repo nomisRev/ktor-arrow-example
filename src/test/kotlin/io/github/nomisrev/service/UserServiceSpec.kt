@@ -1,24 +1,17 @@
 package io.github.nomisrev.service
 
+import arrow.core.continuations.EffectScope
 import arrow.core.continuations.either
 import arrow.core.nonEmptyListOf
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
-import io.github.nomisrev.with
-import io.github.nomisrev.DomainError
-import io.github.nomisrev.EmptyUpdate
-import io.github.nomisrev.IncorrectInput
-import io.github.nomisrev.UsernameAlreadyExists
-import io.github.nomisrev.InvalidEmail
-import io.github.nomisrev.InvalidPassword
-import io.github.nomisrev.InvalidUsername
-import io.github.nomisrev.PostgreSQLContainer
+import io.github.nomisrev.*
 import io.github.nomisrev.auth.JwtToken
-import io.github.nomisrev.config.Env
-import io.github.nomisrev.config.dependencies
-import io.github.nomisrev.config.hikari
-import io.github.nomisrev.repo.UserId
-import io.github.nomisrev.resource
+import io.github.nomisrev.env.Env
+import io.github.nomisrev.env.dependencies
+import io.github.nomisrev.env.hikari
+import io.github.nomisrev.persistence.UserId
+import io.github.nomisrev.persistence.UserPersistence
 import io.github.nomisrev.utils.query
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
@@ -27,17 +20,9 @@ import io.kotest.core.spec.style.FreeSpec
 
 class UserServiceSpec :
   FreeSpec({
-    val env = Env().copy(dataSource = PostgreSQLContainer.config())
-    val dataSource by resource(hikari(env.dataSource))
-    val dep by resource(dependencies(env))
-
     val validUsername = "username"
     val validEmail = "valid@domain.com"
     val validPw = "123456789"
-
-    afterTest { dataSource.query("TRUNCATE users CASCADE") }
-
-    with(dep.userPersistence, env.auth) {
 
     "register" -
       {
@@ -128,8 +113,44 @@ class UserServiceSpec :
           } shouldBeLeft EmptyUpdate("Cannot update user with ${token.id()} with only null values")
         }
       }
-    }
   })
+
+fun userPersistence(
+  insert_: suspend context(EffectScope<UserError>) (username: String, email: String, password: String) -> UserId
+) = object : UserPersistence {
+  context(EffectScope<UserError>) override suspend fun insert(
+    username: String,
+    email: String,
+    password: String
+  ): UserId = insert_(this@insert, username, email, password)
+
+  context(EffectScope<UserError>) override suspend fun verifyPassword(
+    email: String,
+    password: String
+  ): Pair<UserId, UserInfo> {
+    TODO("Not yet implemented")
+  }
+
+  context(EffectScope<UserError>) override suspend fun select(userId: UserId): UserInfo {
+    TODO("Not yet implemented")
+  }
+
+  context(EffectScope<UserError>) override suspend fun select(username: String): UserInfo {
+    TODO("Not yet implemented")
+  }
+
+  context(EffectScope<UserNotFound>) override suspend fun update(
+    userId: UserId,
+    email: String?,
+    username: String?,
+    password: String?,
+    bio: String?,
+    image: String?
+  ): UserInfo {
+    TODO("Not yet implemented")
+  }
+
+}
 
 private fun JwtToken.id(): UserId =
   JWT

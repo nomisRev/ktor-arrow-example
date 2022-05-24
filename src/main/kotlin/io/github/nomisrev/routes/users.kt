@@ -4,14 +4,9 @@ import arrow.core.Either
 import arrow.core.continuations.EffectScope
 import io.github.nomisrev.Unexpected
 import io.github.nomisrev.auth.jwtAuth
-import io.github.nomisrev.config.Env
-import io.github.nomisrev.repo.UserPersistence
-import io.github.nomisrev.service.Login
-import io.github.nomisrev.service.RegisterUser
-import io.github.nomisrev.service.Update
-import io.github.nomisrev.service.login
-import io.github.nomisrev.service.register
-import io.github.nomisrev.service.update
+import io.github.nomisrev.env.Env
+import io.github.nomisrev.persistence.UserPersistence
+import io.github.nomisrev.service.*
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -25,6 +20,7 @@ import io.ktor.server.routing.routing
 import io.ktor.util.pipeline.PipelineContext
 import kotlinx.serialization.Serializable
 
+// Conduit OpenAPI user routes types
 @Serializable
 data class UserWrapper<T : Any>(val user: T)
 
@@ -59,7 +55,7 @@ fun userRoutes() = routing {
     post {
       conduit(HttpStatusCode.Created) {
         val (username, email, password) = receiveCatching<UserWrapper<NewUser>>().user
-        val token = register(RegisterUser(username, email, password)).value
+        val token = UserService.register(RegisterUser(username, email, password)).value
         UserWrapper(User(email, token, username, "", ""))
       }
     }
@@ -68,7 +64,7 @@ fun userRoutes() = routing {
     post("/login") {
       conduit(HttpStatusCode.OK) {
         val (email, password) = receiveCatching<UserWrapper<LoginUser>>().user
-        val (token, info) = login(Login(email, password))
+        val (token, info) = UserService.login(Login(email, password))
         UserWrapper(User(email, token.value, info.username, info.bio, info.image))
       }
     }
@@ -90,7 +86,7 @@ fun userRoutes() = routing {
       conduit(HttpStatusCode.OK) {
         val (email, username, password, bio, image) =
           receiveCatching<UserWrapper<UpdateUser>>().user
-        val info = update(Update(userId, username, email, password, bio, image))
+        val info = UserService.update(Update(userId, username, email, password, bio, image))
         UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
       }
     }

@@ -1,9 +1,9 @@
-package io.github.nomisrev.config
+package io.github.nomisrev.env
 
 import arrow.fx.coroutines.Resource
 import arrow.fx.coroutines.continuations.resource
-import io.github.nomisrev.repo.UserPersistence
-import io.github.nomisrev.repo.userPersistence
+import io.github.nomisrev.persistence.UserPersistence
+import io.github.nomisrev.persistence.userPersistence
 
 class Dependencies(val env: Env, val userPersistence: UserPersistence)
 
