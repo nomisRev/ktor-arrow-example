@@ -2,47 +2,14 @@ import io.github.nomisrev.persistence.UserId;
 
 CREATE TABLE IF NOT EXISTS users(
     id BIGSERIAL AS UserId PRIMARY KEY,
-    email VARCHAR(200) NOT NULL UNIQUE,
-    username VARCHAR(100) NOT NULL UNIQUE,
+    username VARCHAR(25) NOT NULL UNIQUE,
+    email VARCHAR(350) NOT NULL,
     hashed_password BYTEA NOT NULL,
-    bio VARCHAR(1000) NOT NULL DEFAULT '',
-    image VARCHAR(255) NOT NULL DEFAULT ''
+    bio VARCHAR(500) NOT NULL DEFAULT '',
+    image TEXT NOT NULL DEFAULT ''
 );
-
-selectByEmail:
-SELECT email, username, bio, image
-FROM users
-WHERE email = :email;
-
-selectByUsername:
-SELECT email, username, bio, image
-FROM users
-WHERE username = :username;
-
-selectSecurityByEmail:
-SELECT id, username, hashed_password, bio, image
-FROM users
-WHERE email = :email;
-
-selectById:
-SELECT email, username, hashed_password, bio, image
-FROM users
-WHERE id = :id;
 
 insertAndGetId:
 INSERT INTO users(email, username, hashed_password, bio, image)
 VALUES (:email, :username, :hashed_password, :bio, :image)
 RETURNING id;
-
-update:
-UPDATE users
-SET email = :email, username = :username, hashed_password = :hashed_password, bio = :bio, image = :image
-WHERE id = :userId;
-
--- 
--- UPDATE users SET
---    email = COALESCE(:email, email),
---    username = COALESCE(:username, username),
---    hashed_password = COALESCE(:hashed_password, hashed_password),
---    bio = COALESCE(:bio, bio),
---    image = COALESCE(:image, image)

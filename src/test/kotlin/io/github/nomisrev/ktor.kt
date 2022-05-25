@@ -3,13 +3,11 @@
 package io.github.nomisrev
 
 import io.github.nomisrev.env.Dependencies
-import io.github.nomisrev.env.kotlinXSerializersModule
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.TestApplication
-import kotlinx.serialization.json.Json
 
 /** Small DSL that exposes a setup [HttpClient] */
 interface ServiceTest {
@@ -22,7 +20,7 @@ suspend fun withService(dep: Dependencies, test: suspend ServiceTest.() -> Unit)
     application { app(dep) }
     createClient {
       expectSuccess = false
-      install(ContentNegotiation) { json(Json { serializersModule = kotlinXSerializersModule }) }
+      install(ContentNegotiation) { json() }
     }
       .use { client ->
         test(

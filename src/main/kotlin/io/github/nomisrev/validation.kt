@@ -30,28 +30,11 @@ data class InvalidUsername(override val errors: NonEmptyList<String>) : InvalidF
   override val field: String = "username"
 }
 
-fun Login.validate(): Validated<IncorrectInput, Login> =
-  email.validEmail().zip(password.validPassword(), ::Login).mapLeft(::IncorrectInput)
-
 fun RegisterUser.validate(): Validated<IncorrectInput, RegisterUser> =
   username
     .validUsername()
     .zip(email.validEmail(), password.validPassword(), ::RegisterUser)
     .mapLeft(::IncorrectInput)
-
-fun Update.validate(): Validated<IncorrectInput, Update> =
-  username
-    .traverse(String::validUsername)
-    .zip(email.traverse(String::validEmail), password.traverse(String::validPassword)) {
-      username,
-      email,
-      password ->
-      Update(userId, username, email, password, bio, image)
-    }
-    .mapLeft(::IncorrectInput)
-
-private fun <E, A, B> A?.traverse(f: (A) -> ValidatedNel<E, B>): ValidatedNel<E, B?> =
-  this?.let(f) ?: null.validNel()
 
 private const val MIN_PASSWORD_LENGTH = 8
 private const val MAX_PASSWORD_LENGTH = 100
@@ -89,13 +72,13 @@ private fun <A : InvalidField> toInvalidField(
 private fun String.notBlank(): ValidatedNel<String, String> =
   if (isNotBlank()) validNel() else "Cannot be blank".invalidNel()
 
-private fun String.minSize(size: Int) =
+private fun String.minSize(size: Int): ValidatedNel<String, String> =
   if (length >= size) validNel() else "is too short (minimum is $size characters)".invalidNel()
 
-private fun String.maxSize(size: Int) =
+private fun String.maxSize(size: Int): ValidatedNel<String, String> =
   if (length <= size) validNel() else "is too long (maximum is $size characters)".invalidNel()
 
-private val emailPattern = ".+@.+\\..+".toRegex()
+private val emailPattern: Regex = ".+@.+\\..+".toRegex()
 
-private fun String.looksLikeEmail() =
+private fun String.looksLikeEmail(): ValidatedNel<String, String> =
   if (emailPattern.matches(this)) validNel() else "'$this' is invalid email".invalidNel()

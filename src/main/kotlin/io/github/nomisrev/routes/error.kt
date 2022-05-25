@@ -1,5 +1,6 @@
 package io.github.nomisrev.routes
 
+import arrow.core.Either
 import arrow.core.continuations.effect
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.DomainErrors
@@ -30,6 +31,13 @@ data class GenericErrorModelErrors(val body: List<String>)
 
 fun GenericErrorModel(vararg msg: String): GenericErrorModel =
   GenericErrorModel(GenericErrorModelErrors(msg.toList()))
+
+context(KtorCtx)
+suspend inline fun <reified A : Any> Either<DomainError, A>.respond(status: HttpStatusCode): Unit =
+  when(this) {
+    is Either.Left -> respond(value)
+    is Either.Right -> call.respond(status, value)
+  }
 
 context(KtorCtx)
 suspend inline fun <reified A : Any> conduit(

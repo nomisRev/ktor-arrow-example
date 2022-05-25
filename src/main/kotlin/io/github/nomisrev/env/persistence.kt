@@ -35,8 +35,7 @@ private val userIdAdapter = columnAdapter(::UserId, UserId::serial)
 private inline fun <A : Any, B> columnAdapter(
   crossinline decode: (databaseValue: B) -> A,
   crossinline encode: (value: A) -> B
-): ColumnAdapter<A, B> =
-  object : ColumnAdapter<A, B> {
-    override fun decode(databaseValue: B): A = decode(databaseValue)
-    override fun encode(value: A): B = encode(value)
-  }
+): ColumnAdapter<A, B> = object : ColumnAdapter<A, B> {
+  override fun decode(databaseValue: B): A = decode(databaseValue)
+  override fun encode(value: A): B = encode(value)
+}
