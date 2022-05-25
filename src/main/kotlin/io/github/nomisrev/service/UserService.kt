@@ -1,6 +1,8 @@
 package io.github.nomisrev.service
 
+import arrow.core.Either
 import arrow.core.continuations.EffectScope
+import arrow.core.continuations.either
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.DomainErrors
 import io.github.nomisrev.EmptyUpdate
@@ -45,7 +47,7 @@ object UserService {
 
   /** Updates a user with all the provided fields, returns resulting info */
   context(DomainErrors, UserPersistence)
-  suspend fun update(input: Update): UserInfo {
+    suspend fun update(input: Update): UserInfo {
     val (userId, username, email, password, bio, image) = input.validate().bind()
     ensure(email != null || username != null || bio != null || image != null) {
       EmptyUpdate("Cannot update user with $userId with only null values")

@@ -6,7 +6,10 @@ import io.github.nomisrev.Unexpected
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.env.Env
 import io.github.nomisrev.persistence.UserPersistence
-import io.github.nomisrev.service.*
+import io.github.nomisrev.service.UserService
+import io.github.nomisrev.service.RegisterUser
+import io.github.nomisrev.service.Update
+import io.github.nomisrev.service.Login
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -94,8 +97,7 @@ fun userRoutes() = routing {
 }
 
 context(EffectScope<Unexpected>)
-private suspend inline fun <reified A : Any> PipelineContext<
-  Unit, ApplicationCall>.receiveCatching(): A =
+private suspend inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>.receiveCatching(): A =
   Either.catch { call.receive<A>() }.mapLeft { e ->
     Unexpected(e.message ?: "Received malformed JSON for ${A::class.simpleName}", e)
   }.bind()

@@ -5,12 +5,10 @@ import io.github.nomisrev.with
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.PostgreSQLContainer
 import io.github.nomisrev.auth.JwtToken
-import io.github.nomisrev.env.Env
-import io.github.nomisrev.env.dependencies
-import io.github.nomisrev.env.hikari
+import io.github.nomisrev.env.*
 import io.github.nomisrev.resource
 import io.github.nomisrev.service.RegisterUser
-import io.github.nomisrev.service.register
+import io.github.nomisrev.service.UserService
 import io.github.nomisrev.utils.query
 import io.github.nomisrev.withService
 import io.kotest.assertions.arrow.core.shouldBeRight
@@ -29,7 +27,7 @@ import io.ktor.http.contentType
 
 class UserRouteSpec :
   StringSpec({
-    val env = Env().copy(dataSource = PostgreSQLContainer.config())
+    val env = envOrThrow().copy(dataSource = PostgreSQLContainer.config())
     val dataSource by resource(hikari(env.dataSource))
     val dependencies by resource(dependencies(env))
 
@@ -41,7 +39,7 @@ class UserRouteSpec :
 
     suspend fun registerUser(): JwtToken = either<DomainError, JwtToken> {
       with(dependencies.userPersistence, dependencies.env.auth) {
-        register(RegisterUser(username, email, password))
+        UserService.register(RegisterUser(username, email, password))
       }
     }.shouldBeRight()
 

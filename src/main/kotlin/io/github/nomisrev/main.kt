@@ -1,6 +1,6 @@
 package io.github.nomisrev
 
-import io.github.nomisrev.env.Env
+import io.github.nomisrev.env.envOrThrow
 import io.github.nomisrev.env.Dependencies
 import io.github.nomisrev.env.configure
 import io.github.nomisrev.env.dependencies
@@ -13,7 +13,7 @@ import kotlinx.coroutines.runBlocking
 
 fun main(): Unit =
   runBlocking(Dispatchers.Default) {
-    val env = Env()
+    val env = envOrThrow()
     dependencies(env).use { module ->
       embeddedServer(
           Netty,
