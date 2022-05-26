@@ -10,8 +10,8 @@ import io.github.nomisrev.UsernameAlreadyExists
 import io.github.nomisrev.env.Env
 import io.github.nomisrev.env.dependencies
 import io.github.nomisrev.env.hikari
+import io.github.nomisrev.query
 import io.github.nomisrev.resource
-import io.github.nomisrev.utils.query
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FreeSpec

@@ -26,15 +26,6 @@ data class UserWrapper<T : Any>(val user: T)
 data class NewUser(val username: String, val email: String, val password: String)
 
 @Serializable
-data class UpdateUser(
-  val email: String? = null,
-  val username: String? = null,
-  val password: String? = null,
-  val bio: String? = null,
-  val image: String? = null
-)
-
-@Serializable
 data class User(
   val email: String,
   val token: String,
@@ -42,9 +33,6 @@ data class User(
   val bio: String,
   val image: String
 )
-
-@Serializable
-data class LoginUser(val email: String, val password: String)
 
 fun Application.userRoutes(users: UserService) = routing {
   route("/users") {

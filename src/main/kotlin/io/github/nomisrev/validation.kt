@@ -9,9 +9,7 @@ import arrow.core.invalidNel
 import arrow.core.nonEmptyListOf
 import arrow.core.validNel
 import arrow.core.zip
-import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
-import io.github.nomisrev.service.Update
 
 sealed interface InvalidField {
   val errors: NonEmptyList<String>

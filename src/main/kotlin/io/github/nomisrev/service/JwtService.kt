@@ -21,19 +21,19 @@ fun interface JwtService {
   suspend fun generateJwtToken(userId: UserId): Either<JwtGeneration, JwtToken>
 }
 
-fun jwtService(auth: Env.Auth): JwtService =
-  JwtService { userId ->
-    JWT.hs512 {
-        val now = LocalDateTime.now(ZoneId.of("UTC"))
-        issuedAt(now)
-        expiresAt(now + auth.duration.toJavaDuration())
-        issuer(auth.issuer)
-        claim("id", userId.serial)
-      }
-      .sign(auth.secret)
-      .toJwtError()
-      .map { JwtToken(it.rendered) }
+@Suppress("FUNCTION_NAME")
+fun JwtService(auth: Env.Auth): JwtService = JwtService { userId ->
+  JWT.hs512 {
+    val now = LocalDateTime.now(ZoneId.of("UTC"))
+    issuedAt(now)
+    expiresAt(now + auth.duration.toJavaDuration())
+    issuer(auth.issuer)
+    claim("id", userId.serial)
   }
+    .sign(auth.secret)
+    .toJwtError()
+    .map { JwtToken(it.rendered) }
+}
 
 private fun <A : JWSAlgorithm> Either<KJWTSignError, SignedJWT<A>>.toJwtError(): Either<JwtGeneration, SignedJWT<A>> =
   mapLeft { jwtError ->
