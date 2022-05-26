@@ -24,28 +24,19 @@ fun userPersistence(usersQueries: UsersQueries, rounds: Int = 10) = object : Use
     username: String,
     email: String,
     password: String
-  ): Either<UserError, UserId> = either {
-    val hash = BCrypt.withDefaults().hash(rounds, password.toByteArray())
-    Either.catch { usersQueries.create(hash, username, email) }.mapLeft { error ->
+  ): Either<UserError, UserId> =
+    Either.catch {
+      val hash = BCrypt.withDefaults().hash(rounds, password.toByteArray())
+      usersQueries.insertAndGetId(
+        username = username,
+        email = email,
+        hashed_password = hash,
+      ).executeAsOne()
+    }.mapLeft { error ->
       if (error is PSQLException && error.sqlState == PSQLState.UNIQUE_VIOLATION.state) {
         UsernameAlreadyExists(username)
       } else {
         Unexpected("Failed to persist user: $username:$email", error)
       }
-    }.bind()
-  }
+    }
 }
-
-private fun UsersQueries.create(
-  hash: ByteArray,
-  username: String,
-  email: String
-): UserId =
-  insertAndGetId(
-    username = username,
-    email = email,
-    hashed_password = hash,
-    bio = "",
-    image = ""
-  )
-    .executeAsOne()

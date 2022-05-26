@@ -10,6 +10,6 @@ CREATE TABLE IF NOT EXISTS users(
 );
 
 insertAndGetId:
-INSERT INTO users(email, username, hashed_password, bio, image)
-VALUES (:email, :username, :hashed_password, :bio, :image)
+INSERT INTO users(email, username, hashed_password)
+VALUES (:email, :username, :hashed_password)
 RETURNING id;
