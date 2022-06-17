@@ -15,7 +15,7 @@ import io.github.nomisrev.routes.Profile
 sealed interface ApiError {
   object PasswordNotMatched : ApiError
   data class IncorrectInput(val errors: NonEmptyList<InvalidField>) : ApiError {
-    constructor(field: InvalidField) : this(nonEmptyListOf(field))
+    constructor(head: InvalidField): this(nonEmptyListOf(head))
   }
   data class EmptyUpdate(val description: String) : ApiError
   data class UserNotFound(val property: String) : ApiError
