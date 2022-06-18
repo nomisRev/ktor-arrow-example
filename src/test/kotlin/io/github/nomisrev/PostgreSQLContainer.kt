@@ -1,6 +1,6 @@
 package io.github.nomisrev
 
-import io.github.nomisrev.config.Config
+import io.github.nomisrev.env.Env
 
 /**
  * A singleton `PostgreSQLContainer` Test Container. There is no need to `close` or `stop` the
@@ -16,14 +16,14 @@ import io.github.nomisrev.config.Config
  * // https://www.testcontainers.org/test_framework_integration/manual_lifecycle_control/
  */
 class PostgreSQLContainer private constructor() :
-  org.testcontainers.containers.PostgreSQLContainer<Nothing>("postgres:14.1-alpine") {
+  org.testcontainers.containers.PostgreSQLContainer<PostgreSQLContainer>("postgres:14.1-alpine") {
 
-  fun config(): Config.DataSource = Config.DataSource(jdbcUrl, username, password, driverClassName)
+  fun config(): Env.DataSource = Env.DataSource(jdbcUrl, username, password, driverClassName)
 
   companion object {
     fun create(): PostgreSQLContainer = instance
 
-    fun config(): Config.DataSource = instance.config()
+    fun config(): Env.DataSource = instance.config()
 
     private val instance by lazy { PostgreSQLContainer().also { it.start() } }
   }

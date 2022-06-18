@@ -1,8 +1,8 @@
 package io.github.nomisrev.routes
 
 import io.github.nomisrev.PostgreSQLContainer
-import io.github.nomisrev.config.Config
-import io.github.nomisrev.config.dependencies
+import io.github.nomisrev.env.Env
+import io.github.nomisrev.env.dependencies
 import io.github.nomisrev.resource
 import io.github.nomisrev.withService
 import io.kotest.core.spec.style.StringSpec
@@ -15,8 +15,8 @@ import kotlinx.serialization.json.Json
 
 class HealthCheckSpec :
   StringSpec({
-    val config = Config().copy(dataSource = PostgreSQLContainer.config())
-    val module by resource(dependencies(config))
+    val env = Env().copy(dataSource = PostgreSQLContainer.config())
+    val module by resource(dependencies(env))
 
     "healthy" {
       withService(module) {

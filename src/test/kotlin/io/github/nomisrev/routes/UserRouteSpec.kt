@@ -1,9 +1,9 @@
 package io.github.nomisrev.routes
 
 import io.github.nomisrev.PostgreSQLContainer
-import io.github.nomisrev.config.Config
-import io.github.nomisrev.config.dependencies
-import io.github.nomisrev.config.hikari
+import io.github.nomisrev.env.Env
+import io.github.nomisrev.env.dependencies
+import io.github.nomisrev.env.hikari
 import io.github.nomisrev.resource
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.utils.query
@@ -24,9 +24,9 @@ import io.ktor.http.contentType
 
 class UserRouteSpec :
   StringSpec({
-    val config = Config().copy(dataSource = PostgreSQLContainer.config())
-    val dataSource by resource(hikari(config.dataSource))
-    val dependencies by resource(dependencies(config))
+    val env = Env().copy(dataSource = PostgreSQLContainer.config())
+    val dataSource by resource(hikari(env.dataSource))
+    val dependencies by resource(dependencies(env))
     val userService by lazy { dependencies.userService }
 
     val validUsername = "username"

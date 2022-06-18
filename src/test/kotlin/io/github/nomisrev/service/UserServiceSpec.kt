@@ -3,17 +3,17 @@ package io.github.nomisrev.service
 import arrow.core.nonEmptyListOf
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
-import io.github.nomisrev.ApiError.EmptyUpdate
-import io.github.nomisrev.ApiError.IncorrectInput
-import io.github.nomisrev.ApiError.UsernameAlreadyExists
+import io.github.nomisrev.EmptyUpdate
+import io.github.nomisrev.IncorrectInput
+import io.github.nomisrev.UsernameAlreadyExists
 import io.github.nomisrev.InvalidEmail
 import io.github.nomisrev.InvalidPassword
 import io.github.nomisrev.InvalidUsername
 import io.github.nomisrev.PostgreSQLContainer
 import io.github.nomisrev.auth.JwtToken
-import io.github.nomisrev.config.Config
-import io.github.nomisrev.config.dependencies
-import io.github.nomisrev.config.hikari
+import io.github.nomisrev.env.Env
+import io.github.nomisrev.env.dependencies
+import io.github.nomisrev.env.hikari
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.resource
 import io.github.nomisrev.utils.query
@@ -24,9 +24,9 @@ import io.kotest.core.spec.style.FreeSpec
 
 class UserServiceSpec :
   FreeSpec({
-    val config = Config().copy(dataSource = PostgreSQLContainer.config())
-    val dataSource by resource(hikari(config.dataSource))
-    val userService by resource(dependencies(config).map { it.userService })
+    val env = Env().copy(dataSource = PostgreSQLContainer.config())
+    val dataSource by resource(hikari(env.dataSource))
+    val userService by resource(dependencies(env).map { it.userService })
 
     val validUsername = "username"
     val validEmail = "valid@domain.com"

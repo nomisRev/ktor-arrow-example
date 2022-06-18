@@ -66,6 +66,7 @@ dependencies {
   implementation(libs.hikari)
   implementation(libs.postgresql)
   implementation(libs.slugify)
+  implementation(libs.bcrypt)
 
   testImplementation(libs.ktor.client.content.negotiation)
   testImplementation(libs.ktor.client.serialization)

@@ -1,7 +1,7 @@
 package io.github.nomisrev.repo
 
 import arrow.core.Either
-import io.github.nomisrev.ApiError.Unexpected
+import io.github.nomisrev.Unexpected
 import io.github.nomisrev.service.Slug
 import io.github.nomisrev.sqldelight.ArticlesQueries
 import io.github.nomisrev.sqldelight.TagsQueries

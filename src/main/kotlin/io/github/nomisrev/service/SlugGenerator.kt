@@ -1,12 +1,14 @@
 package io.github.nomisrev.service
 
 import arrow.core.Either
+import arrow.core.continuations.EffectScope
 import arrow.core.continuations.either
 import com.github.slugify.Slugify
-import io.github.nomisrev.ApiError.CannotGenerateSlug
+import io.github.nomisrev.CannotGenerateSlug
 import kotlin.random.Random
 
-@JvmInline value class Slug(val value: String)
+@JvmInline
+value class Slug(val value: String)
 
 fun interface SlugGenerator {
   /**
@@ -34,23 +36,25 @@ fun slugifyGenerator(
     private fun makeUnique(slug: String): String =
       "${slug}_${random.nextInt(minRandomSuffix, maxRandomSuffix)}"
 
-    private suspend fun recursiveGen(
+    context(EffectScope<CannotGenerateSlug>)
+    private tailrec suspend fun recursiveGen(
       title: String,
       verifyUnique: suspend (Slug) -> Boolean,
       maxAttempts: Int,
       isFirst: Boolean
-    ): Either<CannotGenerateSlug, Slug> = either {
+    ): Slug {
       ensure(maxAttempts != 0) { CannotGenerateSlug("Failed to generate unique slug from $title") }
 
       val slug = Slug(if (isFirst) slg.slugify(title) else makeUnique(slg.slugify(title)))
 
       val isUnique = verifyUnique(slug)
-      if (isUnique) slug else recursiveGen(title, verifyUnique, maxAttempts - 1, false).bind()
+      return if (isUnique) slug else recursiveGen(title, verifyUnique, maxAttempts - 1, false)
     }
 
     override suspend fun generateSlug(
       title: String,
       verifyUnique: suspend (Slug) -> Boolean
-    ): Either<CannotGenerateSlug, Slug> =
+    ): Either<CannotGenerateSlug, Slug> = either {
       recursiveGen(title, verifyUnique, defaultMaxAttempts, true)
+    }
   }

@@ -2,7 +2,7 @@ package io.github.nomisrev.service
 
 import arrow.core.Either
 import arrow.core.continuations.either
-import io.github.nomisrev.ApiError
+import io.github.nomisrev.DomainError
 import io.github.nomisrev.repo.ArticlePersistence
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.repo.UserPersistence
@@ -20,7 +20,7 @@ data class CreateArticle(
 
 interface ArticleService {
   /** Creates a new article and returns the resulting Article */
-  suspend fun createArticle(input: CreateArticle): Either<ApiError, Article>
+  suspend fun createArticle(input: CreateArticle): Either<DomainError, Article>
 }
 
 fun articleService(
@@ -29,7 +29,7 @@ fun articleService(
   userPersistence: UserPersistence,
 ): ArticleService =
   object : ArticleService {
-    override suspend fun createArticle(input: CreateArticle): Either<ApiError, Article> = either {
+    override suspend fun createArticle(input: CreateArticle): Either<DomainError, Article> = either {
       val slug =
         slugGenerator
           .generateSlug(input.title) { slug -> articlePersistence.exists(slug).bind() }

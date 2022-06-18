@@ -17,6 +17,7 @@ postgresql="42.3.6"
 kjwt="0.5.3"
 kotest-arrow="1.2.5"
 slugify="2.5"
+bcrypt="0.9.0"
 
 [libraries]
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
@@ -53,6 +54,7 @@ sqldelight-jdbc = { module = "app.cash.sqldelight:jdbc-driver", version.ref="sql
 postgresql = { module="org.postgresql:postgresql", version.ref="postgresql" }
 kjwt-core = { module="io.github.nefilim.kjwt:kjwt-core", version.ref="kjwt" }
 slugify = { module="com.github.slugify:slugify", version.ref="slugify" }
+bcrypt = { module="at.favre.lib:bcrypt", version.ref="bcrypt" }
 
 [plugins]
 arrowGradleConfig-formatter = { id = "io.arrow-kt.arrow-gradle-config-formatter", version.ref = "arrowGradleConfig" }
