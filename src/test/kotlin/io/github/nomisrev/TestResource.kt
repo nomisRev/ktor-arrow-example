@@ -7,6 +7,7 @@ import arrow.core.Some
 import arrow.core.ValidatedNel
 import arrow.core.continuations.AtomicRef
 import arrow.core.continuations.update
+import arrow.core.getOrElse
 import arrow.core.identity
 import arrow.core.invalidNel
 import arrow.core.traverse
@@ -16,21 +17,17 @@ import arrow.fx.coroutines.Platform
 import arrow.fx.coroutines.Resource
 import arrow.fx.coroutines.bracketCase
 import arrow.fx.coroutines.continuations.ResourceScope
-import io.kotest.common.runBlocking
-import io.kotest.core.TestConfiguration
-import io.kotest.core.listeners.TestListener
-import io.kotest.core.spec.Spec
+import arrow.fx.coroutines.continuations.resource
+import io.kotest.core.listeners.ProjectListener
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
-// TODO move this to Kotest Arrow Extensions
-// https://github.com/kotest/kotest-extensions-arrow/pull/143
-fun <A> TestConfiguration.resource(resource: Resource<A>): ReadOnlyProperty<Any?, A> =
-  TestResource(resource).also(::listener)
-
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
-private class TestResource<A>(private val resource: Resource<A>) :
-  TestListener, ResourceScope, ReadOnlyProperty<Any?, A> {
+class TestResource<A>(private val resource: Resource<A>) :
+  ProjectListener, ResourceScope, ReadOnlyProperty<Any?, A> {
+
+  constructor(block: suspend ResourceScope.() -> Resource<A>) : this(resource { block().bind() })
+
   private val value: AtomicRef<Option<A>> = AtomicRef(None)
   private val finalizers: AtomicRef<List<suspend (ExitCase) -> Unit>> = AtomicRef(emptyList())
 
@@ -57,6 +54,7 @@ private class TestResource<A>(private val resource: Resource<A>) :
             }
           }
         )
+
       is Resource.Bind<*, *> -> {
         val dsl: suspend ResourceScope.() -> A = {
           val any = source.bind()
@@ -65,38 +63,22 @@ private class TestResource<A>(private val resource: Resource<A>) :
         }
         dsl(this@TestResource)
       }
+
       is Resource.Defer -> resource().bind()
     }
 
+  @Suppress("TooGenericExceptionThrown")
   override fun getValue(thisRef: Any?, property: KProperty<*>): A =
-    value.modify {
-      when (it) {
-        None -> runBlocking { resource.bind() }.let { a -> Pair(Some(a), a) }
-        is Some -> Pair(it, it.value)
-      }
-    }
+    value.get().getOrElse { throw RuntimeException("Attempting to access resource beforeProject") }
 
-  override suspend fun beforeSpec(spec: Spec) {
-    super.beforeSpec(spec)
-    value.modify {
-      when (it) {
-        None -> resource.bind().let { a -> Pair(Some(a), a) }
-        is Some -> Pair(it, it.value)
-      }
-    }
+  override suspend fun beforeProject() {
+    super.beforeProject()
+    value.set(Some(resource.bind()))
   }
 
-  override suspend fun afterSpec(spec: Spec) {
-    super.afterSpec(spec)
+  override suspend fun afterProject() {
+    super.afterProject()
     finalizers.get().cancelAll(ExitCase.Completed)
-  }
-}
-
-private inline fun <A, B> AtomicRef<A>.modify(function: (A) -> Pair<A, B>): B {
-  while (true) {
-    val cur = get()
-    val (upd, res) = function(cur)
-    if (compareAndSet(cur, upd)) return res
   }
 }
 
