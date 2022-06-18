@@ -1,9 +1,7 @@
 package io.github.nomisrev.routes
 
-import io.github.nomisrev.PostgreSQLContainer
-import io.github.nomisrev.env.Env
+import io.github.nomisrev.KotestProject
 import io.github.nomisrev.env.dependencies
-import io.github.nomisrev.env.hikari
 import io.github.nomisrev.resource
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.utils.query
@@ -24,16 +22,14 @@ import io.ktor.http.contentType
 
 class UserRouteSpec :
   StringSpec({
-    val env = Env().copy(dataSource = PostgreSQLContainer.config())
-    val dataSource by resource(hikari(env.dataSource))
-    val dependencies by resource(dependencies(env))
+    val dependencies by resource(dependencies(KotestProject.env))
     val userService by lazy { dependencies.userService }
 
     val validUsername = "username"
     val validEmail = "valid@domain.com"
     val validPw = "123456789"
 
-    afterTest { dataSource.query("TRUNCATE users CASCADE") }
+    afterTest { dependencies.dataSource.query("TRUNCATE users CASCADE") }
 
     "Can register user" {
       withService(dependencies) {

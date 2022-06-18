@@ -9,11 +9,9 @@ import io.github.nomisrev.UsernameAlreadyExists
 import io.github.nomisrev.InvalidEmail
 import io.github.nomisrev.InvalidPassword
 import io.github.nomisrev.InvalidUsername
-import io.github.nomisrev.PostgreSQLContainer
+import io.github.nomisrev.KotestProject
 import io.github.nomisrev.auth.JwtToken
-import io.github.nomisrev.env.Env
 import io.github.nomisrev.env.dependencies
-import io.github.nomisrev.env.hikari
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.resource
 import io.github.nomisrev.utils.query
@@ -24,15 +22,15 @@ import io.kotest.core.spec.style.FreeSpec
 
 class UserServiceSpec :
   FreeSpec({
-    val env = Env().copy(dataSource = PostgreSQLContainer.config())
-    val dataSource by resource(hikari(env.dataSource))
-    val userService by resource(dependencies(env).map { it.userService })
+
+    val dependencies by resource(dependencies(KotestProject.env))
+    val userService by lazy { dependencies.userService }
 
     val validUsername = "username"
     val validEmail = "valid@domain.com"
     val validPw = "123456789"
 
-    afterTest { dataSource.query("TRUNCATE users CASCADE") }
+    afterTest { dependencies.dataSource.query("TRUNCATE users CASCADE") }
 
     "register" -
       {

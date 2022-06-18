@@ -4,7 +4,6 @@ import io.github.nomisrev.env.Env
 import io.github.nomisrev.env.Dependencies
 import io.github.nomisrev.env.configure
 import io.github.nomisrev.env.dependencies
-import io.github.nomisrev.routes.healthRoute
 import io.github.nomisrev.routes.userRoutes
 import io.github.nomisrev.utils.awaitShutdown
 import io.ktor.server.application.Application
@@ -27,6 +26,5 @@ fun main(): Unit =
 
 fun Application.app(module: Dependencies) {
   configure()
-  healthRoute(module.pool)
   userRoutes(module.userService, module.jwtService)
 }
