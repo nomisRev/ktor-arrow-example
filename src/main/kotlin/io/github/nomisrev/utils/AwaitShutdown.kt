@@ -50,7 +50,9 @@ suspend fun ApplicationEngine.awaitShutdown(
     val countDownLatch = CountDownLatch(1)
     suspend {
       if (!environment.developmentMode) {
-        environment.log.info("prewait delay of ${prewait.inWholeMilliseconds}ms, turn it off using io.ktor.development=true")
+        environment.log.info(
+          "prewait delay of ${prewait.inWholeMilliseconds}ms, turn it off using io.ktor.development=true"
+        )
         // Safe since we're on KtorShutdownHook Thread. Avoids additional shifting
         Thread.sleep(prewait.inWholeMilliseconds)
       }
