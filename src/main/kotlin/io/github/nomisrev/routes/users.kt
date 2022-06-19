@@ -2,8 +2,8 @@ package io.github.nomisrev.routes
 
 import arrow.core.Either
 import arrow.core.continuations.either
-import io.github.nomisrev.ApiError
-import io.github.nomisrev.ApiError.Unexpected
+import io.github.nomisrev.DomainError
+import io.github.nomisrev.Unexpected
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.service.JwtService
 import io.github.nomisrev.service.Login
@@ -54,7 +54,7 @@ fun Application.userRoutes(
   route("/users") {
     /* Registration: POST /api/users */
     post {
-      either<ApiError, UserWrapper<User>> {
+      either<DomainError, UserWrapper<User>> {
           val (username, email, password) = receiveCatching<UserWrapper<NewUser>>().bind().user
           val token = userService.register(RegisterUser(username, email, password)).bind().value
           UserWrapper(User(email, token, username, "", ""))
@@ -62,7 +62,7 @@ fun Application.userRoutes(
         .respond(HttpStatusCode.Created)
     }
     post("/login") {
-      either<ApiError, UserWrapper<User>> {
+      either<DomainError, UserWrapper<User>> {
           val (email, password) = receiveCatching<UserWrapper<LoginUser>>().bind().user
           val (token, info) = userService.login(Login(email, password)).bind()
           UserWrapper(User(email, token.value, info.username, info.bio, info.image))
@@ -74,7 +74,7 @@ fun Application.userRoutes(
   /* Get Current User: GET /api/user */
   get("/user") {
     jwtAuth(jwtService) { (token, userId) ->
-      either<ApiError, UserWrapper<User>> {
+      either<DomainError, UserWrapper<User>> {
           val info = userService.getUser(userId).bind()
           UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
         }
@@ -85,7 +85,7 @@ fun Application.userRoutes(
   /* Update current user: PUT /api/user */
   put("/user") {
     jwtAuth(jwtService) { (token, userId) ->
-      either<ApiError, UserWrapper<User>> {
+      either<DomainError, UserWrapper<User>> {
           val (email, username, password, bio, image) =
             receiveCatching<UserWrapper<UpdateUser>>().bind().user
           val info =
@@ -99,7 +99,7 @@ fun Application.userRoutes(
 
 // TODO improve how we receive models with validation
 private suspend inline fun <reified A : Any> PipelineContext<
-  Unit, ApplicationCall>.receiveCatching(): Either<ApiError, A> =
+  Unit, ApplicationCall>.receiveCatching(): Either<DomainError, A> =
   Either.catch { call.receive<A>() }.mapLeft { e ->
     Unexpected(e.message ?: "Received malformed JSON for ${A::class.simpleName}", e)
   }

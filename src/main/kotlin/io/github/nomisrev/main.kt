@@ -1,11 +1,11 @@
 package io.github.nomisrev
 
-import io.github.nomisrev.config.Config
-import io.github.nomisrev.config.Dependencies
-import io.github.nomisrev.config.configure
-import io.github.nomisrev.config.dependencies
-import io.github.nomisrev.routes.healthRoute
+import io.github.nomisrev.env.Env
+import io.github.nomisrev.env.Dependencies
+import io.github.nomisrev.env.configure
+import io.github.nomisrev.env.dependencies
 import io.github.nomisrev.routes.userRoutes
+import io.github.nomisrev.utils.awaitShutdown
 import io.ktor.server.application.Application
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
@@ -14,19 +14,17 @@ import kotlinx.coroutines.runBlocking
 
 fun main(): Unit =
   runBlocking(Dispatchers.Default) {
-    val config = Config()
-    dependencies(config).use { module ->
+    val env = Env()
+    dependencies(env).use { module ->
       embeddedServer(
-          Netty,
-          host = config.http.host,
-          port = config.http.port,
-        ) { app(module) }
-        .start(wait = true)
+        Netty,
+        host = env.http.host,
+        port = env.http.port,
+      ) { app(module) }.awaitShutdown()
     }
   }
 
 fun Application.app(module: Dependencies) {
   configure()
-  healthRoute(module.pool)
   userRoutes(module.userService, module.jwtService)
 }

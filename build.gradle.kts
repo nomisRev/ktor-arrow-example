@@ -4,7 +4,6 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
   application
   alias(libs.plugins.kotest.multiplatform)
   id(libs.plugins.kotlin.jvm.pluginId)
-  alias(libs.plugins.arrowGradleConfig.formatter)
   alias(libs.plugins.dokka)
   id(libs.plugins.detekt.pluginId)
   alias(libs.plugins.kover)
@@ -19,7 +18,7 @@ application {
 sqldelight {
   database("SqlDelight") {
     packageName = "io.github.nomisrev.sqldelight"
-    dialect = libs.sqldelight.postgresql.asString()
+    dialect(libs.sqldelight.postgresql.asString())
   }
 }
 
@@ -35,11 +34,9 @@ repositories {
 tasks {
   withType<KotlinCompile>().configureEach {
     kotlinOptions {
-      jvmTarget = "1.8"
+      jvmTarget = "${JavaVersion.VERSION_11}"
       freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
     }
-    sourceCompatibility = "1.8"
-    targetCompatibility = "1.8"
   }
 
   test {
@@ -60,6 +57,7 @@ dependencies {
   implementation(libs.hikari)
   implementation(libs.postgresql)
   implementation(libs.slugify)
+  implementation(libs.bcrypt)
 
   testImplementation(libs.bundles.ktor.client)
   testImplementation(libs.testcontainers.postgresql)
