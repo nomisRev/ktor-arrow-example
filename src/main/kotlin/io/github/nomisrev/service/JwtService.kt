@@ -64,6 +64,7 @@ private fun <A : JWSAlgorithm> Either<KJWTSignError, SignedJWT<A>>.toUserService
     KJWTSignError.InvalidKey -> JwtGeneration("JWT singing error: invalid Secret Key.")
     KJWTSignError.InvalidJWTData ->
       JwtGeneration("JWT singing error: Generated with incorrect JWT data")
+
     is KJWTSignError.SigningError -> JwtGeneration("JWT singing error: ${jwtError.cause}")
   }
 }

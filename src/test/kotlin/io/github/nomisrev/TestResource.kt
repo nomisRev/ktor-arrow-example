@@ -1,24 +1,18 @@
 package io.github.nomisrev
 
-import arrow.core.NonEmptyList
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
-import arrow.core.ValidatedNel
 import arrow.core.continuations.AtomicRef
 import arrow.core.continuations.update
 import arrow.core.getOrElse
 import arrow.core.identity
-import arrow.core.invalidNel
-import arrow.core.traverse
-import arrow.core.valid
 import arrow.fx.coroutines.ExitCase
 import arrow.fx.coroutines.Platform
 import arrow.fx.coroutines.Resource
 import arrow.fx.coroutines.bracketCase
 import arrow.fx.coroutines.continuations.ResourceScope
 import arrow.fx.coroutines.continuations.resource
-import io.kotest.core.config.AbstractProjectConfig
 import io.kotest.core.listeners.ProjectListener
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
@@ -50,7 +44,7 @@ class TestResource<A>(private val resource: Resource<A>) :
             // Otherwise we've saved the finalizer, and it will be called from somewhere else.
             if (ex != ExitCase.Completed) {
               val e = finalizers.get().cancelAll(ex)
-              val e2 = runCatching { release(a, ex) }.exceptionOrNull()
+              val e2 = kotlin.runCatching { release(a, ex) }.exceptionOrNull()
               Platform.composeErrors(e, e2)?.let { throw it }
             }
           }
@@ -83,22 +77,13 @@ class TestResource<A>(private val resource: Resource<A>) :
   }
 }
 
-private inline fun <A> catchNel(f: () -> A): ValidatedNel<Throwable, A> =
-  try {
-    f().valid()
-  } catch (e: Throwable) {
-    e.invalidNel()
-  }
-
 private suspend fun List<suspend (ExitCase) -> Unit>.cancelAll(
   exitCase: ExitCase,
   first: Throwable? = null
 ): Throwable? =
-  traverse { f -> catchNel { f(exitCase) } }
-    .fold(
-      {
-        if (first != null) Platform.composeErrors(NonEmptyList(first, it))
-        else Platform.composeErrors(it)
-      },
-      { first }
-    )
+  fold(first) { acc, finalizer ->
+    val other = kotlin.runCatching { finalizer(exitCase) }.exceptionOrNull()
+    other?.let {
+      acc?.apply { addSuppressed(other) } ?: other
+    } ?: acc
+  }

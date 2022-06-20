@@ -23,7 +23,6 @@ private class PostgreSQL : PostgreSQLContainer<PostgreSQL>("postgres:latest") {
  * Configuration of our Kotest Test Project.
  * It contains our Test Container configuration which is used in almost all tests.
  */
-@AutoScan
 object KotestProject : AbstractProjectConfig() {
   private val postgres = StartablePerProjectListener(PostgreSQL(), "postgres")
 
