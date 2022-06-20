@@ -1,7 +1,7 @@
 [versions]
 arrow = "1.1.2"
 arrowGradleConfig = "0.10.2"
-coroutines = "1.6.2"
+coroutines = "1.6.3"
 dokka = "1.7.0"
 kotlin = "1.7.0"
 kotest = "5.3.1"
