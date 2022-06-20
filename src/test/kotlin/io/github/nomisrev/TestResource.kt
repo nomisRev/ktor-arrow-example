@@ -75,24 +75,10 @@ class TestResource<A>(private val resource: Resource<A>) :
   override suspend fun beforeProject() {
     super.beforeProject()
     value.set(Some(resource.bind()))
-    println(
-      """
-      ####################################################################################################
-      beforeProject: ${value.get()}
-      ####################################################################################################
-    """.trimIndent()
-    )
   }
 
   override suspend fun afterProject() {
     super.afterProject()
-    println(
-      """
-      ####################################################################################################
-      afterProject: ${finalizers.get()}
-      ####################################################################################################
-    """.trimIndent()
-    )
     finalizers.get().cancelAll(ExitCase.Completed)
   }
 }

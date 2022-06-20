@@ -60,9 +60,7 @@ dependencies {
   implementation(libs.bcrypt)
 
   testImplementation(libs.bundles.ktor.client)
-  implementation(libs.testcontainers.postgresql)
-  implementation("org.testcontainers:mysql:1.17.2")
-  implementation("mysql:mysql-connector-java:8.0.29")
+  testImplementation(libs.testcontainers.postgresql)
   testImplementation(libs.ktor.server.tests)
   testImplementation(libs.bundles.kotest)
 }
