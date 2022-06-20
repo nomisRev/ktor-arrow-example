@@ -1,7 +1,7 @@
 package io.github.nomisrev
 
-import io.github.nomisrev.env.Env
 import io.github.nomisrev.env.Dependencies
+import io.github.nomisrev.env.Env
 import io.github.nomisrev.env.configure
 import io.github.nomisrev.env.dependencies
 import io.github.nomisrev.routes.userRoutes

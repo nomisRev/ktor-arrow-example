@@ -16,10 +16,18 @@ interface ServiceTest {
   val client: HttpClient
 }
 
+suspend fun withService(test: suspend ServiceTest.() -> Unit): Unit {
+  val dep by KotestProject.dependencies
+  withService(dep, test)
+}
+
 /** DSL to test MainKt server with setup [HttpClient] through [ServiceTest] */
-suspend fun withService(dep: Dependencies, test: suspend ServiceTest.() -> Unit): Unit =
+suspend fun withService(
+  dependencies: Dependencies,
+  test: suspend ServiceTest.() -> Unit
+): Unit =
   testApplication {
-    application { app(dep) }
+    application { app(dependencies) }
     createClient {
       expectSuccess = false
       install(ContentNegotiation) { json(Json { serializersModule = kotlinXSerializersModule }) }

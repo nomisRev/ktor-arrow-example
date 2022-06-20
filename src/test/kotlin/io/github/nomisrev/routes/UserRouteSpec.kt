@@ -2,7 +2,6 @@ package io.github.nomisrev.routes
 
 import io.github.nomisrev.KotestProject
 import io.github.nomisrev.service.RegisterUser
-import io.github.nomisrev.utils.query
 import io.github.nomisrev.withService
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.assertSoftly
@@ -26,8 +25,6 @@ class UserRouteSpec : StringSpec({
   val validUsername = "username"
   val validEmail = "valid@domain.com"
   val validPw = "123456789"
-
-  afterTest { dependencies.dataSource.query("TRUNCATE users CASCADE") }
 
   "Can register user" {
     withService(dependencies) {
