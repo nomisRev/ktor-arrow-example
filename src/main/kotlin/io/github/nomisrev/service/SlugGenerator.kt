@@ -29,32 +29,31 @@ fun slugifyGenerator(
   defaultMaxAttempts: Int = 5,
   minRandomSuffix: Int = 2,
   maxRandomSuffix: Int = 255
-): SlugGenerator =
-  object : SlugGenerator {
-    private val slg = Slugify().withLowerCase(true).withUnderscoreSeparator(true)
+): SlugGenerator = object : SlugGenerator {
+  private val slg = Slugify().withLowerCase(true).withUnderscoreSeparator(true)
 
-    private fun makeUnique(slug: String): String =
-      "${slug}_${random.nextInt(minRandomSuffix, maxRandomSuffix)}"
+  private fun makeUnique(slug: String): String =
+    "${slug}_${random.nextInt(minRandomSuffix, maxRandomSuffix)}"
 
-    context(EffectScope<CannotGenerateSlug>)
+  context(EffectScope<CannotGenerateSlug>)
     private tailrec suspend fun recursiveGen(
-      title: String,
-      verifyUnique: suspend (Slug) -> Boolean,
-      maxAttempts: Int,
-      isFirst: Boolean
-    ): Slug {
-      ensure(maxAttempts != 0) { CannotGenerateSlug("Failed to generate unique slug from $title") }
+    title: String,
+    verifyUnique: suspend (Slug) -> Boolean,
+    maxAttempts: Int,
+    isFirst: Boolean
+  ): Slug {
+    ensure(maxAttempts != 0) { CannotGenerateSlug("Failed to generate unique slug from $title") }
 
-      val slug = Slug(if (isFirst) slg.slugify(title) else makeUnique(slg.slugify(title)))
+    val slug = Slug(if (isFirst) slg.slugify(title) else makeUnique(slg.slugify(title)))
 
-      val isUnique = verifyUnique(slug)
-      return if (isUnique) slug else recursiveGen(title, verifyUnique, maxAttempts - 1, false)
-    }
-
-    override suspend fun generateSlug(
-      title: String,
-      verifyUnique: suspend (Slug) -> Boolean
-    ): Either<CannotGenerateSlug, Slug> = either {
-      recursiveGen(title, verifyUnique, defaultMaxAttempts, true)
-    }
+    val isUnique = verifyUnique(slug)
+    return if (isUnique) slug else recursiveGen(title, verifyUnique, maxAttempts - 1, false)
   }
+
+  override suspend fun generateSlug(
+    title: String,
+    verifyUnique: suspend (Slug) -> Boolean
+  ): Either<CannotGenerateSlug, Slug> = either {
+    recursiveGen(title, verifyUnique, defaultMaxAttempts, true)
+  }
+}
