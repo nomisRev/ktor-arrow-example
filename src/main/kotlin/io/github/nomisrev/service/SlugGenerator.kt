@@ -30,7 +30,10 @@ fun slugifyGenerator(
   minRandomSuffix: Int = 2,
   maxRandomSuffix: Int = 255
 ): SlugGenerator = object : SlugGenerator {
-  private val slg = Slugify().withLowerCase(true).withUnderscoreSeparator(true)
+  private val slg = Slugify.builder()
+    .lowerCase(true)
+    .underscoreSeparator(true)
+    .build()
 
   private fun makeUnique(slug: String): String =
     "${slug}_${random.nextInt(minRandomSuffix, maxRandomSuffix)}"

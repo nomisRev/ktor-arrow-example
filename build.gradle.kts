@@ -18,7 +18,7 @@ application {
 sqldelight {
   database("SqlDelight") {
     packageName = "io.github.nomisrev.sqldelight"
-    dialect(libs.sqldelight.postgresql.asString())
+    dialect(libs.sqldelight.postgresql.get())
   }
 }
 
