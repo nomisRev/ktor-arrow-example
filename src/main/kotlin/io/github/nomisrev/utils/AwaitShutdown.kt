@@ -40,7 +40,7 @@ import kotlinx.coroutines.job
  * ```
  */
 context(scope@CoroutineScope)
-suspend fun ApplicationEngine.awaitShutdown(
+fun ApplicationEngine.awaitShutdown(
   prewait: Duration = 30.seconds,
   grace: Duration = 1.seconds,
   timeout: Duration = 5.seconds,
@@ -53,7 +53,7 @@ suspend fun ApplicationEngine.awaitShutdown(
         environment.log.info(
           "prewait delay of ${prewait.inWholeMilliseconds}ms, turn it off using io.ktor.development=true"
         )
-        // Safe since we're on KtorShutdownHook Thread. Avoids additional shifting
+        @Suppress("SleepInsteadOfDelay") // Safe since we're on KtorShutdownHook Thread
         Thread.sleep(prewait.inWholeMilliseconds)
       }
       environment.log.info("Shutting down HTTP server...")
