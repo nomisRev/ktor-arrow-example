@@ -1,7 +1,7 @@
 rootProject.name = "ktor-arrow-sample"
 
 plugins {
-  id("com.gradle.enterprise") version "3.11"
+  id("com.gradle.enterprise") version "3.11.1"
 }
 
 dependencyResolutionManagement {
