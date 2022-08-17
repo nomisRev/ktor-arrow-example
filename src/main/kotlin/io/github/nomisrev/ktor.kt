@@ -1,21 +1,12 @@
 package io.github.nomisrev.utils
 
 import arrow.fx.coroutines.Resource
-import io.ktor.server.application.Application
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.ApplicationEngineFactory
-import io.ktor.server.engine.addShutdownHook
 import io.ktor.server.engine.embeddedServer
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
-import kotlin.coroutines.intrinsics.startCoroutineUninterceptedOrReturn
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.job
 
 /**
  * Ktor [ApplicationEngine] as a [Resource].
@@ -36,22 +27,29 @@ import kotlinx.coroutines.job
  * @param timeout a duration after which the server will be forceably shutdown.
  *
  * ```kotlin
- * fun main(): Unit = cancelOnShutdown {
+ * fun dependencies(): Resource<String> =
+ *   Resource({
+ *     println("Creating dependencies")
+ *     "pong"
+ *   }, { r, exitCase -> println("Closing $r resources") }
+ *
+ * fun main(): Unit = SuspendApp {
  *   resource {
+ *     val dependencies = dependencies().bind()
  *     val engine = server(Netty, port = 8080).bind()
- *     val dependencies = Resource({ }, { _, exitCase -> println("Closing resources") }
  *     engine.application.routing {
- *       get("ping") { call.respond("pong") }
+ *       get("ping") { call.respond(dependencies) }
  *     }
  *   }.use { awaitCancellation() }
  * }
  *
+ * // Creating dependencies
  * // Server Start
  * // JVM SIGTERM - event
  * // Shutting down HTTP server...
  * // ... graceful shutdown ktor engine
  * // HTTP server shutdown!
- * // Closing resources
+ * // Closing pong resource
  * // exit (0)
  * ```
  */
@@ -64,14 +62,10 @@ fun <TEngine : ApplicationEngine, TConfiguration : ApplicationEngine.Configurati
   preWait: Duration = 30.seconds,
   grace: Duration = 1.seconds,
   timeout: Duration = 5.seconds,
-  module: suspend Application.() -> Unit = {},
 ): Resource<ApplicationEngine> =
   Resource({
     embeddedServer(factory, host = host, port = port, configure = configure) {
-    }.apply {
-      module(application)
-      start()
-    }
+    }.apply { start() }
   }, { engine, _ ->
     if (!engine.environment.developmentMode) {
       engine.environment.log.info(
