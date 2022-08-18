@@ -55,6 +55,7 @@ tasks {
 dependencies {
   implementation(libs.bundles.arrow)
   implementation(libs.bundles.ktor.server)
+  implementation(libs.suspendapp)
   implementation(libs.kjwt.core)
   implementation(libs.ktor.serialization)
   implementation(libs.logback.classic)
