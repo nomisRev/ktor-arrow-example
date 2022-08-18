@@ -1,4 +1,4 @@
-package io.github.nomisrev.utils
+package io.github.nomisrev
 
 import arrow.fx.coroutines.Resource
 import io.ktor.server.engine.ApplicationEngine

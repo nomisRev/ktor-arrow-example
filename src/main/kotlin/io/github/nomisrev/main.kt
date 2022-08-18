@@ -7,7 +7,6 @@ import io.github.nomisrev.env.Env
 import io.github.nomisrev.env.configure
 import io.github.nomisrev.env.dependencies
 import io.github.nomisrev.routes.userRoutes
-import io.github.nomisrev.utils.server
 import io.ktor.server.application.Application
 import io.ktor.server.netty.Netty
 import kotlinx.coroutines.awaitCancellation

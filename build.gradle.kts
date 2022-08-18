@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
   alias(libs.plugins.kotest.multiplatform)
   id(libs.plugins.kotlin.jvm.pluginId)
   alias(libs.plugins.dokka)
-  // id(libs.plugins.detekt.pluginId)
+  id(libs.plugins.detekt.pluginId)
   alias(libs.plugins.kover)
   alias(libs.plugins.kotlinx.serialization)
   alias(libs.plugins.sqldelight)
@@ -24,7 +24,7 @@ sqldelight {
 
 allprojects {
   extra.set("dokka.outputDirectory", rootDir.resolve("docs"))
-  // setupDetekt()
+  setupDetekt()
 }
 
 repositories {
