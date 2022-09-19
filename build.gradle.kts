@@ -47,7 +47,7 @@ tasks {
   test {
     useJUnitPlatform()
     extensions.configure(kotlinx.kover.api.KoverTaskExtension::class) {
-      includes = listOf("io.github.nomisrev.*")
+      includes.add("io.github.nomisrev.*")
     }
   }
 }
