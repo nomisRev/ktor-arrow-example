@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3.0.2
+        uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 0
 
@@ -22,7 +22,7 @@ jobs:
           java-version: 11
 
       - name: Build
-        uses: gradle/gradle-build-action@v2.3.1
+        uses: gradle/gradle-build-action@v2.3.2
         with:
           arguments: build --full-stacktrace
 
