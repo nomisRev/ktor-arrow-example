@@ -11,6 +11,7 @@ import arrow.fx.coroutines.ExitCase
 import arrow.fx.coroutines.Platform
 import arrow.fx.coroutines.Resource
 import arrow.fx.coroutines.bracketCase
+import arrow.fx.coroutines.continuations.AcquireStep
 import arrow.fx.coroutines.continuations.ResourceScope
 import arrow.fx.coroutines.continuations.resource
 import io.kotest.core.listeners.ProjectListener
@@ -25,6 +26,28 @@ class TestResource<A>(private val resource: Resource<A>) :
 
   private val value: AtomicRef<Option<A>> = AtomicRef(None)
   private val finalizers: AtomicRef<List<suspend (ExitCase) -> Unit>> = AtomicRef(emptyList())
+
+  override suspend fun <A> install(
+    acquire: suspend AcquireStep.() -> A,
+    release: suspend (A, ExitCase) -> Unit
+  ): A = bracketCase(
+    {
+      val a = acquire(AcquireStep)
+      val finalizer: suspend (ExitCase) -> Unit = { ex: ExitCase -> release(a, ex) }
+      finalizers.update { it + finalizer }
+      a
+    },
+    ::identity,
+    { a, ex ->
+      // Only if ExitCase.Failure, or ExitCase.Cancelled during acquire we cancel
+      // Otherwise we've saved the finalizer, and it will be called from somewhere else.
+      if (ex != ExitCase.Completed) {
+        val e = finalizers.get().cancelAll(ex)
+        val e2 = kotlin.runCatching { release(a, ex) }.exceptionOrNull()
+        Platform.composeErrors(e, e2)?.let { throw it }
+      }
+    }
+  )
 
   @Suppress("DEPRECATION")
   override suspend fun <A> Resource<A>.bind(): A =
