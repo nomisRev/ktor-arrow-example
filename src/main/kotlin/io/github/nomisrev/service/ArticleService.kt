@@ -3,7 +3,7 @@
 package io.github.nomisrev.service
 
 import arrow.core.continuations.EffectScope
-import io.github.nomisrev.ApiError
+import io.github.nomisrev.DomainError
 import io.github.nomisrev.repo.ArticlePersistence
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.repo.UserPersistence
@@ -20,7 +20,7 @@ data class CreateArticle(
 )
 
 /** Creates a new article and returns the resulting Article */
-context(EffectScope<ApiError>, SlugGenerator, ArticlePersistence, UserPersistence)
+context(EffectScope<DomainError>, SlugGenerator, ArticlePersistence, UserPersistence)
 suspend fun createArticle(input: CreateArticle): Article {
     val slug = generateSlug(input.title) { slug -> exists(slug) }
     val createdAt = OffsetDateTime.now()

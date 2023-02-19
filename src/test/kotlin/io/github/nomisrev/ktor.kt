@@ -2,42 +2,30 @@
 
 package io.github.nomisrev
 
-import io.github.nomisrev.config.Dependencies
-import io.github.nomisrev.config.kotlinXSerializersModule
+import io.github.nomisrev.env.Env
+import io.github.nomisrev.env.kotlinXSerializersModule
+import io.github.nomisrev.repo.UserPersistence
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.testing.ApplicationTestBuilder
-import io.ktor.server.testing.TestApplication
+import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
 
-/** Small DSL that exposes a setup [HttpClient] */
-interface ServiceTest {
-  val client: HttpClient
+suspend fun <A> withDependencies(
+  block: suspend context(Env.Auth, UserPersistence) () -> A
+): A {
+  val dependencies = KotestProject.dependencies.get()
+  return block(KotestProject.env.auth, dependencies.userPersistence)
 }
 
-/** DSL to test MainKt server with setup [HttpClient] through [ServiceTest] */
-suspend fun withService(dep: Dependencies, test: suspend ServiceTest.() -> Unit): Unit =
+suspend fun withService(test: suspend context(HttpClient, Env.Auth, UserPersistence) () -> Unit): Unit {
+  val dependencies = KotestProject.dependencies.get()
   testApplication {
-    application { app(dep) }
+    application { app(KotestProject.env, dependencies) }
     createClient {
-      expectSuccess = false
-      install(ContentNegotiation) { json(Json { serializersModule = kotlinXSerializersModule }) }
-    }
-      .use { client ->
-        test(
-          object : ServiceTest {
-            override val client: HttpClient = client
-          }
-        )
+        expectSuccess = false
+        install(ContentNegotiation) { json(Json { serializersModule = kotlinXSerializersModule }) }
       }
+      .use { client -> test(client, KotestProject.env.auth, dependencies.userPersistence) }
   }
-
-// Small optimisation to avoid runBlocking from Ktor impl
-@Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
-private suspend fun testApplication(block: suspend ApplicationTestBuilder.() -> Unit) {
-  val builder = ApplicationTestBuilder().apply { block() }
-  val testApplication = TestApplication(builder)
-  testApplication.engine.start()
-  testApplication.stop()
 }

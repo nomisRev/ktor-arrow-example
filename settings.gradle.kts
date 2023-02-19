@@ -1,10 +1,7 @@
-enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
-enableFeaturePreview("VERSION_CATALOGS")
-
 rootProject.name = "ktor-arrow-sample"
 
 plugins {
-  id("com.gradle.enterprise") version "3.10"
+  id("com.gradle.enterprise") version "3.12.3"
 }
 
 dependencyResolutionManagement {

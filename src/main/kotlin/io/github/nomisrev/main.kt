@@ -1,34 +1,33 @@
 package io.github.nomisrev
 
-import io.github.nomisrev.config.Config
-import io.github.nomisrev.config.Dependencies
-import io.github.nomisrev.config.configure
-import io.github.nomisrev.config.dependencies
-import io.github.nomisrev.routes.healthRoute
+import arrow.continuations.SuspendApp
+import arrow.continuations.ktor.server
+import arrow.fx.coroutines.resourceScope
+import io.github.nomisrev.env.Dependencies
+import io.github.nomisrev.env.Env
+import io.github.nomisrev.env.configure
+import io.github.nomisrev.env.dependencies
+import io.github.nomisrev.routes.health
 import io.github.nomisrev.routes.userRoutes
 import io.ktor.server.application.Application
-import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.awaitCancellation
 
-fun main(): Unit =
-  runBlocking(Dispatchers.Default) {
-    val config = Config()
-    dependencies(config).use { module ->
-      embeddedServer(
-          Netty,
-          host = config.http.host,
-          port = config.http.port,
-        ) { app(module) }
-        .start(wait = true)
+fun main(): Unit = SuspendApp {
+  val env = Env()
+  resourceScope {
+    val dependencies = dependencies(env)
+    server(Netty, host = env.http.host, port = env.http.port) {
+      app(env, dependencies)
     }
+    awaitCancellation()
   }
+}
 
-fun Application.app(module: Dependencies) {
+fun Application.app(env: Env, module: Dependencies) {
   configure()
-  with(module.userPersistence, module.config.auth, module.hikariDataSource) {
-    healthRoute()
+  with(module.userPersistence, env.auth) {
+    health(module.healthCheck)
     userRoutes()
   }
 }

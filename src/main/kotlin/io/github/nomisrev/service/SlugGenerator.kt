@@ -2,8 +2,7 @@ package io.github.nomisrev.service
 
 import arrow.core.continuations.EffectScope
 import com.github.slugify.Slugify
-import io.github.nomisrev.ApiError
-import io.github.nomisrev.ApiError.CannotGenerateSlug
+import io.github.nomisrev.CannotGenerateSlug
 import kotlin.random.Random
 
 @JvmInline value class Slug(val value: String)
@@ -14,9 +13,9 @@ fun interface SlugGenerator {
    * generated then [CannotGenerateSlug] is returned
    *
    * @param verifyUnique Allows checking uniqueness with some business rules. i.e. check database
-   * that slug is actually unique for domain.
+   *   that slug is actually unique for domain.
    */
-  context(EffectScope<ApiError>)
+  context(EffectScope<CannotGenerateSlug>)
   suspend fun generateSlug(
     title: String,
     verifyUnique: suspend (Slug) -> Boolean
@@ -30,13 +29,13 @@ fun slugifyGenerator(
   maxRandomSuffix: Int = 255
 ): SlugGenerator =
   object : SlugGenerator {
-    private val slg = Slugify().withLowerCase(true).withUnderscoreSeparator(true)
+    private val slg = Slugify.builder().lowerCase(true).underscoreSeparator(true).build()
 
     private fun makeUnique(slug: String): String =
       "${slug}_${random.nextInt(minRandomSuffix, maxRandomSuffix)}"
 
-    context(EffectScope<ApiError>)
-    private tailrec suspend fun recursiveGen(
+    context(EffectScope<CannotGenerateSlug>)
+    private tailrec suspend fun EffectScope<CannotGenerateSlug>.recursiveGen(
       title: String,
       verifyUnique: suspend (Slug) -> Boolean,
       maxAttempts: Int,
@@ -50,10 +49,9 @@ fun slugifyGenerator(
       return if (isUnique) slug else recursiveGen(title, verifyUnique, maxAttempts - 1, false)
     }
 
-    context(EffectScope<ApiError>)
+    context(EffectScope<CannotGenerateSlug>)
     override suspend fun generateSlug(
       title: String,
       verifyUnique: suspend (Slug) -> Boolean
-    ): Slug =
-      recursiveGen(title, verifyUnique, defaultMaxAttempts, true)
+    ): Slug = recursiveGen(title, verifyUnique, defaultMaxAttempts, true)
   }

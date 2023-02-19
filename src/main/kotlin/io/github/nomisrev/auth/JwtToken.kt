@@ -1,9 +1,8 @@
 package io.github.nomisrev.auth
 
 import arrow.core.continuations.effect
-import io.github.nomisrev.ApiError
 import io.github.nomisrev.KtorCtx
-import io.github.nomisrev.config.Config
+import io.github.nomisrev.env.Env
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.routes.respond
@@ -20,7 +19,7 @@ value class JwtToken(val value: String)
 data class JwtContext(val token: JwtToken, val userId: UserId)
 
 // Small middleware to validate JWT token without using Ktor Auth / Nullable principle
-context(KtorCtx, UserPersistence, Config.Auth)
+context(KtorCtx, UserPersistence, Env.Auth)
 suspend inline fun jwtAuth( // BUG: inline + same context as lambda as function
   crossinline body: suspend /*context(KtorCtx)*/ (JwtContext) -> Unit
 ) {
@@ -30,10 +29,10 @@ suspend inline fun jwtAuth( // BUG: inline + same context as lambda as function
 }
 
 // TODO Report YT: BUG: inline + same context as lambda as function
-context(KtorCtx, UserPersistence, Config.Auth)
+context(KtorCtx, UserPersistence, Env.Auth)
 suspend inline fun optionalJwtAuth( // BUG: inline + same context as lambda as function
   crossinline body: suspend /*context(KtorCtx)*/ (JwtContext?) -> Unit
-) = effect<ApiError, JwtContext?> {
+) = effect {
   jwtTokenStringOrNul()?.let { token ->
     val userId = verifyJwtToken(JwtToken(token))
     JwtContext(JwtToken(token), userId)

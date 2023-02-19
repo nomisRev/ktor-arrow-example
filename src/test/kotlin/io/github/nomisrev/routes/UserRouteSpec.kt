@@ -1,17 +1,11 @@
 package io.github.nomisrev.routes
 
 import arrow.core.continuations.either
-import io.github.nomisrev.with
-import io.github.nomisrev.ApiError
-import io.github.nomisrev.PostgreSQLContainer
 import io.github.nomisrev.auth.JwtToken
-import io.github.nomisrev.config.Config
-import io.github.nomisrev.config.dependencies
-import io.github.nomisrev.config.hikari
-import io.github.nomisrev.resource
+import io.github.nomisrev.env.Env
+import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.service.register
-import io.github.nomisrev.utils.query
 import io.github.nomisrev.withService
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.assertSoftly
@@ -27,28 +21,21 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 
-class UserRouteSpec :
-  StringSpec({
-    val config = Config().copy(dataSource = PostgreSQLContainer.config())
-    val dataSource by resource(hikari(config.dataSource))
-    val dependencies by resource(dependencies(config))
+class UserRouteSpec : StringSpec() {
+  val username = "username"
+  val email = "valid@domain.com"
+  val password = "123456789"
 
-    val username = "username"
-    val email = "valid@domain.com"
-    val password = "123456789"
+  context(Env.Auth, UserPersistence)
+  suspend fun registerUser(): JwtToken = either {
+    register(RegisterUser(username, email, password))
+  }.shouldBeRight()
 
-    afterTest { dataSource.query("TRUNCATE users CASCADE") }
-
-    suspend fun registerUser(): JwtToken = either<ApiError, JwtToken> {
-      with(dependencies.userPersistence, dependencies.config.auth) {
-        register(RegisterUser(username, email, password))
-      }
-    }.shouldBeRight()
-
+  init {
     "Can register user" {
-      withService(dependencies) {
+      withService {
         val response =
-          client.post("/users") {
+          post("/users") {
             contentType(ContentType.Application.Json)
             setBody(UserWrapper(NewUser(username, email, password)))
           }
@@ -65,10 +52,11 @@ class UserRouteSpec :
     }
 
     "Can log in a registered user" {
-      registerUser()
-      withService(dependencies) {
+      withService {
+        registerUser()
+
         val response =
-          client.post("/users/login") {
+          post("/users/login") {
             contentType(ContentType.Application.Json)
             setBody(UserWrapper(LoginUser(email, password)))
           }
@@ -85,9 +73,10 @@ class UserRouteSpec :
     }
 
     "Can get current user" {
-      val token = registerUser()
-      withService(dependencies) {
-        val response = client.get("/user") { bearerAuth(token.value) }
+      withService {
+        val token = registerUser()
+
+        val response = get("/user") { bearerAuth(token.value) }
 
         response.status shouldBe HttpStatusCode.OK
         assertSoftly {
@@ -102,11 +91,12 @@ class UserRouteSpec :
     }
 
     "Update user" {
-      val token = registerUser()
-      val newUsername = "newUsername"
-      withService(dependencies) {
+      withService {
+        val token = registerUser()
+        val newUsername = "newUsername"
+
         val response =
-          client.put("/user") {
+          put("/user") {
             bearerAuth(token.value)
             contentType(ContentType.Application.Json)
             setBody(UserWrapper(UpdateUser(username = newUsername)))
@@ -125,11 +115,12 @@ class UserRouteSpec :
     }
 
     "Update user invalid email" {
-      val token = registerUser()
-      val invalid = "invalid"
-      withService(dependencies) {
+      withService {
+        val token = registerUser()
+        val invalid = "invalidEmail"
+
         val response =
-          client.put("/user") {
+          put("/user") {
             bearerAuth(token.value)
             contentType(ContentType.Application.Json)
             setBody(UserWrapper(UpdateUser(email = invalid)))
@@ -140,4 +131,5 @@ class UserRouteSpec :
           listOf("email: '$invalid' is invalid email")
       }
     }
-  })
+  }
+}

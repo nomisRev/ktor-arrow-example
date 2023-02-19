@@ -1,11 +1,12 @@
-package io.github.nomisrev.config
+package io.github.nomisrev.env
 
 import java.lang.System.getenv
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 
 private const val PORT: Int = 8080
-private const val JDBC_URL: String = "jdbc:postgresql://localhost:5432/ktor-arrow-example-database"
+private const val JDBC_URL: String =
+  "jdbc:postgresql://10.43.140.145:5432/ktor-arrow-example-database"
 private const val JDBC_USER: String = "postgres"
 private const val JDBC_PW: String = "postgres"
 private const val JDBC_DRIVER: String = "org.postgresql.Driver"
@@ -13,8 +14,7 @@ private const val AUTH_SECRET: String = "MySuperStrongSecret"
 private const val AUTH_ISSUER: String = "KtorArrowExampleIssuer"
 private const val AUTH_DURATION: Int = 30
 
-/** Config that is creating from System Env Variables, and default values */
-data class Config(
+data class Env(
   val dataSource: DataSource = DataSource(),
   val http: Http = Http(),
   val auth: Auth = Auth(),

@@ -8,24 +8,24 @@ import io.github.nefilim.kjwt.JWT
 import io.github.nefilim.kjwt.KJWTSignError
 import io.github.nefilim.kjwt.SignedJWT
 import io.github.nefilim.kjwt.sign
-import io.github.nomisrev.ApiError
-import io.github.nomisrev.ApiError.JwtGeneration
-import io.github.nomisrev.ApiError.JwtInvalid
+import io.github.nomisrev.DomainError
+import io.github.nomisrev.JwtGeneration
+import io.github.nomisrev.JwtInvalid
 import io.github.nomisrev.auth.JwtToken
-import io.github.nomisrev.config.Config
 import io.github.nomisrev.ensureNotNull
+import io.github.nomisrev.env.Env
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.repo.UserPersistence
-import java.time.LocalDateTime
-import java.time.ZoneId
+import java.time.Clock
+import java.time.Instant
 import kotlin.time.toJavaDuration
 
 /** Generate a new JWT token for userId and password. Doesn't invalidate old password */
-context(EffectScope<ApiError>, Config.Auth)
+context(EffectScope<DomainError>, Env.Auth)
 suspend fun generateJwtToken(userId: UserId): JwtToken =
   JWT
     .hs512 {
-      val now = LocalDateTime.now(ZoneId.of("UTC"))
+      val now = Instant.now(Clock.systemUTC())
       issuedAt(now)
       expiresAt(now + duration.toJavaDuration())
       issuer(issuer)
@@ -36,7 +36,7 @@ suspend fun generateJwtToken(userId: UserId): JwtToken =
     .let { JwtToken(it.rendered) }
 
 /** Verify a JWT token. Checks if userId exists in database, and token is not expired. */
-context(EffectScope<ApiError>, UserPersistence)
+context(EffectScope<DomainError>, UserPersistence)
 suspend fun verifyJwtToken(token: JwtToken): UserId {
   val jwt =
     JWT.decodeT(token.value, JWSHMAC512Algorithm).mapLeft { JwtInvalid(it.toString()) }.bind()
@@ -46,12 +46,12 @@ suspend fun verifyJwtToken(token: JwtToken): UserId {
     }
   val expiresAt =
     ensureNotNull(jwt.expiresAt().orNull()) { JwtInvalid("exp missing from JWT Token") }
-  ensure(expiresAt.isAfter(LocalDateTime.now())) { JwtInvalid("JWT Token expired") }
+  ensure(expiresAt.isAfter(Instant.now(Clock.systemUTC()))) { JwtInvalid("JWT Token expired") }
   select(UserId(userId))
   return UserId(userId)
 }
 
-context(EffectScope<ApiError>)
+context(EffectScope<DomainError>)
 private suspend fun <A : JWSAlgorithm> Either<KJWTSignError, SignedJWT<A>>.bind(): SignedJWT<A> =
   mapLeft { jwtError ->
     when (jwtError) {

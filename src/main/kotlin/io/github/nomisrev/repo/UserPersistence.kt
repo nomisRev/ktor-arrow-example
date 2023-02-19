@@ -1,14 +1,13 @@
 package io.github.nomisrev.repo
 
 import arrow.core.Either
-import arrow.core.computations.ensureNotNull
 import arrow.core.continuations.EffectScope
-import arrow.core.continuations.either
 import arrow.core.continuations.ensureNotNull
-import io.github.nomisrev.ApiError
-import io.github.nomisrev.ApiError.Unexpected
-import io.github.nomisrev.ApiError.UserNotFound
-import io.github.nomisrev.ApiError.UsernameAlreadyExists
+import io.github.nomisrev.DomainError
+import io.github.nomisrev.PasswordNotMatched
+import io.github.nomisrev.Unexpected
+import io.github.nomisrev.UserNotFound
+import io.github.nomisrev.UsernameAlreadyExists
 import io.github.nomisrev.service.UserInfo
 import io.github.nomisrev.sqldelight.UsersQueries
 import java.util.UUID
@@ -21,25 +20,25 @@ import org.postgresql.util.PSQLState
 
 interface UserPersistence {
   /** Creates a new user in the database, and returns the [UserId] of the newly created user */
-  context(EffectScope<ApiError>)
+  context(EffectScope<DomainError>)
   suspend fun insert(username: String, email: String, password: String): UserId
 
   /** Verifies is a password is correct for a given email */
-  context(EffectScope<ApiError>)
+  context(EffectScope<DomainError>)
   suspend fun verifyPassword(
     email: String,
     password: String
   ): Pair<UserId, UserInfo>
 
   /** Select a User by its [UserId] */
-  context(EffectScope<ApiError>)
+  context(EffectScope<DomainError>)
   suspend fun select(userId: UserId): UserInfo
 
   /** Select a User by its username */
-  context(EffectScope<ApiError>)
+  context(EffectScope<DomainError>)
   suspend fun select(username: String): UserInfo
 
-  context(EffectScope<ApiError>)
+  context(EffectScope<DomainError>)
   @Suppress("LongParameterList")
   suspend fun update(
     userId: UserId,
@@ -57,10 +56,9 @@ fun userPersistence(
   defaultIterations: Int = 64000,
   defaultKeyLength: Int = 512,
   secretKeysFactory: SecretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512")
-) =
-  object : UserPersistence {
+) = object : UserPersistence {
 
-    context(EffectScope<ApiError>)
+    context(EffectScope<DomainError>)
     override suspend fun insert(
       username: String,
       email: String,
@@ -77,7 +75,7 @@ fun userPersistence(
       }.bind()
     }
 
-    context(EffectScope<ApiError>)
+    context(EffectScope<DomainError>)
     override suspend fun verifyPassword(
       email: String,
       password: String
@@ -88,12 +86,11 @@ fun userPersistence(
         }
 
       val hash = generateKey(password, salt)
-      ensure(hash contentEquals key) { ApiError.PasswordNotMatched }
+      ensure(hash contentEquals key) { PasswordNotMatched }
       return Pair(userId, UserInfo(email, username, bio, image))
     }
 
-
-    context(EffectScope<ApiError>)
+    context(EffectScope<DomainError>)
     override suspend fun select(userId: UserId): UserInfo {
       val userInfo =
         Either.catch {
@@ -108,7 +105,7 @@ fun userPersistence(
       return ensureNotNull(userInfo) { UserNotFound("userId=$userId") }
     }
 
-    context(EffectScope<ApiError>)
+    context(EffectScope<DomainError>)
     override suspend fun select(username: String): UserInfo {
       val userInfo =
         Either.catch { usersQueries.selectByUsername(username, ::UserInfo).executeAsOneOrNull() }
@@ -117,7 +114,7 @@ fun userPersistence(
       return ensureNotNull(userInfo) { UserNotFound("username=$username") }
     }
 
-    context(EffectScope<ApiError>)
+    context(EffectScope<DomainError>)
     override suspend fun update(
       userId: UserId,
       email: String?,
@@ -127,7 +124,7 @@ fun userPersistence(
       image: String?
     ): UserInfo {
       val info =
-        usersQueries.transactionWithResult<UserInfo?> {
+        usersQueries.transactionWithResult {
           usersQueries.selectById(userId).executeAsOneOrNull()?.let {
             (oldEmail, oldUsername, salt, oldPassword, oldBio, oldImage) ->
             val newPassword = password?.let { generateKey(it, salt) } ?: oldPassword
@@ -157,11 +154,10 @@ private fun UsersQueries.create(
   email: String
 ): UserId =
   insertAndGetId(
-      username = username,
-      email = email,
-      salt = salt,
-      hashed_password = key,
-      bio = "",
-      image = ""
-    )
-    .executeAsOne()
+    username = username,
+    email = email,
+    salt = salt,
+    hashed_password = key,
+    bio = "",
+    image = ""
+  ).executeAsOne()
