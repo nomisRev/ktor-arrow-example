@@ -16,8 +16,8 @@ import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.env.Env
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.repo.UserPersistence
-import java.time.LocalDateTime
-import java.time.ZoneId
+import java.time.Clock
+import java.time.Instant
 import kotlin.time.toJavaDuration
 
 interface JwtService {
@@ -32,7 +32,7 @@ fun jwtService(env: Env.Auth, repo: UserPersistence) =
   object : JwtService {
     override suspend fun generateJwtToken(userId: UserId): Either<JwtGeneration, JwtToken> =
       JWT.hs512 {
-          val now = LocalDateTime.now(ZoneId.of("UTC"))
+          val now = Instant.now(Clock.systemUTC())
           issuedAt(now)
           expiresAt(now + env.duration.toJavaDuration())
           issuer(env.issuer)
@@ -51,7 +51,7 @@ fun jwtService(env: Env.Auth, repo: UserPersistence) =
         }
       val expiresAt =
         ensureNotNull(jwt.expiresAt().orNull()) { JwtInvalid("exp missing from JWT Token") }
-      ensure(expiresAt.isAfter(LocalDateTime.now())) { JwtInvalid("JWT Token expired") }
+      ensure(expiresAt.isAfter(Instant.now(Clock.systemUTC()))) { JwtInvalid("JWT Token expired") }
       repo.select(UserId(userId)).bind()
       UserId(userId)
     }
