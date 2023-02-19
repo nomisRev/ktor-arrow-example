@@ -45,5 +45,5 @@ suspend inline fun PipelineContext<Unit, ApplicationCall>.optionalJwtAuth(
 
 fun PipelineContext<Unit, ApplicationCall>.jwtToken(): String? =
   Either.catch { (call.request.parseAuthorizationHeader() as? HttpAuthHeader.Single) }
-    .orNull()
+    .getOrNull()
     ?.blob
