@@ -17,9 +17,7 @@ fun main(): Unit = SuspendApp {
   val env = Env()
   resourceScope {
     val dependencies = dependencies(env)
-    server(Netty, host = env.http.host, port = env.http.port) {
-      app(dependencies)
-    }
+    server(Netty, host = env.http.host, port = env.http.port) { app(dependencies) }
     awaitCancellation()
   }
 }

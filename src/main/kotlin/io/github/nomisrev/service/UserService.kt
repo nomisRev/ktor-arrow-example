@@ -49,12 +49,13 @@ fun userService(repo: UserPersistence, jwtService: JwtService) =
       jwtService.generateJwtToken(userId).bind()
     }
 
-    override suspend fun login(input: Login): Either<DomainError, Pair<JwtToken, UserInfo>> = either {
-      val (email, password) = input.validate().bind()
-      val (userId, info) = repo.verifyPassword(email, password).bind()
-      val token = jwtService.generateJwtToken(userId).bind()
-      Pair(token, info)
-    }
+    override suspend fun login(input: Login): Either<DomainError, Pair<JwtToken, UserInfo>> =
+      either {
+        val (email, password) = input.validate().bind()
+        val (userId, info) = repo.verifyPassword(email, password).bind()
+        val token = jwtService.generateJwtToken(userId).bind()
+        Pair(token, info)
+      }
 
     override suspend fun update(input: Update): Either<DomainError, UserInfo> = either {
       val (userId, username, email, password, bio, image) = input.validate().bind()
@@ -64,7 +65,8 @@ fun userService(repo: UserPersistence, jwtService: JwtService) =
       repo.update(userId, email, username, password, bio, image).bind()
     }
 
-    override suspend fun getUser(userId: UserId): Either<DomainError, UserInfo> = repo.select(userId)
+    override suspend fun getUser(userId: UserId): Either<DomainError, UserInfo> =
+      repo.select(userId)
 
     override suspend fun getUser(username: String): Either<DomainError, UserInfo> =
       repo.select(username)

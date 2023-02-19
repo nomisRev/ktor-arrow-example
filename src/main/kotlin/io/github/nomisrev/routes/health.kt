@@ -6,7 +6,5 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 
 fun Application.health(healthCheck: HealthCheckRegistry) {
-  install(Cohort) {
-    healthcheck("/readiness", healthCheck)
-  }
+  install(Cohort) { healthcheck("/readiness", healthCheck) }
 }

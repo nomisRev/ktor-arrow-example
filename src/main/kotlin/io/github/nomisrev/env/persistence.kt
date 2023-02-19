@@ -17,17 +17,16 @@ import io.github.nomisrev.sqldelight.Users
 import java.time.OffsetDateTime
 import javax.sql.DataSource
 
-suspend fun ResourceScope.hikari(env: Env.DataSource): HikariDataSource =
-  autoCloseable {
-    HikariDataSource(
-      HikariConfig().apply {
-        jdbcUrl = env.url
-        username = env.username
-        password = env.password
-        driverClassName = env.driver
-      }
-    )
-  }
+suspend fun ResourceScope.hikari(env: Env.DataSource): HikariDataSource = autoCloseable {
+  HikariDataSource(
+    HikariConfig().apply {
+      jdbcUrl = env.url
+      username = env.username
+      password = env.password
+      driverClassName = env.driver
+    }
+  )
+}
 
 suspend fun ResourceScope.sqlDelight(dataSource: DataSource): SqlDelight {
   val driver = closeable { dataSource.asJdbcDriver() }

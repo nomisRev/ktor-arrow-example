@@ -21,6 +21,7 @@ slugify="3.0.2"
 bcrypt="0.9.0"
 suspendapp="0.4.0"
 cohort="1.7.3"
+spotless="6.15.0"
 
 [libraries]
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
@@ -109,3 +110,4 @@ detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

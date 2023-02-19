@@ -27,40 +27,42 @@ fun articleService(
   slugGenerator: SlugGenerator,
   articlePersistence: ArticlePersistence,
   userPersistence: UserPersistence,
-): ArticleService = object : ArticleService {
-  override suspend fun createArticle(input: CreateArticle): Either<DomainError, Article> = either {
-    val slug =
-      slugGenerator
-        .generateSlug(input.title) { slug -> articlePersistence.exists(slug).bind() }
-        .bind()
-    val createdAt = OffsetDateTime.now()
-    val articleId =
-      articlePersistence
-        .create(
-          input.userId,
-          slug,
+): ArticleService =
+  object : ArticleService {
+    override suspend fun createArticle(input: CreateArticle): Either<DomainError, Article> =
+      either {
+        val slug =
+          slugGenerator
+            .generateSlug(input.title) { slug -> articlePersistence.exists(slug).bind() }
+            .bind()
+        val createdAt = OffsetDateTime.now()
+        val articleId =
+          articlePersistence
+            .create(
+              input.userId,
+              slug,
+              input.title,
+              input.description,
+              input.body,
+              createdAt,
+              createdAt,
+              input.tags
+            )
+            .bind()
+            .serial
+        val user = userPersistence.select(input.userId).bind()
+        Article(
+          articleId,
+          slug.value,
           input.title,
           input.description,
           input.body,
+          Profile(user.username, user.bio, user.image, false),
+          false,
+          0,
           createdAt,
           createdAt,
-          input.tags
+          input.tags.toList()
         )
-        .bind()
-        .serial
-    val user = userPersistence.select(input.userId).bind()
-    Article(
-      articleId,
-      slug.value,
-      input.title,
-      input.description,
-      input.body,
-      Profile(user.username, user.bio, user.image, false),
-      false,
-      0,
-      createdAt,
-      createdAt,
-      input.tags.toList()
-    )
+      }
   }
-}

@@ -1,8 +1,8 @@
 package io.github.nomisrev.routes
 
 import arrow.core.Either
-import io.github.nomisrev.DomainError
 import io.github.nomisrev.CannotGenerateSlug
+import io.github.nomisrev.DomainError
 import io.github.nomisrev.EmailAlreadyExists
 import io.github.nomisrev.EmptyUpdate
 import io.github.nomisrev.IncorrectInput
@@ -48,7 +48,8 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: DomainError): 
         Unexpected failure occurred:
           - description: ${error.description}
           - cause: ${error.error}
-        """.trimIndent()
+        """
+          .trimIndent()
       )
     is EmptyUpdate -> unprocessable(error.description)
     is EmailAlreadyExists -> unprocessable("${error.email} is already registered")

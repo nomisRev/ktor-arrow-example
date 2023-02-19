@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
   alias(libs.plugins.kotlinx.serialization)
   alias(libs.plugins.sqldelight)
   alias(libs.plugins.ktor)
+  alias(libs.plugins.spotless)
 }
 
 application {
@@ -60,6 +61,12 @@ ktor {
     jreVersion.set(io.ktor.plugin.features.JreVersion.JRE_17)
     localImageName.set("ktor-arrow-example")
     imageTag.set("latest")
+  }
+}
+
+spotless {
+  kotlin {
+    ktfmt().googleStyle()
   }
 }
 

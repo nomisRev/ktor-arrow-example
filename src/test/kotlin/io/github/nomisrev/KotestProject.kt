@@ -8,7 +8,6 @@ import io.kotest.assertions.arrow.fx.coroutines.ProjectResource
 import io.kotest.core.config.AbstractProjectConfig
 import io.kotest.core.extensions.Extension
 import io.kotest.core.listeners.TestListener
-import io.kotest.core.spec.AutoScan
 import io.kotest.core.test.TestCase
 import io.kotest.core.test.TestResult
 import io.kotest.extensions.testcontainers.StartablePerProjectListener
@@ -22,8 +21,8 @@ private class PostgreSQL : PostgreSQLContainer<PostgreSQL>("postgres:latest") {
 }
 
 /**
- * Configuration of our Kotest Test Project.
- * It contains our Test Container configuration which is used in almost all tests.
+ * Configuration of our Kotest Test Project. It contains our Test Container configuration which is
+ * used in almost all tests.
  */
 object KotestProject : AbstractProjectConfig() {
   private val postgres = StartablePerProjectListener(PostgreSQL(), "postgres")
@@ -42,14 +41,15 @@ object KotestProject : AbstractProjectConfig() {
   val dependencies = ProjectResource(resource { dependencies(env) })
   private val hikari = ProjectResource(resource { hikari(env.dataSource) })
 
-  private val resetDatabaseListener = object : TestListener {
-    override suspend fun afterTest(testCase: TestCase, result: TestResult) {
-      super.afterTest(testCase, result)
-      hikari.get().connection.use { conn ->
-        conn.prepareStatement("TRUNCATE users CASCADE").executeLargeUpdate()
+  private val resetDatabaseListener =
+    object : TestListener {
+      override suspend fun afterTest(testCase: TestCase, result: TestResult) {
+        super.afterTest(testCase, result)
+        hikari.get().connection.use { conn ->
+          conn.prepareStatement("TRUNCATE users CASCADE").executeLargeUpdate()
+        }
       }
     }
-  }
 
   override fun extensions(): List<Extension> =
     listOf(postgres, hikari, dependencies, resetDatabaseListener)
