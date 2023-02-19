@@ -2,9 +2,6 @@ name: "build"
 
 on: push
 
-env:
-  GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx5g -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"
-
 jobs:
   build:
     runs-on: 'ubuntu-latest'
