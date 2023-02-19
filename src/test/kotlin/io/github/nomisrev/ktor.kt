@@ -9,37 +9,20 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.TestApplication
+import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
 
-/** Small DSL that exposes a setup [HttpClient] */
-interface ServiceTest {
-  val client: HttpClient
-}
 
-suspend fun withService(test: suspend ServiceTest.() -> Unit): Unit {
-  val dep by KotestProject.dependencies
-  withService(dep, test)
-}
-
-/** DSL to test MainKt server with setup [HttpClient] through [ServiceTest] */
-suspend fun withService(
-  dependencies: Dependencies,
-  test: suspend ServiceTest.() -> Unit
-): Unit =
+suspend fun withService(test: suspend HttpClient.(dep: Dependencies) -> Unit): Unit {
+  val dependencies = KotestProject.dependencies.get()
   testApplication {
     application { app(dependencies) }
     createClient {
       expectSuccess = false
       install(ContentNegotiation) { json(Json { serializersModule = kotlinXSerializersModule }) }
-    }
-      .use { client ->
-        test(
-          object : ServiceTest {
-            override val client: HttpClient = client
-          }
-        )
-      }
+    }.use { client -> test(client, dependencies) }
   }
+}
 
 // Small optimisation to avoid runBlocking from Ktor impl
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")

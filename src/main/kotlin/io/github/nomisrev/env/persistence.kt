@@ -2,9 +2,9 @@ package io.github.nomisrev.env
 
 import app.cash.sqldelight.ColumnAdapter
 import app.cash.sqldelight.driver.jdbc.asJdbcDriver
-import arrow.fx.coroutines.Resource
-import arrow.fx.coroutines.continuations.resource
-import arrow.fx.coroutines.fromCloseable
+import arrow.fx.coroutines.autoCloseable
+import arrow.fx.coroutines.closeable
+import arrow.fx.coroutines.continuations.ResourceScope
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.github.nomisrev.repo.ArticleId
@@ -17,8 +17,8 @@ import io.github.nomisrev.sqldelight.Users
 import java.time.OffsetDateTime
 import javax.sql.DataSource
 
-fun hikari(env: Env.DataSource): Resource<HikariDataSource> =
-  Resource.fromCloseable {
+suspend fun ResourceScope.hikari(env: Env.DataSource): HikariDataSource =
+  autoCloseable {
     HikariDataSource(
       HikariConfig().apply {
         jdbcUrl = env.url
@@ -29,10 +29,10 @@ fun hikari(env: Env.DataSource): Resource<HikariDataSource> =
     )
   }
 
-fun sqlDelight(dataSource: DataSource): Resource<SqlDelight> = resource {
-  val driver = Resource.fromCloseable(dataSource::asJdbcDriver).bind()
+suspend fun ResourceScope.sqlDelight(dataSource: DataSource): SqlDelight {
+  val driver = closeable { dataSource.asJdbcDriver() }
   SqlDelight.Schema.create(driver)
-  SqlDelight(
+  return SqlDelight(
     driver,
     Articles.Adapter(articleIdAdapter, userIdAdapter, offsetDateTimeAdapter, offsetDateTimeAdapter),
     Comments.Adapter(offsetDateTimeAdapter, offsetDateTimeAdapter),
