@@ -1,7 +1,8 @@
 package io.github.nomisrev
 
 import arrow.continuations.SuspendApp
-import arrow.fx.coroutines.continuations.resource
+import arrow.continuations.ktor.server
+import arrow.fx.coroutines.resourceScope
 import io.github.nomisrev.env.Dependencies
 import io.github.nomisrev.env.Env
 import io.github.nomisrev.env.configure
@@ -14,15 +15,15 @@ import kotlinx.coroutines.awaitCancellation
 
 fun main(): Unit = SuspendApp {
   val env = Env()
-  resource {
-    val dependencies = dependencies(env).bind()
-    val engine = server(Netty,  host = env.http.host, port = env.http.port).bind()
-    engine.application.app(dependencies)
-  }.use { awaitCancellation() }
+  resourceScope {
+    val dependencies = dependencies(env)
+    server(Netty, host = env.http.host, port = env.http.port) { app(dependencies) }
+    awaitCancellation()
+  }
 }
 
 fun Application.app(module: Dependencies) {
   configure()
   userRoutes(module.userService, module.jwtService)
-  health()
+  health(module.healthCheck)
 }

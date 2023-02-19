@@ -3,7 +3,7 @@ name: "build"
 on: push
 
 env:
-  GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx5g -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"
+  GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"
 
 jobs:
   build:
@@ -11,24 +11,24 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3.3.0
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
       - name: Set up Java
-        uses: actions/setup-java@v3.9.0
+        uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
-          java-version: 11
+          java-version: 17
 
       - name: Build
-        uses: gradle/gradle-build-action@v2.3.3
+        uses: gradle/gradle-build-action@v2
         with:
           arguments: build --full-stacktrace
 
       - name: Upload reports
         if: always()
-        uses: actions/upload-artifact@v3.1.2
+        uses: actions/upload-artifact@v3
         with:
           name: 'reports-${{ matrix.os }}'
           path: '**/build/reports/**'

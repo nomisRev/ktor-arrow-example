@@ -44,10 +44,7 @@ interface UserPersistence {
 }
 
 /** UserPersistence implementation based on SqlDelight and JavaX Crypto */
-fun userPersistence(
-  usersQueries: UsersQueries,
-  rounds: Int = 10
-) =
+fun userPersistence(usersQueries: UsersQueries, rounds: Int = 10) =
   object : UserPersistence {
 
     override suspend fun insert(
@@ -56,13 +53,14 @@ fun userPersistence(
       password: String
     ): Either<DomainError, UserId> {
       val hash = BCrypt.withDefaults().hash(rounds, password.toByteArray())
-      return Either.catch { usersQueries.create(hash, username, email) }.mapLeft { error ->
-        if (error is PSQLException && error.sqlState == PSQLState.UNIQUE_VIOLATION.state) {
-          UsernameAlreadyExists(username)
-        } else {
-          Unexpected("Failed to persist user: $username:$email", error)
+      return Either.catch { usersQueries.create(hash, username, email) }
+        .mapLeft { error ->
+          if (error is PSQLException && error.sqlState == PSQLState.UNIQUE_VIOLATION.state) {
+            UsernameAlreadyExists(username)
+          } else {
+            Unexpected("Failed to persist user: $username:$email", error)
+          }
         }
-      }
     }
 
     override suspend fun verifyPassword(
@@ -82,12 +80,12 @@ fun userPersistence(
     override suspend fun select(userId: UserId): Either<DomainError, UserInfo> = either {
       val userInfo =
         Either.catch {
-          usersQueries
-            .selectById(userId) { email, username, _, bio, image ->
-              UserInfo(email, username, bio, image)
-            }
-            .executeAsOneOrNull()
-        }
+            usersQueries
+              .selectById(userId) { email, username, _, bio, image ->
+                UserInfo(email, username, bio, image)
+              }
+              .executeAsOneOrNull()
+          }
           .mapLeft { e -> Unexpected("Failed to select user with userId: $userId", e) }
           .bind()
       ensureNotNull(userInfo) { UserNotFound("userId=$userId") }
@@ -112,10 +110,10 @@ fun userPersistence(
       val info =
         usersQueries.transactionWithResult<UserInfo?> {
           usersQueries.selectById(userId).executeAsOneOrNull()?.let {
-              (oldEmail, oldUsername, oldPassword, oldBio, oldImage) ->
-            val newPassword = password?.let {
-              BCrypt.withDefaults().hash(rounds, password.toByteArray())
-            } ?: oldPassword
+            (oldEmail, oldUsername, oldPassword, oldBio, oldImage) ->
+            val newPassword =
+              password?.let { BCrypt.withDefaults().hash(rounds, password.toByteArray()) }
+                ?: oldPassword
             val newEmail = email ?: oldEmail
             val newUsername = username ?: oldUsername
             val newBio = bio ?: oldBio
@@ -128,16 +126,6 @@ fun userPersistence(
     }
   }
 
-private fun UsersQueries.create(
-  hash: ByteArray,
-  username: String,
-  email: String
-): UserId =
-  insertAndGetId(
-      username = username,
-      email = email,
-      hashed_password = hash,
-      bio = "",
-      image = ""
-    )
+private fun UsersQueries.create(hash: ByteArray, username: String, email: String): UserId =
+  insertAndGetId(username = username, email = email, hashed_password = hash, bio = "", image = "")
     .executeAsOne()

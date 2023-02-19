@@ -1,3 +1,4 @@
+import org.gradle.internal.impldep.org.junit.experimental.categories.Categories.CategoryFilter.include
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 @Suppress("DSL_SCOPE_VIOLATION") plugins {
@@ -9,6 +10,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
   alias(libs.plugins.kover)
   alias(libs.plugins.kotlinx.serialization)
   alias(libs.plugins.sqldelight)
+  alias(libs.plugins.ktor)
+  alias(libs.plugins.spotless)
 }
 
 application {
@@ -34,14 +37,14 @@ repositories {
 }
 
 java {
-  sourceCompatibility = JavaVersion.VERSION_11
-  targetCompatibility = JavaVersion.VERSION_11
+  sourceCompatibility = JavaVersion.VERSION_17
+  targetCompatibility = JavaVersion.VERSION_17
 }
 
 tasks {
   withType<KotlinCompile>().configureEach {
     kotlinOptions {
-      jvmTarget = "${JavaVersion.VERSION_11}"
+      jvmTarget = "${JavaVersion.VERSION_17}"
       freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
     }
   }
@@ -54,18 +57,33 @@ tasks {
   }
 }
 
+ktor {
+  docker {
+    jreVersion.set(io.ktor.plugin.features.JreVersion.JRE_17)
+    localImageName.set("ktor-arrow-example")
+    imageTag.set("latest")
+  }
+}
+
+spotless {
+  kotlin {
+    targetExclude("**/build/**")
+    ktfmt().googleStyle()
+  }
+}
+
 dependencies {
   implementation(libs.bundles.arrow)
   implementation(libs.bundles.ktor.server)
-  implementation(libs.suspendapp)
+  implementation(libs.bundles.suspendapp)
   implementation(libs.kjwt.core)
-  implementation(libs.ktor.serialization)
   implementation(libs.logback.classic)
   implementation(libs.sqldelight.jdbc)
   implementation(libs.hikari)
   implementation(libs.postgresql)
   implementation(libs.slugify)
   implementation(libs.bcrypt)
+  implementation(libs.bundles.cohort)
 
   testImplementation(libs.bundles.ktor.client)
   testImplementation(libs.testcontainers.postgresql)

@@ -14,8 +14,7 @@ import io.ktor.server.auth.parseAuthorizationHeader
 import io.ktor.server.response.respond
 import io.ktor.util.pipeline.PipelineContext
 
-@JvmInline
-value class JwtToken(val value: String)
+@JvmInline value class JwtToken(val value: String)
 
 data class JwtContext(val token: JwtToken, val userId: UserId)
 
@@ -34,7 +33,8 @@ suspend inline fun PipelineContext<Unit, ApplicationCall>.optionalJwtAuth(
   crossinline body: suspend PipelineContext<Unit, ApplicationCall>.(JwtContext?) -> Unit
 ) {
   jwtToken()?.let { token ->
-    jwtService.verifyJwtToken(JwtToken(token))
+    jwtService
+      .verifyJwtToken(JwtToken(token))
       .fold(
         { error -> respond(error) },
         { userId -> body(this, JwtContext(JwtToken(token), userId)) }
@@ -45,5 +45,5 @@ suspend inline fun PipelineContext<Unit, ApplicationCall>.optionalJwtAuth(
 
 fun PipelineContext<Unit, ApplicationCall>.jwtToken(): String? =
   Either.catch { (call.request.parseAuthorizationHeader() as? HttpAuthHeader.Single) }
-    .orNull()
+    .getOrNull()
     ?.blob

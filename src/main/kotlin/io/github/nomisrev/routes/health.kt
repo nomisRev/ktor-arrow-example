@@ -1,14 +1,10 @@
 package io.github.nomisrev.routes
 
-import io.ktor.http.HttpStatusCode
+import com.sksamuel.cohort.HealthCheckRegistry
+import com.sksamuel.cohort.ktor.Cohort
 import io.ktor.server.application.Application
-import io.ktor.server.application.call
-import io.ktor.server.response.respond
-import io.ktor.server.routing.get
-import io.ktor.server.routing.routing
+import io.ktor.server.application.install
 
-fun Application.health() = routing {
-  get("health") {
-    call.respond(HttpStatusCode.OK)
-  }
+fun Application.health(healthCheck: HealthCheckRegistry) {
+  install(Cohort) { healthcheck("/readiness", healthCheck) }
 }

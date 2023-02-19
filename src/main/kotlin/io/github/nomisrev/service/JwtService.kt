@@ -31,8 +31,7 @@ interface JwtService {
 fun jwtService(env: Env.Auth, repo: UserPersistence) =
   object : JwtService {
     override suspend fun generateJwtToken(userId: UserId): Either<JwtGeneration, JwtToken> =
-      JWT
-        .hs512 {
+      JWT.hs512 {
           val now = LocalDateTime.now(ZoneId.of("UTC"))
           issuedAt(now)
           expiresAt(now + env.duration.toJavaDuration())
@@ -64,7 +63,6 @@ private fun <A : JWSAlgorithm> Either<KJWTSignError, SignedJWT<A>>.toUserService
     KJWTSignError.InvalidKey -> JwtGeneration("JWT singing error: invalid Secret Key.")
     KJWTSignError.InvalidJWTData ->
       JwtGeneration("JWT singing error: Generated with incorrect JWT data")
-
     is KJWTSignError.SigningError -> JwtGeneration("JWT singing error: ${jwtError.cause}")
   }
 }
