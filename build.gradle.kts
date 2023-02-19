@@ -74,7 +74,6 @@ dependencies {
   implementation(libs.hikari)
   implementation(libs.postgresql)
   implementation(libs.slugify)
-  implementation(libs.bcrypt)
   implementation(libs.bundles.cohort)
 
   testImplementation(libs.bundles.ktor.client)
