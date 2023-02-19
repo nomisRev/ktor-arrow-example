@@ -3,7 +3,6 @@ package io.github.nomisrev.repo
 import arrow.core.Either
 import arrow.core.continuations.either
 import arrow.core.continuations.ensureNotNull
-import at.favre.lib.crypto.bcrypt.BCrypt
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.Unexpected
@@ -11,6 +10,9 @@ import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.UsernameAlreadyExists
 import io.github.nomisrev.service.UserInfo
 import io.github.nomisrev.sqldelight.UsersQueries
+import java.util.UUID
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
 import org.postgresql.util.PSQLException
 import org.postgresql.util.PSQLState
 
@@ -44,7 +46,12 @@ interface UserPersistence {
 }
 
 /** UserPersistence implementation based on SqlDelight and JavaX Crypto */
-fun userPersistence(usersQueries: UsersQueries, rounds: Int = 10) =
+fun userPersistence(
+  usersQueries: UsersQueries,
+  defaultIterations: Int = 64000,
+  defaultKeyLength: Int = 512,
+  secretKeysFactory: SecretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512")
+) =
   object : UserPersistence {
 
     override suspend fun insert(
@@ -52,8 +59,9 @@ fun userPersistence(usersQueries: UsersQueries, rounds: Int = 10) =
       email: String,
       password: String
     ): Either<DomainError, UserId> {
-      val hash = BCrypt.withDefaults().hash(rounds, password.toByteArray())
-      return Either.catch { usersQueries.create(hash, username, email) }
+      val salt = generateSalt()
+      val key = generateKey(password, salt)
+      return Either.catch { usersQueries.create(salt, key, username, email) }
         .mapLeft { error ->
           if (error is PSQLException && error.sqlState == PSQLState.UNIQUE_VIOLATION.state) {
             UsernameAlreadyExists(username)
@@ -67,13 +75,13 @@ fun userPersistence(usersQueries: UsersQueries, rounds: Int = 10) =
       email: String,
       password: String
     ): Either<DomainError, Pair<UserId, UserInfo>> = either {
-      val (userId, username, key, bio, image) =
+      val (userId, username, salt, key, bio, image) =
         ensureNotNull(usersQueries.selectSecurityByEmail(email).executeAsOneOrNull()) {
           UserNotFound("email=$email")
         }
 
-      val result = BCrypt.verifyer().verify(password.toByteArray(), key)
-      ensure(result.verified) { PasswordNotMatched }
+      val hash = generateKey(password, salt)
+      ensure(hash contentEquals key) { PasswordNotMatched }
       Pair(userId, UserInfo(email, username, bio, image))
     }
 
@@ -81,7 +89,7 @@ fun userPersistence(usersQueries: UsersQueries, rounds: Int = 10) =
       val userInfo =
         Either.catch {
             usersQueries
-              .selectById(userId) { email, username, _, bio, image ->
+              .selectById(userId) { email, username, _, _, bio, image ->
                 UserInfo(email, username, bio, image)
               }
               .executeAsOneOrNull()
@@ -110,10 +118,8 @@ fun userPersistence(usersQueries: UsersQueries, rounds: Int = 10) =
       val info =
         usersQueries.transactionWithResult<UserInfo?> {
           usersQueries.selectById(userId).executeAsOneOrNull()?.let {
-            (oldEmail, oldUsername, oldPassword, oldBio, oldImage) ->
-            val newPassword =
-              password?.let { BCrypt.withDefaults().hash(rounds, password.toByteArray()) }
-                ?: oldPassword
+            (oldEmail, oldUsername, salt, oldPassword, oldBio, oldImage) ->
+            val newPassword = password?.let { generateKey(it, salt) } ?: oldPassword
             val newEmail = email ?: oldEmail
             val newUsername = username ?: oldUsername
             val newBio = bio ?: oldBio
@@ -124,8 +130,27 @@ fun userPersistence(usersQueries: UsersQueries, rounds: Int = 10) =
         }
       ensureNotNull(info) { UserNotFound("userId=$userId") }
     }
+
+    private fun generateSalt(): ByteArray = UUID.randomUUID().toString().toByteArray()
+
+    private fun generateKey(password: String, salt: ByteArray): ByteArray {
+      val spec = PBEKeySpec(password.toCharArray(), salt, defaultIterations, defaultKeyLength)
+      return secretKeysFactory.generateSecret(spec).encoded
+    }
   }
 
-private fun UsersQueries.create(hash: ByteArray, username: String, email: String): UserId =
-  insertAndGetId(username = username, email = email, hashed_password = hash, bio = "", image = "")
+private fun UsersQueries.create(
+  salt: ByteArray,
+  key: ByteArray,
+  username: String,
+  email: String
+): UserId =
+  insertAndGetId(
+      username = username,
+      email = email,
+      salt = salt,
+      hashed_password = key,
+      bio = "",
+      image = ""
+    )
     .executeAsOne()

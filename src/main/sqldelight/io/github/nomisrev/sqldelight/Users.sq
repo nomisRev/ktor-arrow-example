@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS users(
     id BIGSERIAL AS UserId PRIMARY KEY,
     email VARCHAR(200) NOT NULL UNIQUE,
     username VARCHAR(100) NOT NULL UNIQUE,
+    salt BYTEA NOT NULL,
     hashed_password BYTEA NOT NULL,
     bio VARCHAR(1000) NOT NULL DEFAULT '',
     image VARCHAR(255) NOT NULL DEFAULT ''
@@ -20,18 +21,18 @@ FROM users
 WHERE username = :username;
 
 selectSecurityByEmail:
-SELECT id, username, hashed_password, bio, image
+SELECT id, username, salt, hashed_password, bio, image
 FROM users
 WHERE email = :email;
 
 selectById:
-SELECT email, username, hashed_password, bio, image
+SELECT email, username, salt, hashed_password, bio, image
 FROM users
 WHERE id = :id;
 
 insertAndGetId:
-INSERT INTO users(email, username, hashed_password, bio, image)
-VALUES (:email, :username, :hashed_password, :bio, :image)
+INSERT INTO users(email, username, salt, hashed_password, bio, image)
+VALUES (:email, :username, :salt, :hashed_password, :bio, :image)
 RETURNING id;
 
 update:

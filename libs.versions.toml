@@ -18,7 +18,6 @@ kjwt="0.8.0"
 kotest-arrow="1.3.0"
 kotest-testcontainers="1.3.4"
 slugify="3.0.2"
-bcrypt="0.10.2"
 suspendapp="0.4.0"
 cohort="1.7.3"
 spotless="6.15.0"
@@ -63,7 +62,6 @@ sqldelight-postgresql = { module = "app.cash.sqldelight:postgresql-dialect", ver
 postgresql = { module="org.postgresql:postgresql", version.ref="postgresql" }
 kjwt-core = { module="io.github.nefilim.kjwt:kjwt-core", version.ref="kjwt" }
 slugify = { module="com.github.slugify:slugify", version.ref="slugify" }
-bcrypt = { module="at.favre.lib:bcrypt", version.ref="bcrypt" }
 cohort-core = { module="com.sksamuel.cohort:cohort-core", version.ref="cohort" }
 cohort-ktor = { module="com.sksamuel.cohort:cohort-ktor2", version.ref="cohort" }
 cohort-hikari = { module="com.sksamuel.cohort:cohort-hikari", version.ref="cohort" }
