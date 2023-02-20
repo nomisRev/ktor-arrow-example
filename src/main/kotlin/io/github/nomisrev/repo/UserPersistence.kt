@@ -1,8 +1,9 @@
 package io.github.nomisrev.repo
 
 import arrow.core.Either
-import arrow.core.continuations.either
-import arrow.core.continuations.ensureNotNull
+import arrow.core.raise.either
+import arrow.core.raise.ensure
+import arrow.core.raise.ensureNotNull
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.Unexpected
