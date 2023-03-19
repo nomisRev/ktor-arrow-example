@@ -7,7 +7,6 @@ import io.github.nomisrev.DomainError
 import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.UsernameAlreadyExists
-import io.github.nomisrev.routes.catchOrThrow
 import io.github.nomisrev.service.UserInfo
 import io.github.nomisrev.sqldelight.UsersQueries
 import java.util.UUID

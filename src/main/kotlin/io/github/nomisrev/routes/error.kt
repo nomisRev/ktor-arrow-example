@@ -58,6 +58,3 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: DomainError): 
 private suspend inline fun PipelineContext<Unit, ApplicationCall>.unprocessable(
   error: String
 ): Unit = call.respond(HttpStatusCode.UnprocessableEntity, GenericErrorModel(error))
-
-private suspend inline fun PipelineContext<Unit, ApplicationCall>.internal(error: String): Unit =
-  call.respond(HttpStatusCode.InternalServerError, GenericErrorModel(error))

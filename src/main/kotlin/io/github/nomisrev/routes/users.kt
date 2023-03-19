@@ -2,8 +2,6 @@ package io.github.nomisrev.routes
 
 import arrow.core.Either
 import arrow.core.continuations.either
-import arrow.core.left
-import arrow.core.right
 import io.github.nomisrev.IncorrectJson
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.service.JwtService
@@ -99,14 +97,6 @@ fun Application.userRoutes(
     }
   }
 }
-
-// TODO bump to 1.1.6-alpha.6x and remove
-inline fun <reified T : Throwable, A> Either.Companion.catchOrThrow(block: () -> A): Either<T, A> =
-  try {
-    block().right()
-  } catch (e: Throwable) {
-    if (e is T) e.left() else throw e
-  }
 
 // TODO improve how we receive models with validation
 @OptIn(ExperimentalSerializationApi::class)
