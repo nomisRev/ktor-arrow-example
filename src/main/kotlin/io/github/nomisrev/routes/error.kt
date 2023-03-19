@@ -6,10 +6,10 @@ import io.github.nomisrev.DomainError
 import io.github.nomisrev.EmailAlreadyExists
 import io.github.nomisrev.EmptyUpdate
 import io.github.nomisrev.IncorrectInput
+import io.github.nomisrev.IncorrectJson
 import io.github.nomisrev.JwtGeneration
 import io.github.nomisrev.JwtInvalid
 import io.github.nomisrev.PasswordNotMatched
-import io.github.nomisrev.Unexpected
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.UsernameAlreadyExists
 import io.ktor.http.HttpStatusCode
@@ -17,6 +17,7 @@ import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
 import io.ktor.server.response.respond
 import io.ktor.util.pipeline.PipelineContext
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
 @Serializable data class GenericErrorModel(val errors: GenericErrorModelErrors)
@@ -34,6 +35,7 @@ suspend inline fun <reified A : Any> Either<DomainError, A>.respond(status: Http
     is Either.Right -> call.respond(status, value)
   }
 
+@OptIn(ExperimentalSerializationApi::class)
 @Suppress("ComplexMethod")
 suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: DomainError): Unit =
   when (error) {
@@ -42,15 +44,8 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: DomainError): 
       unprocessable(
         error.errors.joinToString { field -> "${field.field}: ${field.errors.joinToString()}" }
       )
-    is Unexpected ->
-      internal(
-        """
-        Unexpected failure occurred:
-          - description: ${error.description}
-          - cause: ${error.error}
-        """
-          .trimIndent()
-      )
+    is IncorrectJson ->
+      unprocessable("Json is missing fields: ${error.exception.missingFields.joinToString()}")
     is EmptyUpdate -> unprocessable(error.description)
     is EmailAlreadyExists -> unprocessable("${error.email} is already registered")
     is JwtGeneration -> unprocessable(error.description)

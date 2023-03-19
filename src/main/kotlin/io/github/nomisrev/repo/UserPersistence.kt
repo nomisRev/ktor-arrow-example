@@ -5,9 +5,9 @@ import arrow.core.continuations.either
 import arrow.core.continuations.ensureNotNull
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.PasswordNotMatched
-import io.github.nomisrev.Unexpected
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.UsernameAlreadyExists
+import io.github.nomisrev.routes.catchOrThrow
 import io.github.nomisrev.service.UserInfo
 import io.github.nomisrev.sqldelight.UsersQueries
 import java.util.UUID
@@ -61,13 +61,13 @@ fun userPersistence(
     ): Either<DomainError, UserId> {
       val salt = generateSalt()
       val key = generateKey(password, salt)
-      return Either.catch { usersQueries.create(salt, key, username, email) }
-        .mapLeft { error ->
-          if (error is PSQLException && error.sqlState == PSQLState.UNIQUE_VIOLATION.state) {
+      return Either.catchOrThrow<PSQLException, UserId> {
+          usersQueries.create(salt, key, username, email)
+        }
+        .mapLeft { psqlException ->
+          if (psqlException.sqlState == PSQLState.UNIQUE_VIOLATION.state)
             UsernameAlreadyExists(username)
-          } else {
-            Unexpected("Failed to persist user: $username:$email", error)
-          }
+          else throw psqlException
         }
     }
 
@@ -87,23 +87,16 @@ fun userPersistence(
 
     override suspend fun select(userId: UserId): Either<DomainError, UserInfo> = either {
       val userInfo =
-        Either.catch {
-            usersQueries
-              .selectById(userId) { email, username, _, _, bio, image ->
-                UserInfo(email, username, bio, image)
-              }
-              .executeAsOneOrNull()
+        usersQueries
+          .selectById(userId) { email, username, _, _, bio, image ->
+            UserInfo(email, username, bio, image)
           }
-          .mapLeft { e -> Unexpected("Failed to select user with userId: $userId", e) }
-          .bind()
+          .executeAsOneOrNull()
       ensureNotNull(userInfo) { UserNotFound("userId=$userId") }
     }
 
     override suspend fun select(username: String): Either<DomainError, UserInfo> = either {
-      val userInfo =
-        Either.catch { usersQueries.selectByUsername(username, ::UserInfo).executeAsOneOrNull() }
-          .mapLeft { e -> Unexpected("Failed to select user with username: $username", e) }
-          .bind()
+      val userInfo = usersQueries.selectByUsername(username, ::UserInfo).executeAsOneOrNull()
       ensureNotNull(userInfo) { UserNotFound("username=$username") }
     }
 
@@ -116,7 +109,7 @@ fun userPersistence(
       image: String?
     ): Either<DomainError, UserInfo> = either {
       val info =
-        usersQueries.transactionWithResult<UserInfo?> {
+        usersQueries.transactionWithResult {
           usersQueries.selectById(userId).executeAsOneOrNull()?.let {
             (oldEmail, oldUsername, salt, oldPassword, oldBio, oldImage) ->
             val newPassword = password?.let { generateKey(it, salt) } ?: oldPassword
