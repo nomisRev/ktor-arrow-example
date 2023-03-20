@@ -1,7 +1,5 @@
 package io.github.nomisrev.repo
 
-import arrow.core.Either
-import io.github.nomisrev.Unexpected
 import io.github.nomisrev.service.Slug
 import io.github.nomisrev.sqldelight.ArticlesQueries
 import io.github.nomisrev.sqldelight.TagsQueries
@@ -21,10 +19,10 @@ interface ArticlePersistence {
     createdAt: OffsetDateTime,
     updatedAt: OffsetDateTime,
     tags: Set<String>
-  ): Either<Unexpected, ArticleId>
+  ): ArticleId
 
   /** Verifies if a certain slug already exists or not */
-  suspend fun exists(slug: Slug): Either<Unexpected, Boolean>
+  suspend fun exists(slug: Slug): Boolean
 }
 
 fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
@@ -38,30 +36,18 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
       createdAt: OffsetDateTime,
       updatedAt: OffsetDateTime,
       tags: Set<String>
-    ): Either<Unexpected, ArticleId> =
-      Either.catch {
-          articles.transactionWithResult<ArticleId> {
-            val articleId =
-              articles
-                .insertAndGetId(
-                  slug.value,
-                  title,
-                  description,
-                  body,
-                  authorId,
-                  createdAt,
-                  updatedAt
-                )
-                .executeAsOne()
+    ): ArticleId =
+      articles.transactionWithResult {
+        val articleId =
+          articles
+            .insertAndGetId(slug.value, title, description, body, authorId, createdAt, updatedAt)
+            .executeAsOne()
 
-            tags.forEach { tag -> tagsQueries.insert(articleId, tag) }
+        tags.forEach { tag -> tagsQueries.insert(articleId, tag) }
 
-            articleId
-          }
-        }
-        .mapLeft { e -> Unexpected("Failed to create article: $authorId:$title:$tags", e) }
+        articleId
+      }
 
-    override suspend fun exists(slug: Slug): Either<Unexpected, Boolean> =
-      Either.catch { articles.slugExists(slug.value).executeAsOne() }
-        .mapLeft { e -> Unexpected("Failed to check existence of $slug", e) }
+    override suspend fun exists(slug: Slug): Boolean =
+      articles.slugExists(slug.value).executeAsOne()
   }

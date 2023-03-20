@@ -2,8 +2,7 @@ package io.github.nomisrev.routes
 
 import arrow.core.Either
 import arrow.core.continuations.either
-import io.github.nomisrev.DomainError
-import io.github.nomisrev.Unexpected
+import io.github.nomisrev.IncorrectJson
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.service.JwtService
 import io.github.nomisrev.service.Login
@@ -21,6 +20,8 @@ import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import io.ktor.util.pipeline.PipelineContext
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.MissingFieldException
 import kotlinx.serialization.Serializable
 
 @Serializable data class UserWrapper<T : Any>(val user: T)
@@ -98,9 +99,7 @@ fun Application.userRoutes(
 }
 
 // TODO improve how we receive models with validation
+@OptIn(ExperimentalSerializationApi::class)
 private suspend inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>
-  .receiveCatching(): Either<DomainError, A> =
-  Either.catch { call.receive<A>() }
-    .mapLeft { e ->
-      Unexpected(e.message ?: "Received malformed JSON for ${A::class.simpleName}", e)
-    }
+  .receiveCatching(): Either<IncorrectJson, A> =
+  Either.catchOrThrow<MissingFieldException, A> { call.receive() }.mapLeft { IncorrectJson(it) }

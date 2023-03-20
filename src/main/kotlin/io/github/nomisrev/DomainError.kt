@@ -2,10 +2,15 @@ package io.github.nomisrev
 
 import arrow.core.NonEmptyList
 import arrow.core.nonEmptyListOf
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.MissingFieldException
 
 sealed interface DomainError
 
 sealed interface ValidationError : DomainError
+
+@OptIn(ExperimentalSerializationApi::class)
+data class IncorrectJson(val exception: MissingFieldException) : ValidationError
 
 data class EmptyUpdate(val description: String) : ValidationError
 
@@ -32,5 +37,3 @@ data class JwtInvalid(val description: String) : JwtError
 sealed interface ArticleError : DomainError
 
 data class CannotGenerateSlug(val description: String) : ArticleError
-
-data class Unexpected(val description: String, val error: Throwable) : UserError
