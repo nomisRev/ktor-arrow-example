@@ -1,9 +1,8 @@
 package io.github.nomisrev.routes
 
-import arrow.core.Either
-import arrow.core.continuations.EffectScope
-import io.github.nomisrev.DomainError
-import io.github.nomisrev.Unexpected
+import arrow.core.raise.Raise
+import arrow.core.raise.catch
+import io.github.nomisrev.IncorrectJson
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.env.Env
 import io.github.nomisrev.repo.UserPersistence
@@ -24,6 +23,8 @@ import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import io.ktor.util.pipeline.PipelineContext
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.MissingFieldException
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -98,9 +99,8 @@ fun userRoutes() = routing {
   }
 }
 
-context(EffectScope<DomainError>)
-  private suspend inline fun <reified A : Any> PipelineContext<
-  Unit, ApplicationCall>.receiveCatching(): A =
-  Either.catch { call.receive<A>() }.mapLeft { e ->
-    Unexpected(e.message ?: "Received malformed JSON for ${A::class.simpleName}", e)
-  }.bind()
+context(Raise<IncorrectJson>)
+@OptIn(ExperimentalSerializationApi::class)
+private suspend inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>
+  .receiveCatching(): A =
+  catch({ call.receive() }) { e: MissingFieldException -> shift(IncorrectJson(e)) }

@@ -1,6 +1,6 @@
 package io.github.nomisrev.service
 
-import arrow.core.continuations.either
+import arrow.core.raise.either
 import arrow.core.nonEmptyListOf
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT

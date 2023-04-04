@@ -1,6 +1,6 @@
 package io.github.nomisrev
 
-import arrow.core.continuations.EffectScope
+import arrow.core.raise.Raise
 import io.ktor.server.application.ApplicationCall
 import io.ktor.util.pipeline.PipelineContext
 import kotlin.contracts.ExperimentalContracts
@@ -27,11 +27,4 @@ inline fun <A, B, C, R> with(a: A, b: B, c: C, block: context(A, B, C) (TypePlac
 
 sealed interface TypePlacedHolder<out A> {
     companion object : TypePlacedHolder<Nothing>
-}
-
-// TODO - temp fix for ambiguity bug in compiler
-@OptIn(ExperimentalContracts::class)
-suspend fun <R, B : Any> EffectScope<R>.ensureNotNull(value: B?, shift: () -> R): B {
-    contract { returns() implies (value != null) }
-    return value ?: shift(shift())
 }

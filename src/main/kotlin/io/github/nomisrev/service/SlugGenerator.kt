@@ -1,6 +1,7 @@
 package io.github.nomisrev.service
 
-import arrow.core.continuations.EffectScope
+import arrow.core.raise.Raise
+import arrow.core.raise.ensure
 import com.github.slugify.Slugify
 import io.github.nomisrev.CannotGenerateSlug
 import kotlin.random.Random
@@ -15,7 +16,7 @@ fun interface SlugGenerator {
    * @param verifyUnique Allows checking uniqueness with some business rules. i.e. check database
    *   that slug is actually unique for domain.
    */
-  context(EffectScope<CannotGenerateSlug>)
+  context(Raise<CannotGenerateSlug>)
   suspend fun generateSlug(
     title: String,
     verifyUnique: suspend (Slug) -> Boolean
@@ -34,8 +35,8 @@ fun slugifyGenerator(
     private fun makeUnique(slug: String): String =
       "${slug}_${random.nextInt(minRandomSuffix, maxRandomSuffix)}"
 
-    context(EffectScope<CannotGenerateSlug>)
-    private tailrec suspend fun EffectScope<CannotGenerateSlug>.recursiveGen(
+    context(Raise<CannotGenerateSlug>)
+    private tailrec suspend fun recursiveGen(
       title: String,
       verifyUnique: suspend (Slug) -> Boolean,
       maxAttempts: Int,
@@ -49,7 +50,7 @@ fun slugifyGenerator(
       return if (isUnique) slug else recursiveGen(title, verifyUnique, maxAttempts - 1, false)
     }
 
-    context(EffectScope<CannotGenerateSlug>)
+    context(Raise<CannotGenerateSlug>)
     override suspend fun generateSlug(
       title: String,
       verifyUnique: suspend (Slug) -> Boolean

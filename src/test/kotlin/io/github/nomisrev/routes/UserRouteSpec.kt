@@ -1,6 +1,6 @@
 package io.github.nomisrev.routes
 
-import arrow.core.continuations.either
+import arrow.core.raise.either
 import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.env.Env
 import io.github.nomisrev.repo.UserPersistence
