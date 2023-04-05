@@ -1,4 +1,3 @@
-import org.gradle.internal.impldep.org.junit.experimental.categories.Categories.CategoryFilter.include
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 @Suppress("DSL_SCOPE_VIOLATION") plugins {
@@ -11,7 +10,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
   alias(libs.plugins.kotlinx.serialization)
   alias(libs.plugins.sqldelight)
   alias(libs.plugins.ktor)
-  alias(libs.plugins.spotless)
+  id("org.openrewrite.rewrite") version "5.39.0"
 }
 
 application {
@@ -65,13 +64,6 @@ ktor {
   }
 }
 
-spotless {
-  kotlin {
-    targetExclude("**/build/**")
-    ktfmt().googleStyle()
-  }
-}
-
 dependencies {
   implementation(libs.bundles.arrow)
   implementation(libs.bundles.ktor.server)
@@ -83,9 +75,14 @@ dependencies {
   implementation(libs.postgresql)
   implementation(libs.slugify)
   implementation(libs.bundles.cohort)
+  rewrite("io:arrow-kt:rewrite-arrow:1.0.0-RC2")
 
   testImplementation(libs.bundles.ktor.client)
   testImplementation(libs.testcontainers.postgresql)
   testImplementation(libs.ktor.server.tests)
   testImplementation(libs.bundles.kotest)
+}
+
+rewrite {
+  activeRecipe("arrow.RaiseRefactor")
 }
