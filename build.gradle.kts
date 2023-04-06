@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
   alias(libs.plugins.kotlinx.serialization)
   alias(libs.plugins.sqldelight)
   alias(libs.plugins.ktor)
-  id("org.openrewrite.rewrite") version "5.39.0"
+  id("org.openrewrite.rewrite") version "5.39.1"
 }
 
 application {
@@ -28,7 +28,7 @@ sqldelight {
 
 allprojects {
   extra.set("dokka.outputDirectory", rootDir.resolve("docs"))
-  setupDetekt()
+//  setupDetekt()
 }
 
 repositories {
@@ -75,7 +75,8 @@ dependencies {
   implementation(libs.postgresql)
   implementation(libs.slugify)
   implementation(libs.bundles.cohort)
-  rewrite("io:arrow-kt:rewrite-arrow:1.0.0-RC2")
+
+  rewrite("io.arrow-kt:rewrite-arrow:1.0.0-RC2")
 
   testImplementation(libs.bundles.ktor.client)
   testImplementation(libs.testcontainers.postgresql)
