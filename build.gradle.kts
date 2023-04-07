@@ -76,7 +76,7 @@ dependencies {
   implementation(libs.slugify)
   implementation(libs.bundles.cohort)
 
-  rewrite("io.arrow-kt:rewrite-arrow:1.0.0-RC2")
+  rewrite("io.arrow-kt:rewrite-arrow:1.0.0-RC3")
 
   testImplementation(libs.bundles.ktor.client)
   testImplementation(libs.testcontainers.postgresql)
@@ -85,5 +85,6 @@ dependencies {
 }
 
 rewrite {
+  exclusion("**/build/**/*.kt")
   activeRecipe("arrow.RaiseRefactor")
 }
