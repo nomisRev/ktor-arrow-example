@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
   alias(libs.plugins.sqldelight)
   alias(libs.plugins.ktor)
   alias(libs.plugins.spotless)
+  id("org.openrewrite.rewrite") version "5.39.3"
 }
 
 application {
@@ -88,4 +89,10 @@ dependencies {
   testImplementation(libs.testcontainers.postgresql)
   testImplementation(libs.ktor.server.tests)
   testImplementation(libs.bundles.kotest)
+
+  rewrite("io.arrow-kt:rewrite-arrow:1.0.0-RC3")
+}
+
+rewrite {
+  activeRecipe("arrow.RaiseRefactor")
 }
