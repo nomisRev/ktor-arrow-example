@@ -63,7 +63,6 @@ postgresql = { module="org.postgresql:postgresql", version.ref="postgresql" }
 kjwt-core = { module="io.github.nefilim.kjwt:kjwt-core", version.ref="kjwt" }
 slugify = { module="com.github.slugify:slugify", version.ref="slugify" }
 cohort-core = { module="com.sksamuel.cohort:cohort-core", version.ref="cohort" }
-cohort-ktor = { module="com.sksamuel.cohort:cohort-ktor2", version.ref="cohort" }
 cohort-hikari = { module="com.sksamuel.cohort:cohort-hikari", version.ref="cohort" }
 
 [bundles]
@@ -93,7 +92,6 @@ kotest = [
 ]
 cohort = [
     "cohort-core",
-    "cohort-ktor",
     "cohort-hikari"
 ]
 
