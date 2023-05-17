@@ -1,4 +1,3 @@
-import org.gradle.internal.impldep.org.junit.experimental.categories.Categories.CategoryFilter.include
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 @Suppress("DSL_SCOPE_VIOLATION") plugins {
@@ -51,9 +50,6 @@ tasks {
 
   test {
     useJUnitPlatform()
-    extensions.configure(kotlinx.kover.api.KoverTaskExtension::class) {
-      includes.add("io.github.nomisrev.*")
-    }
   }
 }
 
