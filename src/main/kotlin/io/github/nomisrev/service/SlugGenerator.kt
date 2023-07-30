@@ -1,8 +1,9 @@
 package io.github.nomisrev.service
 
 import arrow.core.Either
-import arrow.core.continuations.EffectScope
-import arrow.core.continuations.either
+import arrow.core.raise.Raise
+import arrow.core.raise.either
+import arrow.core.raise.ensure
 import com.github.slugify.Slugify
 import io.github.nomisrev.CannotGenerateSlug
 import kotlin.random.Random
@@ -35,7 +36,7 @@ fun slugifyGenerator(
     private fun makeUnique(slug: String): String =
       "${slug}_${random.nextInt(minRandomSuffix, maxRandomSuffix)}"
 
-    private tailrec suspend fun EffectScope<CannotGenerateSlug>.recursiveGen(
+    private tailrec suspend fun Raise<CannotGenerateSlug>.recursiveGen(
       title: String,
       verifyUnique: suspend (Slug) -> Boolean,
       maxAttempts: Int,
