@@ -1,7 +1,7 @@
 package io.github.nomisrev.routes
 
 import arrow.core.Either
-import arrow.core.continuations.either
+import arrow.core.raise.either
 import io.github.nomisrev.IncorrectJson
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.service.JwtService
