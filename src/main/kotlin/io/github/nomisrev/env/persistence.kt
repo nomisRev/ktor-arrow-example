@@ -50,5 +50,6 @@ private inline fun <A : Any, B> columnAdapter(
 ): ColumnAdapter<A, B> =
   object : ColumnAdapter<A, B> {
     override fun decode(databaseValue: B): A = decode(databaseValue)
+
     override fun encode(value: A): B = encode(value)
   }

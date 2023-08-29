@@ -25,15 +25,10 @@ private class PostgreSQL : PostgreSQLContainer<PostgreSQL>("postgres:latest") {
  * used in almost all tests.
  */
 object KotestProject : AbstractProjectConfig() {
-  private val postgres = StartablePerProjectListener(PostgreSQL(), "postgres")
+  private val postgres = PostgreSQL()
 
   private val dataSource: Env.DataSource by lazy {
-    Env.DataSource(
-      postgres.startable.jdbcUrl,
-      postgres.startable.username,
-      postgres.startable.password,
-      postgres.startable.driverClassName
-    )
+    Env.DataSource(postgres.jdbcUrl, postgres.username, postgres.password, postgres.driverClassName)
   }
 
   private val env: Env by lazy { Env().copy(dataSource = dataSource) }
@@ -52,5 +47,5 @@ object KotestProject : AbstractProjectConfig() {
     }
 
   override fun extensions(): List<Extension> =
-    listOf(postgres, hikari, dependencies, resetDatabaseListener)
+    listOf(StartablePerProjectListener(postgres), hikari, dependencies, resetDatabaseListener)
 }
