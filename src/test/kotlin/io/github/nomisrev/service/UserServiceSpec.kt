@@ -1,7 +1,6 @@
 package io.github.nomisrev.service
 
 import arrow.core.nonEmptyListOf
-import arrow.core.right
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
 import io.github.nomisrev.EmptyUpdate

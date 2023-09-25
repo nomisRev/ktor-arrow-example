@@ -5,7 +5,3 @@ import org.gradle.api.provider.Property
 
 val Provider<PluginDependency>.pluginId: String
   get() = get().pluginId
-
-infix fun <T> Property<T>.by(value: T) {
-  set(value)
-}

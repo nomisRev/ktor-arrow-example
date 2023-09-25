@@ -16,10 +16,10 @@ fun Project.setupDetekt() {
   tasks.withType<Detekt>().configureEach {
     exclude { "generated/sqldelight" in it.file.absolutePath }
     reports {
-      html.required by true
-      sarif.required by true
-      txt.required by false
-      xml.required by false
+      html.required.set(true)
+      sarif.required.set(true)
+      txt.required.set(false)
+      xml.required.set(false)
     }
   }
 
