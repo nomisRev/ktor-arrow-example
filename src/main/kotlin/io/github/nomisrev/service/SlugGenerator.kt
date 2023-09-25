@@ -6,7 +6,8 @@ import com.github.slugify.Slugify
 import io.github.nomisrev.CannotGenerateSlug
 import kotlin.random.Random
 
-@JvmInline value class Slug(val value: String)
+@JvmInline
+value class Slug(val value: String)
 
 fun interface SlugGenerator {
   /**
@@ -35,8 +36,7 @@ fun slugifyGenerator(
     private fun makeUnique(slug: String): String =
       "${slug}_${random.nextInt(minRandomSuffix, maxRandomSuffix)}"
 
-    context(Raise<CannotGenerateSlug>)
-    private tailrec suspend fun recursiveGen(
+    private tailrec suspend fun Raise<CannotGenerateSlug>.recursiveGen(
       title: String,
       verifyUnique: suspend (Slug) -> Boolean,
       maxAttempts: Int,

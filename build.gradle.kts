@@ -1,4 +1,3 @@
-import org.gradle.internal.impldep.org.junit.experimental.categories.Categories.CategoryFilter.include
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 @Suppress("DSL_SCOPE_VIOLATION") plugins {
@@ -14,13 +13,13 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 }
 
 application {
-  mainClass by "io.github.nomisrev.MainKt"
+  mainClass = "io.github.nomisrev.MainKt"
 }
 
 sqldelight {
   databases {
     create("SqlDelight") {
-      packageName.set("io.github.nomisrev.sqldelight")
+      packageName = "io.github.nomisrev.sqldelight"
       dialect(libs.sqldelight.postgresql.get())
     }
   }
@@ -36,31 +35,28 @@ repositories {
 }
 
 java {
-  sourceCompatibility = JavaVersion.VERSION_17
-  targetCompatibility = JavaVersion.VERSION_17
+  sourceCompatibility = JavaVersion.VERSION_19
+  targetCompatibility = JavaVersion.VERSION_19
 }
 
 tasks {
   withType<KotlinCompile>().configureEach {
     kotlinOptions {
-      jvmTarget = "${JavaVersion.VERSION_17}"
+      jvmTarget = JavaVersion.VERSION_19.toString()
       freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
     }
   }
 
   test {
     useJUnitPlatform()
-    extensions.configure(kotlinx.kover.api.KoverTaskExtension::class) {
-      includes.add("io.github.nomisrev.*")
-    }
   }
 }
 
 ktor {
   docker {
-    jreVersion.set(io.ktor.plugin.features.JreVersion.JRE_17)
-    localImageName.set("ktor-arrow-example")
-    imageTag.set("latest")
+    jreVersion = JavaVersion.VERSION_19
+    localImageName = "ktor-arrow-example"
+    imageTag = "latest"
   }
 }
 

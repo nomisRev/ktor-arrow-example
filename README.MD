@@ -26,7 +26,7 @@ and then you can start the Ktor server with `./gradlew run`.
 ```shell
 docker-compose up
 ./gradlew run
-curl -i 0.0.0.0:8080/health
+curl -i 0.0.0.0:8080/readiness
 ```
 
 Beware that `./gradlew run` doesn't properly run JVM Shutdown hooks, and the port remains bound.
