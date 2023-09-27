@@ -1,9 +1,8 @@
 package io.github.nomisrev.routes
 
 import io.github.nomisrev.service.RegisterUser
-import io.github.nomisrev.withService
+import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
-import io.kotest.assertions.assertSoftly
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.call.body
@@ -23,7 +22,7 @@ class UserRouteSpec :
     val validPw = "123456789"
 
     "Can register user" {
-      withService {
+      withServer {
         val response =
           post("/users") {
             contentType(ContentType.Application.Json)
@@ -31,18 +30,17 @@ class UserRouteSpec :
           }
 
         response.status shouldBe HttpStatusCode.Created
-        assertSoftly {
-          val user = response.body<UserWrapper<User>>().user
-          user.username shouldBe validUsername
-          user.email shouldBe validEmail
-          user.bio shouldBe ""
-          user.image shouldBe ""
+        with(response.body<UserWrapper<User>>().user) {
+          username shouldBe validUsername
+          email shouldBe validEmail
+          bio shouldBe ""
+          image shouldBe ""
         }
       }
     }
 
     "Can log in a registered user" {
-      withService { dependencies ->
+      withServer { dependencies ->
         dependencies.userService
           .register(RegisterUser(validUsername, validEmail, validPw))
           .shouldBeRight()
@@ -54,40 +52,38 @@ class UserRouteSpec :
           }
 
         response.status shouldBe HttpStatusCode.OK
-        assertSoftly {
-          val user = response.body<UserWrapper<User>>().user
-          user.username shouldBe validUsername
-          user.email shouldBe validEmail
-          user.bio shouldBe ""
-          user.image shouldBe ""
+        with(response.body<UserWrapper<User>>().user) {
+          username shouldBe validUsername
+          email shouldBe validEmail
+          bio shouldBe ""
+          image shouldBe ""
         }
       }
     }
 
     "Can get current user" {
-      withService { dependencies ->
-        val token =
+      withServer { dependencies ->
+        val expected =
           dependencies.userService
             .register(RegisterUser(validUsername, validEmail, validPw))
             .shouldBeRight()
 
-        val response = get("/user") { bearerAuth(token.value) }
+        val response = get("/user") { bearerAuth(expected.value) }
 
         response.status shouldBe HttpStatusCode.OK
-        assertSoftly {
-          val user = response.body<UserWrapper<User>>().user
-          user.username shouldBe validUsername
-          user.email shouldBe validEmail
-          user.token shouldBe token.value
-          user.bio shouldBe ""
-          user.image shouldBe ""
+        with(response.body<UserWrapper<User>>().user) {
+          username shouldBe validUsername
+          email shouldBe validEmail
+          token shouldBe expected.value
+          bio shouldBe ""
+          image shouldBe ""
         }
       }
     }
 
     "Update user" {
-      withService { dependencies ->
-        val token =
+      withServer { dependencies ->
+        val expected =
           dependencies.userService
             .register(RegisterUser(validUsername, validEmail, validPw))
             .shouldBeRight()
@@ -95,25 +91,24 @@ class UserRouteSpec :
 
         val response =
           put("/user") {
-            bearerAuth(token.value)
+            bearerAuth(expected.value)
             contentType(ContentType.Application.Json)
             setBody(UserWrapper(UpdateUser(username = newUsername)))
           }
 
         response.status shouldBe HttpStatusCode.OK
-        assertSoftly {
-          val user = response.body<UserWrapper<User>>().user
-          user.username shouldBe newUsername
-          user.email shouldBe validEmail
-          user.token shouldBe token.value
-          user.bio shouldBe ""
-          user.image shouldBe ""
+        with(response.body<UserWrapper<User>>().user) {
+          username shouldBe newUsername
+          email shouldBe validEmail
+          token shouldBe expected.value
+          bio shouldBe ""
+          image shouldBe ""
         }
       }
     }
 
     "Update user invalid email" {
-      withService { dependencies ->
+      withServer { dependencies ->
         val token =
           dependencies.userService
             .register(RegisterUser(validUsername, validEmail, validPw))
