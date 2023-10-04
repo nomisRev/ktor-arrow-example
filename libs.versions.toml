@@ -46,6 +46,7 @@ ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor"
 ktor-server-tests = { module = "io.ktor:ktor-server-tests", version.ref = "ktor" }
 ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }
 ktor-server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt", version.ref = "ktor" }
+ktor-server-resources = { module = "io.ktor:ktor-server-resources", version.ref = "ktor" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-client-serialization = { module = "io.ktor:ktor-client-serialization", version.ref = "ktor" }
@@ -75,7 +76,8 @@ ktor-server = [
     "ktor-server-defaultheaders",
     "ktor-server-netty",
     "ktor-server-auth",
-    "ktor-serialization"
+    "ktor-serialization",
+    "ktor-server-resources"
 ]
 ktor-client = [
     "ktor-client-content-negotiation",
