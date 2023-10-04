@@ -32,7 +32,9 @@ fun articleService(
     override suspend fun createArticle(input: CreateArticle): Either<DomainError, Article> =
       either {
         val slug =
-          slugGenerator.generateSlug(input.title) { slug -> articlePersistence.exists(slug) }.bind()
+          slugGenerator
+            .generateSlug(input.title) { slug -> articlePersistence.exists(slug).not() }
+            .bind()
         val createdAt = OffsetDateTime.now()
         val articleId =
           articlePersistence
