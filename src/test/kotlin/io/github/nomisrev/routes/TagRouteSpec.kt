@@ -10,7 +10,6 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 
-
 class TagRouteSpec :
   StringSpec({
     "can get all tags" {

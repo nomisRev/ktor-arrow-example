@@ -27,5 +27,5 @@ fun Application.app(module: Dependencies) {
   configure()
   userRoutes(module.userService, module.jwtService)
   health(module.healthCheck)
-  tagRoutes(module.tagService)
+  tagRoutes(module.tagPersistence)
 }

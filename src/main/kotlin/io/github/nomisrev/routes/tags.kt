@@ -2,7 +2,7 @@
 
 package io.github.nomisrev.routes
 
-import io.github.nomisrev.service.TagService
+import io.github.nomisrev.repo.TagPersistence
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
 import io.ktor.server.response.respond
@@ -13,11 +13,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class TagsResponse(val tags: List<String>)
 
-fun Application.tagRoutes(tagService: TagService) = routing {
+fun Application.tagRoutes(tagPersistence: TagPersistence) = routing {
   route("/tags") {
     /* Registration: GET /api/tags */
     get {
-      val tags = tagService.selectTags()
+      val tags = tagPersistence.selectTags()
       call.respond(TagsResponse(tags))
     }
   }
