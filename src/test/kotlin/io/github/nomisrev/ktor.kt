@@ -6,6 +6,7 @@ import io.github.nomisrev.env.Dependencies
 import io.github.nomisrev.env.kotlinXSerializersModule
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.resources.Resources
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.TestApplication
@@ -19,6 +20,7 @@ suspend fun withServer(test: suspend HttpClient.(dep: Dependencies) -> Unit): Un
     createClient {
         expectSuccess = false
         install(ContentNegotiation) { json(Json { serializersModule = kotlinXSerializersModule }) }
+        install(Resources) { serializersModule = kotlinXSerializersModule }
       }
       .use { client -> test(client, dependencies) }
   }
