@@ -18,7 +18,7 @@ class TagRouteSpec :
         val response = get("/tags") { contentType(ContentType.Application.Json) }
 
         response.status shouldBe HttpStatusCode.OK
-        response.body<TagResponse>().tags shouldHaveSize 0
+        response.body<TagsResponse>().tags shouldHaveSize 0
       }
     }
   })

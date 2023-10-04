@@ -11,14 +11,14 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.Serializable
 
-@Serializable data class TagResponse(val tags: List<String>)
+@Serializable data class TagsResponse(val tags: List<String>)
 
 fun Application.tagRoutes(tagService: TagService) = routing {
   route("/tags") {
     /* Registration: GET /api/tags */
     get {
       val tags = tagService.selectTags()
-      call.respond(TagResponse(tags))
+      call.respond(TagsResponse(tags))
     }
   }
 }
