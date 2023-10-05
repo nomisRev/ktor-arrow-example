@@ -25,6 +25,12 @@ data class Article(
 )
 
 @Serializable
+data class MultipleArticlesResponse(
+  val articles: List<Article>,
+  val articlesCount: Int,
+)
+
+@Serializable
 data class Profile(
   val username: String,
   val bio: String,
