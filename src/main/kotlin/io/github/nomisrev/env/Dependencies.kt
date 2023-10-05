@@ -3,7 +3,9 @@ package io.github.nomisrev.env
 import arrow.fx.coroutines.continuations.ResourceScope
 import com.sksamuel.cohort.HealthCheckRegistry
 import com.sksamuel.cohort.hikari.HikariConnectionsHealthCheck
+import io.github.nomisrev.repo.TagPersistence
 import io.github.nomisrev.repo.articleRepo
+import io.github.nomisrev.repo.tagPersistence
 import io.github.nomisrev.repo.userPersistence
 import io.github.nomisrev.service.ArticleService
 import io.github.nomisrev.service.JwtService
@@ -19,7 +21,8 @@ class Dependencies(
   val userService: UserService,
   val jwtService: JwtService,
   val articleService: ArticleService,
-  val healthCheck: HealthCheckRegistry
+  val healthCheck: HealthCheckRegistry,
+  val tagPersistence: TagPersistence
 )
 
 suspend fun ResourceScope.dependencies(env: Env): Dependencies {
@@ -27,6 +30,7 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
   val sqlDelight = sqlDelight(hikari)
   val userRepo = userPersistence(sqlDelight.usersQueries)
   val articleRepo = articleRepo(sqlDelight.articlesQueries, sqlDelight.tagsQueries)
+  val tagPersistence = tagPersistence(sqlDelight.tagsQueries)
   val jwtService = jwtService(env.auth, userRepo)
   val slugGenerator = slugifyGenerator()
   val userService = userService(userRepo, jwtService)
@@ -40,6 +44,7 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
     userService,
     jwtService,
     articleService(slugGenerator, articleRepo, userRepo),
-    checks
+    checks,
+    tagPersistence
   )
 }
