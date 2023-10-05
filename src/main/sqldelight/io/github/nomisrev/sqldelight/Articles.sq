@@ -25,6 +25,12 @@ WHERE author_id = :authorId
 ORDER BY createdAt DESC
 LIMIT :limit OFFSET :offset;
 
+selectFeedArticles:
+SELECT id, slug, title, description, body, author_id, createdAt, updatedAt
+FROM articles
+ORDER BY createdAt DESC
+LIMIT :limit OFFSET :offset;
+
 update:
 UPDATE articles
 SET title = :title, description = :description, body = :body;
