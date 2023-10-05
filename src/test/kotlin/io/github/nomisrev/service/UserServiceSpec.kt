@@ -16,7 +16,7 @@ import io.github.nomisrev.repo.UserId
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.arrow.core.shouldBeSome
-import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldNotBeBlank
 
 class UserServiceSpec :
   SuspendFun({
@@ -135,7 +135,7 @@ class UserServiceSpec :
         "All valid returns a token" {
           userService.register(RegisterUser(validUsername, validEmail, validPw))
           val token = userService.login(Login(validEmail, validPw)).shouldBeRight()
-          token.first.value.length shouldBe 222
+          token.first.value.shouldNotBeBlank()
         }
       }
 

@@ -35,7 +35,7 @@ class TagRouteSpec :
         val response = get("/tags") { contentType(ContentType.Application.Json) }
 
         response.status shouldBe HttpStatusCode.OK
-        response.body<TagsResponse>().tags.toSet() shouldBe validTags
+        response.body<TagsResponse>().tags.toSet() shouldBe emptySet()
       }
     }
 

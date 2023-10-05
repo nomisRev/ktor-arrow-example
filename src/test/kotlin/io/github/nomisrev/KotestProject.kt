@@ -43,7 +43,7 @@ object KotestProject : AbstractProjectConfig() {
       override suspend fun afterTest(testCase: TestCase, result: TestResult) {
         super.afterTest(testCase, result)
         hikari.get().connection.use { conn ->
-          conn.prepareStatement("TRUNCATE users CASCADE").executeLargeUpdate()
+          conn.prepareStatement("TRUNCATE users, tags CASCADE").executeLargeUpdate()
         }
       }
     }
