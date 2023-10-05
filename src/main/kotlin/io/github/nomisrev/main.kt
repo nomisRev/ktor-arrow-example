@@ -12,6 +12,7 @@ import io.github.nomisrev.routes.tagRoutes
 import io.github.nomisrev.routes.userRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.netty.Netty
+import io.ktor.server.routing.routing
 import kotlinx.coroutines.awaitCancellation
 
 fun main(): Unit = SuspendApp {
@@ -25,7 +26,7 @@ fun main(): Unit = SuspendApp {
 
 fun Application.app(module: Dependencies) {
   configure()
-  userRoutes(module.userService, module.jwtService)
+  routing { userRoutes(module.userService, module.jwtService) }
   health(module.healthCheck)
   tagRoutes(module.tagPersistence)
 }

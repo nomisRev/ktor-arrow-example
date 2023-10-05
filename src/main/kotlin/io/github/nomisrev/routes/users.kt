@@ -10,15 +10,14 @@ import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.service.Update
 import io.github.nomisrev.service.UserService
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.Application
+import io.ktor.resources.Resource
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
 import io.ktor.server.request.receive
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.put
-import io.ktor.server.routing.route
-import io.ktor.server.routing.routing
+import io.ktor.server.resources.get
+import io.ktor.server.resources.post
+import io.ktor.server.resources.put
+import io.ktor.server.routing.Routing
 import io.ktor.util.pipeline.PipelineContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.MissingFieldException
@@ -48,32 +47,36 @@ data class User(
 
 @Serializable data class LoginUser(val email: String, val password: String)
 
-fun Application.userRoutes(
+@Resource("/users")
+data object UsersResource {
+  @Resource("/login") data class Login(val parent: UsersResource = UsersResource)
+}
+
+@Resource("/user") data object UserResource
+
+fun Routing.userRoutes(
   userService: UserService,
   jwtService: JwtService,
-) = routing {
-  route("/users") {
-    /* Registration: POST /api/users */
-    post {
-      either {
-          val (username, email, password) = receiveCatching<UserWrapper<NewUser>>().bind().user
-          val token = userService.register(RegisterUser(username, email, password)).bind().value
-          UserWrapper(User(email, token, username, "", ""))
-        }
-        .respond(HttpStatusCode.Created)
-    }
-    post("/login") {
-      either {
-          val (email, password) = receiveCatching<UserWrapper<LoginUser>>().bind().user
-          val (token, info) = userService.login(Login(email, password)).bind()
-          UserWrapper(User(email, token.value, info.username, info.bio, info.image))
-        }
-        .respond(HttpStatusCode.OK)
-    }
+) {
+  /* Registration: POST /users */
+  post<UsersResource> {
+    either {
+        val (username, email, password) = receiveCatching<UserWrapper<NewUser>>().bind().user
+        val token = userService.register(RegisterUser(username, email, password)).bind().value
+        UserWrapper(User(email, token, username, "", ""))
+      }
+      .respond(HttpStatusCode.Created)
   }
-
-  /* Get Current User: GET /api/user */
-  get("/user") {
+  post<UsersResource.Login> {
+    either {
+        val (email, password) = receiveCatching<UserWrapper<LoginUser>>().bind().user
+        val (token, info) = userService.login(Login(email, password)).bind()
+        UserWrapper(User(email, token.value, info.username, info.bio, info.image))
+      }
+      .respond(HttpStatusCode.OK)
+  }
+  /* Get Current User: GET /user */
+  get<UserResource> {
     jwtAuth(jwtService) { (token, userId) ->
       either {
           val info = userService.getUser(userId).bind()
@@ -83,8 +86,8 @@ fun Application.userRoutes(
     }
   }
 
-  /* Update current user: PUT /api/user */
-  put("/user") {
+  /* Update current user: PUT /user */
+  put<UserResource> {
     jwtAuth(jwtService) { (token, userId) ->
       either {
           val (email, username, password, bio, image) =
