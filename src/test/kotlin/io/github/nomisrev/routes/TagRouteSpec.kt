@@ -32,7 +32,7 @@ class TagRouteSpec :
 
     "Check for empty list retrieval" {
       withServer {
-        val response = get("/tags") { contentType(ContentType.Application.Json) }
+        val response = get("/api/tags") { contentType(ContentType.Application.Json) }
 
         response.status shouldBe HttpStatusCode.OK
         response.body<TagsResponse>().tags.toSet() shouldBe emptySet()
@@ -54,7 +54,7 @@ class TagRouteSpec :
           )
           .shouldBeRight()
 
-        val response = get("/tags") { contentType(ContentType.Application.Json) }
+        val response = get("/api/tags") { contentType(ContentType.Application.Json) }
 
         response.status shouldBe HttpStatusCode.OK
         response.body<TagsResponse>().tags shouldHaveSize 4
