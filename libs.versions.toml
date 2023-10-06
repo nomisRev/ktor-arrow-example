@@ -21,6 +21,7 @@ slugify="3.0.5"
 suspendapp="0.4.0"
 cohort="2.2.1"
 spotless="6.22.0"
+graalvm-buildtool="0.9.27"
 
 [libraries]
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
@@ -111,3 +112,4 @@ kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", vers
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+graalvm-buildtool = { id = "org.graalvm.buildtools.native", version.ref = "graalvm-buildtool"}

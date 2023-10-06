@@ -1,6 +1,6 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-@Suppress("DSL_SCOPE_VIOLATION") plugins {
+plugins {
   application
   alias(libs.plugins.kotest.multiplatform)
   id(libs.plugins.kotlin.jvm.pluginId)
@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
   alias(libs.plugins.sqldelight)
   alias(libs.plugins.ktor)
   alias(libs.plugins.spotless)
+  alias(libs.plugins.graalvm.buildtool)
 }
 
 application {
