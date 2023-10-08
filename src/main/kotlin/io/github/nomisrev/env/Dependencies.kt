@@ -11,16 +11,19 @@ import io.github.nomisrev.repo.tagPersistence
 import io.github.nomisrev.repo.userPersistence
 import io.github.nomisrev.service.ArticleService
 import io.github.nomisrev.service.JwtService
+import io.github.nomisrev.service.ProfileService
 import io.github.nomisrev.service.UserService
 import io.github.nomisrev.service.articleService
 import io.github.nomisrev.service.jwtService
+import io.github.nomisrev.service.profileService
 import io.github.nomisrev.service.slugifyGenerator
 import io.github.nomisrev.service.userService
-import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.Dispatchers
+import kotlin.time.Duration.Companion.seconds
 
 class Dependencies(
   val userService: UserService,
+  val profileService: ProfileService,
   val jwtService: JwtService,
   val articleService: ArticleService,
   val healthCheck: HealthCheckRegistry,
@@ -38,6 +41,7 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
   val jwtService = jwtService(env.auth, userRepo)
   val slugGenerator = slugifyGenerator()
   val userService = userService(userRepo, jwtService)
+  val profileService = profileService(userRepo)
 
   val checks =
     HealthCheckRegistry(Dispatchers.Default) {
@@ -45,10 +49,10 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
     }
 
   return Dependencies(
-    userService,
-    jwtService,
-    articleService(slugGenerator, articleRepo, userRepo, tagPersistence, favouritePersistence),
-    checks,
+    userService = userService,
+    jwtService = jwtService,
+    articleService = articleService(slugGenerator, articleRepo, userRepo, tagPersistence, favouritePersistence),
+    healthCheck = checks,
     tagPersistence,
     userRepo
   )
