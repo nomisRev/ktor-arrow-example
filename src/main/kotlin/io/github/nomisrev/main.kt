@@ -7,6 +7,7 @@ import io.github.nomisrev.env.Dependencies
 import io.github.nomisrev.env.Env
 import io.github.nomisrev.env.configure
 import io.github.nomisrev.env.dependencies
+import io.github.nomisrev.routes.articleRoutes
 import io.github.nomisrev.routes.health
 import io.github.nomisrev.routes.tagRoutes
 import io.github.nomisrev.routes.userRoutes
@@ -29,4 +30,5 @@ fun Application.app(module: Dependencies) {
   routing { userRoutes(module.userService, module.jwtService) }
   health(module.healthCheck)
   tagRoutes(module.tagPersistence)
+  articleRoutes(module.articleService, module.jwtService)
 }
