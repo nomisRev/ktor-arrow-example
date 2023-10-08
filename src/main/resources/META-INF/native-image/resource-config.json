@@ -1,0 +1,63 @@
+{
+  "resources":{
+  "includes":[{
+    "pattern":"\\QMETA-INF/dgminfo\\E"
+  }, {
+    "pattern":"\\QMETA-INF/gradle-plugins/\\E"
+  }, {
+    "pattern":"\\QMETA-INF/gradle-plugins/app.cash.sqldelight.properties\\E"
+  }, {
+    "pattern":"\\QMETA-INF/gradle-plugins/io.ktor.plugin.properties\\E"
+  }, {
+    "pattern":"\\QMETA-INF/gradle-plugins/kotlin-android.properties\\E"
+  }, {
+    "pattern":"\\QMETA-INF/gradle-plugins/kotlin-kapt.properties\\E"
+  }, {
+    "pattern":"\\QMETA-INF/gradle-plugins/kotlin-multiplatform.properties\\E"
+  }, {
+    "pattern":"\\QMETA-INF/gradle-plugins/kotlin.properties\\E"
+  }, {
+    "pattern":"\\QMETA-INF/groovy/org.codehaus.groovy.runtime.ExtensionModule\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.lang.System$LoggerFinder\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.net.spi.InetAddressResolverProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.nio.channels.spi.SelectorProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.nio.file.spi.FileSystemProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.rmi.server.RMIClassLoaderSpi\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.time.zone.ZoneRulesProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/javax.xml.parsers.DocumentBuilderFactory\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/javax.xml.parsers.SAXParserFactory\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/javax.xml.xpath.XPathFactory\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/kotlin.reflect.jvm.internal.impl.resolve.ExternalOverridabilityCondition\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/kotlin.reflect.jvm.internal.impl.util.ModuleVisibilityHelper\\E"
+  }, {
+    "pattern":"\\Qapi-mapping.txt\\E"
+  }, {
+    "pattern":"\\Qdefault-imports.txt\\E"
+  }, {
+    "pattern":"\\Qinstrumented-super-types-hash.txt\\E"
+  }, {
+    "pattern":"\\Qinstrumented-super-types.properties\\E"
+  }, {
+    "pattern":"\\Qorg/slf4j/impl/StaticLoggerBinder.class\\E"
+  }, {
+    "pattern":"\\Qproject.properties\\E"
+  }, {
+    "pattern":"java.base:\\Qjdk/internal/icu/impl/data/icudt72b/nfc.nrm\\E"
+  }, {
+    "pattern":"java.base:\\Qjdk/internal/icu/impl/data/icudt72b/nfkc.nrm\\E"
+  }, {
+    "pattern":"jdk.jfr:\\Qjdk/jfr/internal/query/view.ini\\E"
+  }]},
+  "bundles":[]
+}

@@ -3,6 +3,7 @@ import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.withType
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 fun Project.setupDetekt() {
   plugins.apply("io.gitlab.arturbosch.detekt")
@@ -14,6 +15,7 @@ fun Project.setupDetekt() {
   }
 
   tasks.withType<Detekt>().configureEach {
+    jvmTarget = JvmTarget.JVM_19.target
     exclude { "generated/sqldelight" in it.file.absolutePath }
     reports {
       html.required.set(true)

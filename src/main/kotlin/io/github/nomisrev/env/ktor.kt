@@ -21,18 +21,16 @@ val kotlinXSerializersModule = SerializersModule {
   polymorphic(Any::class) { subclass(LoginUser::class, LoginUser.serializer()) }
 }
 
+val kotlinXSerializersFormat = Json {
+  serializersModule = kotlinXSerializersModule
+  isLenient = true
+  ignoreUnknownKeys = true
+}
+
 fun Application.configure() {
   install(DefaultHeaders)
   install(Resources) { serializersModule = kotlinXSerializersModule }
-  install(ContentNegotiation) {
-    json(
-      Json {
-        serializersModule = kotlinXSerializersModule
-        isLenient = true
-        ignoreUnknownKeys = true
-      }
-    )
-  }
+  install(ContentNegotiation) { json(kotlinXSerializersFormat) }
   install(CORS) {
     allowHeader(HttpHeaders.Authorization)
     allowHeader(HttpHeaders.ContentType)

@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.raise.either
 import io.github.nomisrev.IncorrectJson
 import io.github.nomisrev.auth.jwtAuth
+import io.github.nomisrev.env.kotlinXSerializersFormat
 import io.github.nomisrev.service.JwtService
 import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
@@ -13,7 +14,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.resources.Resource
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
-import io.ktor.server.request.receive
+import io.ktor.server.request.receiveText
 import io.ktor.server.resources.get
 import io.ktor.server.resources.post
 import io.ktor.server.resources.put
@@ -105,4 +106,7 @@ fun Routing.userRoutes(
 @OptIn(ExperimentalSerializationApi::class)
 private suspend inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>
   .receiveCatching(): Either<IncorrectJson, A> =
-  Either.catchOrThrow<MissingFieldException, A> { call.receive() }.mapLeft { IncorrectJson(it) }
+  Either.catchOrThrow<MissingFieldException, A> {
+      kotlinXSerializersFormat.decodeFromString(call.receiveText())
+    }
+    .mapLeft { IncorrectJson(it) }

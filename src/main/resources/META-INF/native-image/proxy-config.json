@@ -1,0 +1,12 @@
+[
+  {
+    "interfaces": [
+      "java.lang.reflect.TypeVariable"
+    ]
+  },
+  {
+    "interfaces": [
+      "java.rmi.Remote"
+    ]
+  }
+]
