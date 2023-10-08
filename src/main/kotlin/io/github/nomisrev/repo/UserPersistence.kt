@@ -8,6 +8,7 @@ import io.github.nomisrev.DomainError
 import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.UsernameAlreadyExists
+import io.github.nomisrev.routes.Profile
 import io.github.nomisrev.service.UserInfo
 import io.github.nomisrev.sqldelight.FollowingQueries
 import io.github.nomisrev.sqldelight.UsersQueries
@@ -32,8 +33,10 @@ interface UserPersistence {
   /** Select a User by its [UserId] */
   suspend fun select(userId: UserId): Either<DomainError, UserInfo>
 
-  /** Select a User by its username */
+  /** Select a User by its [UserName]*/
   suspend fun select(username: String): Either<DomainError, UserInfo>
+
+  suspend fun selectProfile(username: String): Either<DomainError, Profile>
 
   @Suppress("LongParameterList")
   suspend fun update(
@@ -103,6 +106,18 @@ fun userPersistence(
       val userInfo = usersQueries.selectByUsername(username, ::UserInfo).executeAsOneOrNull()
       ensureNotNull(userInfo) { UserNotFound("username=$username") }
     }
+
+    override suspend fun selectProfile(username: String): Either<DomainError, Profile> = either {
+      val profileInfo = usersQueries.selectProfile(username, ::toProfile).executeAsOneOrNull()
+      ensureNotNull(profileInfo) { UserNotFound("username=$username") }
+    }
+
+    fun toProfile(
+      username: String,
+      bio: String,
+      image: String,
+      following: Long
+    ): Profile = Profile(username, bio, image, following > 0)
 
     override suspend fun update(
       userId: UserId,
