@@ -1,5 +1,17 @@
 package io.github.nomisrev.routes
 
+import arrow.core.raise.either
+import io.github.nomisrev.auth.jwtAuth
+import io.github.nomisrev.service.ArticleService
+import io.github.nomisrev.service.CreateArticle
+import io.github.nomisrev.service.JwtService
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.Application
+import io.ktor.server.application.call
+import io.ktor.server.request.receive
+import io.ktor.server.routing.post
+import io.ktor.server.routing.route
+import io.ktor.server.routing.routing
 import java.time.OffsetDateTime
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -41,6 +53,16 @@ data class Comment(
   val author: Profile
 )
 
+@Serializable data class ArticleWrapper<T : Any>(val article: T)
+
+@Serializable
+data class NewArticle(
+  val title: String,
+  val description: String,
+  val body: String,
+  val tagList: List<String>? = null
+)
+
 private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
   override val descriptor: SerialDescriptor =
     PrimitiveSerialDescriptor("OffsetDateTime", PrimitiveKind.STRING)
@@ -50,5 +72,29 @@ private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
 
   override fun serialize(encoder: Encoder, value: OffsetDateTime) {
     encoder.encodeString(value.toString())
+  }
+}
+
+fun Application.articleRoutes(articleService: ArticleService, jwtService: JwtService) = routing {
+  route("/articles") {
+    post {
+      jwtAuth(jwtService) { (_, userId) ->
+        either {
+            val (article) = call.receive<ArticleWrapper<NewArticle>>()
+            articleService
+              .createArticle(
+                CreateArticle(
+                  userId,
+                  article.title,
+                  article.description,
+                  article.body,
+                  article.tagList?.toSet() ?: emptySet()
+                )
+              )
+              .bind()
+          }
+          .respond(HttpStatusCode.Created)
+      }
+    }
   }
 }
