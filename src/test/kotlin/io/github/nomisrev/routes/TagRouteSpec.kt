@@ -13,7 +13,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.ktor.client.call.body
-import io.ktor.client.request.get
+import io.ktor.client.plugins.resources.get
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
@@ -32,7 +32,7 @@ class TagRouteSpec :
 
     "Check for empty list retrieval" {
       withServer {
-        val response = get("/api/tags") { contentType(ContentType.Application.Json) }
+        val response = get(TagsResource()) { contentType(ContentType.Application.Json) }
 
         response.status shouldBe HttpStatusCode.OK
         response.body<TagsResponse>().tags.toSet() shouldBe emptySet()
@@ -54,7 +54,7 @@ class TagRouteSpec :
           )
           .shouldBeRight()
 
-        val response = get("/api/tags") { contentType(ContentType.Application.Json) }
+        val response = get(TagsResource()) { contentType(ContentType.Application.Json) }
 
         response.status shouldBe HttpStatusCode.OK
         response.body<TagsResponse>().tags shouldHaveSize 4
