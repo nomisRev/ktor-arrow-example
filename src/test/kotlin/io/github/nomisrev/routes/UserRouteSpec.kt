@@ -24,7 +24,7 @@ class UserRouteSpec :
     "Can register user" {
       withServer {
         val response =
-          post(UsersResource) {
+          post(UsersResource()) {
             contentType(ContentType.Application.Json)
             setBody(UserWrapper(NewUser(validUsername, validEmail, validPw)))
           }
@@ -68,7 +68,7 @@ class UserRouteSpec :
             .register(RegisterUser(validUsername, validEmail, validPw))
             .shouldBeRight()
 
-        val response = get(UserResource) { bearerAuth(expected.value) }
+        val response = get(UserResource()) { bearerAuth(expected.value) }
 
         response.status shouldBe HttpStatusCode.OK
         with(response.body<UserWrapper<User>>().user) {
@@ -90,7 +90,7 @@ class UserRouteSpec :
         val newUsername = "newUsername"
 
         val response =
-          put(UserResource) {
+          put(UserResource()) {
             bearerAuth(expected.value)
             contentType(ContentType.Application.Json)
             setBody(UserWrapper(UpdateUser(username = newUsername)))
@@ -116,7 +116,7 @@ class UserRouteSpec :
         val inalidEmail = "invalidEmail"
 
         val response =
-          put(UserResource) {
+          put(UserResource()) {
             bearerAuth(token.value)
             contentType(ContentType.Application.Json)
             setBody(UserWrapper(UpdateUser(email = inalidEmail)))
