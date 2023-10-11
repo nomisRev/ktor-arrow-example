@@ -7,7 +7,7 @@ import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.call.body
-import io.ktor.client.request.bearerAuth
+import io.ktor.client.plugins.resources.bearerAuth
 import io.ktor.client.plugins.resources.delete
 import io.ktor.http.HttpStatusCode
 
@@ -69,7 +69,7 @@ class ProfileRouteSpec :
                 dependencies.userService
                     .register(RegisterUser(userName, validEmail, validPw))
                     .shouldBeRight()
-                val response = get("/profiles/$userName") {
+                val response = get(ProfileResource.Username(username = userName)) {
                     contentType(ContentType.Application.Json)
                 }
 
@@ -85,7 +85,7 @@ class ProfileRouteSpec :
 
         "Get profile invalid username" {
             withServer {
-                val response = get("/profiles/$userName") {
+                val response = get(ProfileResource.Username(username = userName)) {
                     contentType(ContentType.Application.Json)
                 }
 
