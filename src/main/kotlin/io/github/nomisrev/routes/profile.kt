@@ -62,10 +62,10 @@ fun Route.profileRoutes(
 
 @OptIn(ExperimentalSerializationApi::class)
 private inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>.parameter(
-    parameters: String,
+    parameter: String,
     noinline toRight: (String) -> A,
 ): Either<IncorrectJson, A> =
     Either.catchOrThrow<MissingFieldException, A> {
-        call.parameters.getOrFail(parameters).let { toRight(it) }
+        call.parameters.getOrFail(parameter).let { toRight(it) }
     }.mapLeft(::IncorrectJson)
 
