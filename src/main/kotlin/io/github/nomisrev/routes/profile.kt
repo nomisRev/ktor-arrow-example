@@ -44,7 +44,7 @@ fun Route.profileRoutes(
 ) {
     get<ProfileResource.Username> {
         either {
-            val username = parameters(USERNAME, ::GetProfile).bind().username
+            val username = parameter(USERNAME, ::GetProfile).bind().username
             profileService.getProfile(username).bind()
         }.respond(HttpStatusCode.OK)
     }
@@ -60,7 +60,7 @@ fun Route.profileRoutes(
 }
 
 @OptIn(ExperimentalSerializationApi::class)
-private inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>.parameters(
+private inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>.parameter(
     parameters: String,
     noinline toRight: (String) -> A,
 ): Either<IncorrectJson, A> =
