@@ -12,7 +12,7 @@ import io.ktor.client.plugins.resources.delete
 import io.ktor.http.HttpStatusCode
 
 class ProfileRouteSpec :
-    StringSpec({
+  StringSpec({
         val validUsername = "username"
         val validEmail = "valid@domain.com"
         val validPw = "123456789"
@@ -64,35 +64,36 @@ class ProfileRouteSpec :
             }
         }
 
-        "Get profile with no following" {
-            withServer { dependencies: Dependencies ->
-                dependencies.userService
-                    .register(RegisterUser(userName, validEmail, validPw))
-                    .shouldBeRight()
-                val response = get(ProfileResource.Username(username = userName)) {
-                    contentType(ContentType.Application.Json)
-                }
+    "Get profile with no following" {
+      withServer { dependencies: Dependencies ->
+        dependencies.userService
+          .register(RegisterUser(userName, validEmail, validPw))
+          .shouldBeRight()
+        val response =
+          get(ProfileResource.Username(username = userName)) {
+            contentType(ContentType.Application.Json)
+          }
 
-                response.status shouldBe HttpStatusCode.OK
-                with(response.body<Profile>()) {
-                    username shouldBe userName
-                    bio shouldBe ""
-                    image shouldBe ""
-                    following shouldBe false
-                }
-            }
+        response.status shouldBe HttpStatusCode.OK
+        with(response.body<Profile>()) {
+          username shouldBe userName
+          bio shouldBe ""
+          image shouldBe ""
+          following shouldBe false
         }
+      }
+    }
 
-        "Get profile invalid username" {
-            withServer {
-                val response = get(ProfileResource.Username(username = userName)) {
-                    contentType(ContentType.Application.Json)
-                }
+    "Get profile invalid username" {
+      withServer {
+        val response =
+          get(ProfileResource.Username(username = userName)) {
+            contentType(ContentType.Application.Json)
+          }
 
-                response.status shouldBe HttpStatusCode.UnprocessableEntity
-                response.body<GenericErrorModel>().errors.body shouldBe
-                        listOf("User with username=$userName not found")
-            }
-        }
-
-    })
+        response.status shouldBe HttpStatusCode.UnprocessableEntity
+        response.body<GenericErrorModel>().errors.body shouldBe
+          listOf("User with username=$userName not found")
+      }
+    }
+  })

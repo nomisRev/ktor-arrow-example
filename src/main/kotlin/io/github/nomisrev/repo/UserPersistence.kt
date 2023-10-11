@@ -33,7 +33,7 @@ interface UserPersistence {
   /** Select a User by its [UserId] */
   suspend fun select(userId: UserId): Either<DomainError, UserInfo>
 
-  /** Select a User by its [UserName]*/
+  /** Select a User by its username */
   suspend fun select(username: String): Either<DomainError, UserInfo>
 
   suspend fun selectProfile(username: String): Either<DomainError, Profile>
@@ -112,12 +112,8 @@ fun userPersistence(
       ensureNotNull(profileInfo) { UserNotFound("username=$username") }
     }
 
-    fun toProfile(
-      username: String,
-      bio: String,
-      image: String,
-      following: Long
-    ): Profile = Profile(username, bio, image, following > 0)
+    fun toProfile(username: String, bio: String, image: String, following: Long): Profile =
+      Profile(username, bio, image, following > 0)
 
     override suspend fun update(
       userId: UserId,

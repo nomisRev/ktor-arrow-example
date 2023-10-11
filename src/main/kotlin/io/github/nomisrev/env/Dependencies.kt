@@ -18,8 +18,8 @@ import io.github.nomisrev.service.jwtService
 import io.github.nomisrev.service.profileService
 import io.github.nomisrev.service.slugifyGenerator
 import io.github.nomisrev.service.userService
-import kotlinx.coroutines.Dispatchers
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.Dispatchers
 
 class Dependencies(
   val userService: UserService,

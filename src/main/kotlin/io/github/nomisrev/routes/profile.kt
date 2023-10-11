@@ -46,7 +46,8 @@ fun Route.profileRoutes(
         either {
             val username = parameter(USERNAME, ::GetProfile).bind().username
             profileService.getProfile(username).bind()
-        }.respond(HttpStatusCode.OK)
+        }
+            .respond(HttpStatusCode.OK)
     }
     delete<ProfilesResource.Follow> { follow ->
         jwtAuth(jwtService) { (_, userId) ->
@@ -67,3 +68,4 @@ private inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>.para
     Either.catchOrThrow<MissingFieldException, A> {
         call.parameters.getOrFail(parameters).let { toRight(it) }
     }.mapLeft(::IncorrectJson)
+
