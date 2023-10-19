@@ -18,7 +18,7 @@ import io.ktor.server.request.receiveText
 import io.ktor.server.resources.get
 import io.ktor.server.resources.post
 import io.ktor.server.resources.put
-import io.ktor.server.routing.Routing
+import io.ktor.server.routing.Route
 import io.ktor.util.pipeline.PipelineContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.MissingFieldException
@@ -49,17 +49,17 @@ data class User(
 @Serializable data class LoginUser(val email: String, val password: String)
 
 @Resource("/users")
-data object UsersResource {
-  @Resource("/login") data class Login(val parent: UsersResource = UsersResource)
+data class UsersResource(val parent: RootResource = RootResource) {
+  @Resource("/login") data class Login(val parent: UsersResource = UsersResource())
 }
 
-@Resource("/user") data object UserResource
+@Resource("/user") data class UserResource(val parent: RootResource = RootResource)
 
-fun Routing.userRoutes(
+fun Route.userRoutes(
   userService: UserService,
   jwtService: JwtService,
 ) {
-  /* Registration: POST /users */
+  /* Registration: POST /api/users */
   post<UsersResource> {
     either {
         val (username, email, password) = receiveCatching<UserWrapper<NewUser>>().bind().user
@@ -76,7 +76,7 @@ fun Routing.userRoutes(
       }
       .respond(HttpStatusCode.OK)
   }
-  /* Get Current User: GET /user */
+  /* Get Current User: GET /api/user */
   get<UserResource> {
     jwtAuth(jwtService) { (token, userId) ->
       either {
@@ -87,7 +87,7 @@ fun Routing.userRoutes(
     }
   }
 
-  /* Update current user: PUT /user */
+  /* Update current user: PUT /api/user */
   put<UserResource> {
     jwtAuth(jwtService) { (token, userId) ->
       either {
