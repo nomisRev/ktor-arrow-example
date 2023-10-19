@@ -12,13 +12,17 @@ import io.github.nomisrev.JwtInvalid
 import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.UsernameAlreadyExists
+import io.github.nomisrev.env.kotlinXSerializersFormat
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
 import io.ktor.util.pipeline.PipelineContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 
 @Serializable data class GenericErrorModel(val errors: GenericErrorModelErrors)
 
@@ -32,7 +36,10 @@ context(PipelineContext<Unit, ApplicationCall>)
 suspend inline fun <reified A : Any> Either<DomainError, A>.respond(status: HttpStatusCode): Unit =
   when (this) {
     is Either.Left -> respond(value)
-    is Either.Right -> call.respond(status, value)
+    is Either.Right ->
+      call.respondText(contentType = ContentType.Application.Json, status = status) {
+        kotlinXSerializersFormat.encodeToString(value)
+      }
   }
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -57,4 +64,8 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: DomainError): 
 
 private suspend inline fun PipelineContext<Unit, ApplicationCall>.unprocessable(
   error: String
-): Unit = call.respond(HttpStatusCode.UnprocessableEntity, GenericErrorModel(error))
+): Unit =
+  call.respondText(
+    kotlinXSerializersFormat.encodeToString(GenericErrorModel(error)),
+    status = HttpStatusCode.UnprocessableEntity
+  )

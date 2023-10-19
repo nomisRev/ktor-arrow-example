@@ -10,14 +10,15 @@ import io.github.nomisrev.env.dependencies
 import io.github.nomisrev.routes.health
 import io.github.nomisrev.routes.routes
 import io.ktor.server.application.Application
-import io.ktor.server.netty.Netty
+import io.ktor.server.cio.CIO
+import io.ktor.server.routing.routing
 import kotlinx.coroutines.awaitCancellation
 
 fun main(): Unit = SuspendApp {
   val env = Env()
   resourceScope {
     val dependencies = dependencies(env)
-    server(Netty, host = env.http.host, port = env.http.port) { app(dependencies) }
+    server(CIO, host = env.http.host, port = env.http.port) { app(dependencies) }
     awaitCancellation()
   }
 }

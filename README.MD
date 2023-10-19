@@ -29,6 +29,7 @@ Other technologies used:
 
 - [SqlDelight](https://cashapp.github.io/sqldelight/) for the persistence layer
 - [Kotest](https://kotest.io/) for testing
+- [GraalVM](https://www.graalvm.org/) to build an optional native binary
 
 ## Running the project
 
@@ -43,3 +44,26 @@ curl -i 0.0.0.0:8080/readiness
 ```
 
 Beware that `./gradlew run` doesn't properly run JVM Shutdown hooks, and the port remains bound.
+
+### GraalVM
+
+The project can be built into a [native image](https://www.graalvm.org/latest/reference-manual/native-image/) with GraalVM.
+
+#### Getting started
+1. Ensure a suitable [GraalVM is installed](https://www.graalvm.org/downloads/)
+   * Tested versions include:
+     * _Oracle GraalVM 21+35.1 (project default)_
+     * _Oracle GraalVM 17.0.8_
+2. Build using `./gradlew nativeCompile`
+   * An image will be built at `/build/nativeCompile/ktor-arrow-sample`
+3. Start `./gradlew nativeRun` (remember to `docker-compose up`)
+   * Verify with `curl -i 0.0.0.0:8080/readiness`
+
+#### Known issues
+* Ktor uses reflection internally when calling either `call.receive()` or `call.respond()`
+  * As a workaround, use `call.receiveText()`/`call.respondText()` and (de)serialize manually
+* `nativeTestCompile` and `nativeTestRun` are not supported currently
+
+#### Troubleshooting & helpful resources
+* [Configuring GraalVM Gradle buildtool](https://graalvm.github.io/native-build-tools/latest/gradle-plugin.html#configuration)
+* [Reachability metadata](https://www.graalvm.org/latest/reference-manual/native-image/metadata/)

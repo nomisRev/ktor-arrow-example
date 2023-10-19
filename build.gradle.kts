@@ -1,6 +1,7 @@
+import org.graalvm.buildtools.gradle.dsl.NativeImageOptions
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-@Suppress("DSL_SCOPE_VIOLATION") plugins {
+plugins {
   application
   alias(libs.plugins.kotest.multiplatform)
   id(libs.plugins.kotlin.jvm.pluginId)
@@ -11,6 +12,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
   alias(libs.plugins.sqldelight)
   alias(libs.plugins.ktor)
   alias(libs.plugins.spotless)
+  alias(libs.plugins.graalvm.buildtool)
 }
 
 application {
@@ -66,6 +68,45 @@ spotless {
     targetExclude("**/build/**")
     ktfmt().googleStyle()
   }
+}
+
+graalvmNative {
+  metadataRepository {
+    enabled.set(true)
+  }
+  binaries {
+    named("main").configure {
+      configureNativeBuild(useQuickBuild = false)
+    }
+    named("test").configure {
+      configureNativeBuild(useQuickBuild = true)
+    }
+  }
+}
+
+fun NativeImageOptions.configureNativeBuild(
+  useQuickBuild: Boolean
+) = apply {
+  verbose.set(true)
+  quickBuild.set(useQuickBuild)
+  javaLauncher.set(javaToolchains.launcherFor {
+    languageVersion.set(JavaLanguageVersion.of(21))
+  })
+  buildArgs = listOf(
+    "-march=native",
+    "--enable-http",
+    "--enable-https",
+    "--install-exit-handlers",
+    "--report-unsupported-elements-at-runtime",
+    "--initialize-at-build-time=io.ktor,kotlin,io.github.nomisrev.routes",
+    "--initialize-at-build-time=org.slf4j.LoggerFactory",
+    "--initialize-at-build-time=ch.qos.logback",
+    "--initialize-at-build-time=kotlinx.serialization.modules.SerializersModuleKt",
+    "--initialize-at-build-time=kotlinx.serialization.json.Json\$Default",
+    "--initialize-at-build-time=kotlinx.serialization.internal.StringSerializer",
+    "--initialize-at-build-time=org.fusesource.jansi",
+    "-H:+ReportExceptionStackTraces",
+  )
 }
 
 dependencies {

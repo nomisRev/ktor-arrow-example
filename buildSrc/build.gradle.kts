@@ -13,3 +13,7 @@ dependencies {
     implementation(libs.kotlin.gradle)
     implementation(libs.detekt.gradle)
 }
+
+kotlin {
+    jvmToolchain(19)
+}
