@@ -2,14 +2,14 @@
 
 package io.github.nomisrev
 
+import arrow.core.Either
+import arrow.core.Either.Companion.zipOrAccumulate
+import arrow.core.EitherNel
 import arrow.core.NonEmptyList
-import arrow.core.Validated
-import arrow.core.ValidatedNel
-import arrow.core.invalidNel
+import arrow.core.leftNel
+import arrow.core.mapOrAccumulate
 import arrow.core.nonEmptyListOf
-import arrow.core.traverse
-import arrow.core.validNel
-import arrow.core.zip
+import arrow.core.right
 import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.service.Update
@@ -51,28 +51,30 @@ data class InvalidEmailOrPassword(override val errors: NonEmptyList<String>) : I
   override val field: String = "email or password"
 }
 
-fun Login.validate(): Validated<IncorrectInput, Login> =
-  email.validEmail().zip(password.validPassword(), ::Login).mapLeft(::IncorrectInput)
+fun Login.validate(): Either<IncorrectInput, Login> =
+  zipOrAccumulate(email.validEmail(), password.validPassword(), ::Login).mapLeft(::IncorrectInput)
 
-fun RegisterUser.validate(): Validated<IncorrectInput, RegisterUser> =
-  username
-    .validUsername()
-    .zip(email.validEmail(), password.validPassword(), ::RegisterUser)
+fun RegisterUser.validate(): Either<IncorrectInput, RegisterUser> =
+  zipOrAccumulate(
+      username.validUsername(),
+      email.validEmail(),
+      password.validPassword(),
+      ::RegisterUser
+    )
     .mapLeft(::IncorrectInput)
 
-fun Update.validate(): Validated<IncorrectInput, Update> =
-  username
-    .traverse(String::validUsername)
-    .zip(email.traverse(String::validEmail), password.traverse(String::validPassword)) {
-      username,
-      email,
-      password ->
+fun Update.validate(): Either<IncorrectInput, Update> =
+  zipOrAccumulate(
+      username.mapOrAccumulate(String::validUsername),
+      email.mapOrAccumulate(String::validEmail),
+      password.mapOrAccumulate(String::validPassword)
+    ) { username, email, password ->
       Update(userId, username, email, password, bio, image)
     }
     .mapLeft(::IncorrectInput)
 
-private fun <E, A, B> A?.traverse(f: (A) -> ValidatedNel<E, B>): ValidatedNel<E, B?> =
-  this?.let(f) ?: null.validNel()
+private fun <E, A, B> A?.mapOrAccumulate(f: (A) -> EitherNel<E, B>): EitherNel<E, B?> =
+  this?.let(f) ?: null.right()
 
 private const val MIN_PASSWORD_LENGTH = 8
 private const val MAX_PASSWORD_LENGTH = 100
@@ -80,59 +82,70 @@ private const val MAX_EMAIL_LENGTH = 350
 private const val MIN_USERNAME_LENGTH = 1
 private const val MAX_USERNAME_LENGTH = 25
 
-private fun String.validPassword(): ValidatedNel<InvalidPassword, String> =
-  notBlank()
-    .zip(minSize(MIN_PASSWORD_LENGTH), maxSize(MAX_PASSWORD_LENGTH)) { a, _, _ -> a }
+private fun String.validPassword(): EitherNel<InvalidPassword, String> =
+  zipOrAccumulate(notBlank(), minSize(MIN_PASSWORD_LENGTH), maxSize(MAX_PASSWORD_LENGTH)) { a, _, _
+      ->
+      a
+    }
     .mapLeft(toInvalidField(::InvalidPassword))
 
-private fun String.validEmail(): ValidatedNel<InvalidEmail, String> {
+private fun String.validEmail(): EitherNel<InvalidEmail, String> {
   val trimmed = trim()
-  return trimmed
-    .notBlank()
-    .zip(trimmed.maxSize(MAX_EMAIL_LENGTH), trimmed.looksLikeEmail()) { a, _, _ -> a }
+  return zipOrAccumulate(
+      trimmed.notBlank(),
+      trimmed.maxSize(MAX_EMAIL_LENGTH),
+      trimmed.looksLikeEmail()
+    ) { a, _, _ ->
+      a
+    }
     .mapLeft(toInvalidField(::InvalidEmail))
 }
 
-private fun String.validUsername(): ValidatedNel<InvalidUsername, String> {
+private fun String.validUsername(): EitherNel<InvalidUsername, String> {
   val trimmed = trim()
-  return trimmed
-    .notBlank()
-    .zip(trimmed.minSize(MIN_USERNAME_LENGTH), trimmed.maxSize(MAX_USERNAME_LENGTH)) { a, _, _ ->
+  return zipOrAccumulate(
+      trimmed.notBlank(),
+      trimmed.minSize(MIN_USERNAME_LENGTH),
+      trimmed.maxSize(MAX_USERNAME_LENGTH)
+    ) { a, _, _ ->
       a
     }
     .mapLeft(toInvalidField(::InvalidUsername))
 }
 
 @Suppress("UnusedPrivateMember")
-private fun String.validTitle(): ValidatedNel<InvalidTitle, String> =
+private fun String.validTitle(): EitherNel<InvalidTitle, String> =
   trim().notBlank().mapLeft(toInvalidField(::InvalidTitle))
 
 @Suppress("UnusedPrivateMember")
-private fun String.validDescription(): ValidatedNel<InvalidDescription, String> =
+private fun String.validDescription(): EitherNel<InvalidDescription, String> =
   trim().notBlank().mapLeft(toInvalidField(::InvalidDescription))
 
 @Suppress("UnusedPrivateMember")
-private fun String.validBody(): ValidatedNel<InvalidBody, String> =
+private fun String.validBody(): EitherNel<InvalidBody, String> =
   trim().notBlank().mapLeft(toInvalidField(::InvalidBody))
 
 @Suppress("UnusedPrivateMember")
-private fun validTags(tags: List<String>): ValidatedNel<InvalidTag, Set<String>> =
-  tags.traverse { it.trim().notBlank() }.bimap(toInvalidField(::InvalidTag)) { it.toSet() }
+private fun validTags(tags: List<String>): EitherNel<InvalidTag, Set<String>> =
+  tags
+    .mapOrAccumulate { it.trim().notBlank().bindNel() }
+    .mapLeft { errors: NonEmptyList<String> -> toInvalidField(::InvalidTag)(errors) }
+    .map { it.toSet() }
 
 private fun <A : InvalidField> toInvalidField(
   transform: (NonEmptyList<String>) -> A
 ): (NonEmptyList<String>) -> NonEmptyList<A> = { nel -> nonEmptyListOf(transform(nel)) }
 
-private fun String.notBlank(): ValidatedNel<String, String> =
-  if (isNotBlank()) validNel() else "Cannot be blank".invalidNel()
+private fun String.notBlank(): EitherNel<String, String> =
+  if (isNotBlank()) right() else "Cannot be blank".leftNel()
 
-private fun String.minSize(size: Int) =
-  if (length >= size) validNel() else "is too short (minimum is $size characters)".invalidNel()
+private fun String.minSize(size: Int): EitherNel<String, String> =
+  if (length >= size) right() else "is too short (minimum is $size characters)".leftNel()
 
-private fun String.maxSize(size: Int) =
-  if (length <= size) validNel() else "is too long (maximum is $size characters)".invalidNel()
+private fun String.maxSize(size: Int): EitherNel<String, String> =
+  if (length <= size) right() else "is too long (maximum is $size characters)".leftNel()
 
 private val emailPattern = ".+@.+\\..+".toRegex()
 
-private fun String.looksLikeEmail() =
-  if (emailPattern.matches(this)) validNel() else "'$this' is invalid email".invalidNel()
+private fun String.looksLikeEmail(): EitherNel<String, String> =
+  if (emailPattern.matches(this)) right() else "'$this' is invalid email".leftNel()
