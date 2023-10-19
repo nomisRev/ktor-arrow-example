@@ -4,6 +4,8 @@ import arrow.core.raise.either
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.service.JwtService
+import io.github.nomisrev.IncorrectJson
+import io.github.nomisrev.repo.UserPersistence
 import io.ktor.http.HttpStatusCode
 import io.ktor.resources.Resource
 import io.ktor.server.resources.delete
@@ -45,7 +47,7 @@ fun Route.profileRoutes(
     get<ProfileResource.Username> {
         either {
             val username = parameter(USERNAME, ::GetProfile).bind().username
-            profileService.getProfile(username).bind()
+            repo.selectProfile(username).bind()
         }
             .respond(HttpStatusCode.OK)
     }
