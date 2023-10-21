@@ -1,6 +1,11 @@
 package io.github.nomisrev.routes
 
+import arrow.core.Either
+import arrow.core.left
 import arrow.core.raise.either
+import arrow.core.right
+import io.github.nomisrev.DomainError
+import io.github.nomisrev.MissingParameter
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.service.JwtService
@@ -14,10 +19,7 @@ import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
 import io.ktor.server.resources.get
 import io.ktor.server.routing.Route
-import io.ktor.server.util.getOrFail
 import io.ktor.util.pipeline.PipelineContext
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.MissingFieldException
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -62,12 +64,9 @@ fun Route.profileRoutes(
     }
 }
 
-@OptIn(ExperimentalSerializationApi::class)
 private inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>.parameter(
     parameter: String,
     noinline toRight: (String) -> A,
-): Either<IncorrectJson, A> =
-    Either.catchOrThrow<MissingFieldException, A> {
-        call.parameters.getOrFail(parameter).let { toRight(it) }
-    }.mapLeft(::IncorrectJson)
+): Either<DomainError, A> =
+    call.parameters[parameter]?.let(toRight)?.right() ?: MissingParameter(parameter).left()
 

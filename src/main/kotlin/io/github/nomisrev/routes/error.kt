@@ -10,6 +10,7 @@ import io.github.nomisrev.IncorrectInput
 import io.github.nomisrev.IncorrectJson
 import io.github.nomisrev.JwtGeneration
 import io.github.nomisrev.JwtInvalid
+import io.github.nomisrev.MissingParameter
 import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.UsernameAlreadyExists
@@ -55,6 +56,7 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: DomainError): 
     is JwtInvalid -> unprocessable(error.description)
     is CannotGenerateSlug -> unprocessable(error.description)
     is ArticleBySlugNotFound -> unprocessable("Article by slug ${error.slug} not found")
+    is MissingParameter -> unprocessable("Missing ${error.name} parameter in request")
   }
 
 private suspend inline fun PipelineContext<Unit, ApplicationCall>.unprocessable(
