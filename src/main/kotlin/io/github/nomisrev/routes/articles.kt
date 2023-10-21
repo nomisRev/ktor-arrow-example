@@ -1,12 +1,12 @@
 package io.github.nomisrev.routes
 
 import arrow.core.raise.either
-import arrow.core.raise.ensureNotNull
 import io.github.nomisrev.service.ArticleService
 import io.github.nomisrev.service.Slug
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.routing.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.resources.Resource
+import io.ktor.server.resources.get
+import io.ktor.server.routing.Route
 import java.time.OffsetDateTime
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -50,6 +50,12 @@ data class Comment(
 
 @Serializable data class SingleArticleResponse(val article: Article)
 
+@Resource("/articles")
+data class ArticlesResource(val parent: RootResource = RootResource) {
+  @Resource("{slug}")
+  data class Slug(val parent: ArticlesResource = ArticlesResource(), val slug: String)
+}
+
 private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
   override val descriptor: SerialDescriptor =
     PrimitiveSerialDescriptor("OffsetDateTime", PrimitiveKind.STRING)
@@ -63,10 +69,9 @@ private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
 }
 
 fun Route.articleRoutes(articleService: ArticleService) =
-  get("/articles/{slug}") {
+  get<ArticlesResource.Slug> { slug ->
     either {
-        val slug = ensureNotNull(call.parameters["slug"]) { TODO() }
-        val article = articleService.getArticleBySlug(Slug(slug)).bind()
+        val article = articleService.getArticleBySlug(Slug(slug.slug)).bind()
         SingleArticleResponse(article)
       }
       .respond(HttpStatusCode.OK)

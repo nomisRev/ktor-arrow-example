@@ -9,12 +9,11 @@ import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.arrow.core.shouldBeSome
-import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.http.*
+import io.ktor.client.call.body
+import io.ktor.client.plugins.resources.get
+import io.ktor.http.HttpStatusCode
 
 class ArticlesRouteSpec :
   StringSpec({
@@ -30,7 +29,7 @@ class ArticlesRouteSpec :
 
     "Article by slug not found" {
       withServer {
-        val response = get("articles/slug")
+        val response = get(ArticlesResource.Slug(slug = "slug"))
 
         response.status shouldBe HttpStatusCode.UnprocessableEntity
         response.body<GenericErrorModel>().errors.body shouldBe
@@ -54,10 +53,10 @@ class ArticlesRouteSpec :
             )
             .shouldBeRight()
 
-        val response = get("articles/${article.slug}")
+        val response = get(ArticlesResource.Slug(slug = article.slug))
 
         response.status shouldBe HttpStatusCode.OK
-          response.body<SingleArticleResponse>().article shouldBe article
+        response.body<SingleArticleResponse>().article shouldBe article
       }
     }
   })
