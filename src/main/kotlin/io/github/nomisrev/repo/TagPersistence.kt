@@ -6,6 +6,7 @@ interface TagPersistence {
   /** List all tags * */
   suspend fun selectTags(): List<String>
 
+  /** List tags of an article * */
   suspend fun selectTagsOfArticle(articleId: ArticleId): List<String>
 }
 

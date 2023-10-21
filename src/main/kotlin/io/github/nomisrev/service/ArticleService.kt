@@ -23,6 +23,7 @@ interface ArticleService {
   /** Creates a new article and returns the resulting Article */
   suspend fun createArticle(input: CreateArticle): Either<DomainError, Article>
 
+  /** Get article by Slug */
   suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article>
 }
 
