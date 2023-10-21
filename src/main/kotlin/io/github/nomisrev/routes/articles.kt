@@ -1,5 +1,12 @@
 package io.github.nomisrev.routes
 
+import arrow.core.raise.either
+import arrow.core.raise.ensureNotNull
+import io.github.nomisrev.service.ArticleService
+import io.github.nomisrev.service.Slug
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.routing.*
 import java.time.OffsetDateTime
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -41,6 +48,8 @@ data class Comment(
   val author: Profile
 )
 
+@Serializable data class SingleArticleResponse(val article: Article)
+
 private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
   override val descriptor: SerialDescriptor =
     PrimitiveSerialDescriptor("OffsetDateTime", PrimitiveKind.STRING)
@@ -52,3 +61,13 @@ private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
     encoder.encodeString(value.toString())
   }
 }
+
+fun Route.articleRoutes(articleService: ArticleService) =
+  get("/articles/{slug}") {
+    either {
+        val slug = ensureNotNull(call.parameters["slug"]) { TODO() }
+        val article = articleService.getArticleBySlug(Slug(slug)).bind()
+        SingleArticleResponse(article)
+      }
+      .respond(HttpStatusCode.OK)
+  }

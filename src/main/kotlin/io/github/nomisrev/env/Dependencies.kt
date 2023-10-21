@@ -43,7 +43,7 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
   return Dependencies(
     userService,
     jwtService,
-    articleService(slugGenerator, articleRepo, userRepo),
+    articleService(slugGenerator, articleRepo, userRepo, tagPersistence),
     checks,
     tagPersistence
   )
