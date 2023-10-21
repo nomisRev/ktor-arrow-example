@@ -48,7 +48,7 @@ fun Route.profileRoutes(
 ) {
     get<ProfileResource.Username> {
         either {
-            val username = parameter(USERNAME, ::GetProfile).bind().username
+            val username = parameter(USERNAME) { it }.bind()
             repo.selectProfile(username).bind()
         }
             .respond(HttpStatusCode.OK)
