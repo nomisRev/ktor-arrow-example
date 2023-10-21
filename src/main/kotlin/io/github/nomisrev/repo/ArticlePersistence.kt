@@ -34,7 +34,7 @@ interface ArticlePersistence {
     suspend fun exists(slug: Slug): Boolean
 
     /** Get recent articles from users you follow **/
-    suspend fun getFeed(limit: Long, offset: Long): Either<DomainError, MultipleArticlesResponse>
+    suspend fun getFeed(userId: UserId, limit: Long, offset: Long): Either<DomainError, MultipleArticlesResponse>
 }
 
 fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
@@ -63,13 +63,14 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
         override suspend fun exists(slug: Slug): Boolean =
             articles.slugExists(slug.value).executeAsOne()
 
-        override suspend fun getFeed(limit: Long, offset: Long): Either<DomainError, MultipleArticlesResponse> =
+        override suspend fun getFeed(userId: UserId, limit: Long, offset: Long): Either<DomainError, MultipleArticlesResponse> =
             either {
                 val articleList = articles.transactionWithResult {
 
                     val list = articles.selectFeedArticles(
+                        userId.serial,
                         limit,
-                        offset
+                        offset,
                     ) { articleId, articleSlug, articleTitle, articleDescription, articleBody, articleAuthorId, articleCreatedAt, articleUpdatedAt, usersId, usersUsername, usersImage ->
                         Article(
                             articleId = articleId.serial,
