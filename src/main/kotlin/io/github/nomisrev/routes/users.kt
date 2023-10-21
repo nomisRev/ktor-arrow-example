@@ -13,15 +13,14 @@ import io.github.nomisrev.service.login
 import io.github.nomisrev.service.register
 import io.github.nomisrev.service.update
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.Application
+import io.ktor.resources.Resource
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
 import io.ktor.server.request.receive
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.put
-import io.ktor.server.routing.route
-import io.ktor.server.routing.routing
+import io.ktor.server.resources.get
+import io.ktor.server.resources.post
+import io.ktor.server.resources.put
+import io.ktor.server.routing.Routing
 import io.ktor.util.pipeline.PipelineContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.MissingFieldException
@@ -54,30 +53,34 @@ data class User(
 @Serializable
 data class LoginUser(val email: String, val password: String)
 
-context(Application, UserPersistence, Env.Auth)
-fun userRoutes() = routing {
-  route("/users") {
-    /* Registration: POST /api/users */
-    post {
-      conduit(HttpStatusCode.Created) {
-        val (username, email, password) = receiveCatching<UserWrapper<NewUser>>().user
-        val token = register(RegisterUser(username, email, password)).value
-        UserWrapper(User(email, token, username, "", ""))
-      }
-    }
+@Resource("/users")
+data class UsersResource(val parent: RootResource = RootResource) {
+  @Resource("/login")
+  data class Login(val parent: UsersResource = UsersResource())
+}
 
-    /* Login: POST /api/users/login */
-    post("/login") {
-      conduit(HttpStatusCode.OK) {
-        val (email, password) = receiveCatching<UserWrapper<LoginUser>>().user
-        val (token, info) = login(Login(email, password))
-        UserWrapper(User(email, token.value, info.username, info.bio, info.image))
-      }
+@Resource("/user")
+data class UserResource(val parent: RootResource = RootResource)
+
+context(Routing, UserPersistence, Env.Auth)
+fun userRoutes() {
+  /* Registration: POST /api/users */
+  post<UsersResource> {
+    conduit(HttpStatusCode.Created) {
+      val (username, email, password) = receiveCatching<UserWrapper<NewUser>>().user
+      val token = register(RegisterUser(username, email, password)).value
+      UserWrapper(User(email, token, username, "", ""))
     }
   }
-
+  post<UsersResource.Login> {
+    conduit(HttpStatusCode.OK) {
+      val (email, password) = receiveCatching<UserWrapper<LoginUser>>().user
+      val (token, info) = login(Login(email, password))
+      UserWrapper(User(email, token.value, info.username, info.bio, info.image))
+    }
+  }
   /* Get Current User: GET /api/user */
-  get("/user") {
+  get<UserResource> {
     jwtAuth { (token, userId) ->
       conduit(HttpStatusCode.OK) {
         val info = select(userId)
@@ -87,7 +90,7 @@ fun userRoutes() = routing {
   }
 
   /* Update current user: PUT /api/user */
-  put("/user") {
+  put<UserResource> {
     jwtAuth { (token, userId) ->
       conduit(HttpStatusCode.OK) {
         val (email, username, password, bio, image) =
@@ -101,6 +104,5 @@ fun userRoutes() = routing {
 
 context(Raise<IncorrectJson>)
 @OptIn(ExperimentalSerializationApi::class)
-private suspend inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>
-  .receiveCatching(): A =
+private suspend inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>.receiveCatching(): A =
   catch({ call.receive() }) { e: MissingFieldException -> shift(IncorrectJson(e)) }

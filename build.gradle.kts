@@ -36,13 +36,13 @@ repositories {
 
 java {
   sourceCompatibility = JavaVersion.VERSION_19
-  targetCompatibility = JavaVersion.VERSION_19
+  targetCompatibility = JavaVersion.VERSION_11
 }
 
 tasks {
   withType<KotlinCompile>().configureEach {
     kotlinOptions {
-      jvmTarget = JavaVersion.VERSION_19.toString()
+      jvmTarget = JavaVersion.VERSION_11.toString()
       freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
     }
   }

@@ -36,12 +36,14 @@ object KotestProject : AbstractProjectConfig() {
   val dependencies = ProjectResource(resource { dependencies(env) })
   private val hikari = ProjectResource(resource { hikari(env.dataSource) })
 
+  override val globalAssertSoftly: Boolean = true
+
   private val resetDatabaseListener =
     object : TestListener {
       override suspend fun afterTest(testCase: TestCase, result: TestResult) {
         super.afterTest(testCase, result)
         hikari.get().connection.use { conn ->
-          conn.prepareStatement("TRUNCATE users CASCADE").executeLargeUpdate()
+          conn.prepareStatement("TRUNCATE users, tags CASCADE").executeLargeUpdate()
         }
       }
     }

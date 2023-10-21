@@ -4,17 +4,19 @@ import arrow.fx.coroutines.continuations.ResourceScope
 import com.sksamuel.cohort.HealthCheckRegistry
 import com.sksamuel.cohort.hikari.HikariConnectionsHealthCheck
 import io.github.nomisrev.repo.ArticlePersistence
+import io.github.nomisrev.repo.TagPersistence
 import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.repo.articlePersistence
+import io.github.nomisrev.repo.tagPersistence
 import io.github.nomisrev.repo.userPersistence
-import io.github.nomisrev.service.slugifyGenerator
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.Dispatchers
 
 class Dependencies(
   val userPersistence: UserPersistence,
   val articlePersistence: ArticlePersistence,
-  val healthCheck: HealthCheckRegistry
+  val healthCheck: HealthCheckRegistry,
+  val tagPersistence: TagPersistence
 )
 
 suspend fun ResourceScope.dependencies(env: Env): Dependencies {
@@ -29,6 +31,7 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
   return Dependencies(
     userPersistence(sqlDelight.usersQueries),
     articlePersistence(sqlDelight.articlesQueries, sqlDelight.tagsQueries),
-    checks
+    checks,
+    tagPersistence(sqlDelight.tagsQueries)
   )
 }
