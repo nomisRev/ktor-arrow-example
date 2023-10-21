@@ -70,9 +70,7 @@ private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
 
 fun Route.articleRoutes(articleService: ArticleService) =
   get<ArticlesResource.Slug> { slug ->
-    either {
-        val article = articleService.getArticleBySlug(Slug(slug.slug)).bind()
-        SingleArticleResponse(article)
-      }
+    articleService.getArticleBySlug(Slug(slug.slug))
+      .map { SingleArticleResponse(it) }
       .respond(HttpStatusCode.OK)
   }
