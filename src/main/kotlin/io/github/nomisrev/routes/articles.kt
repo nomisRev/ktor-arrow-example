@@ -24,13 +24,6 @@ data class Article(
   val tagList: List<String>
 )
 
-@Serializable
-data class Profile(
-  val username: String,
-  val bio: String,
-  val image: String,
-  val following: Boolean
-)
 
 @Serializable
 data class Comment(
