@@ -7,6 +7,7 @@ import io.ktor.server.routing.routing
 
 fun Application.routes(deps: Dependencies) = routing {
   userRoutes(deps.userService, deps.jwtService)
+  articleRoutes(deps.articleService, deps.jwtService)
   tagRoutes(deps.tagPersistence)
 }
 
