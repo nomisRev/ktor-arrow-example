@@ -28,7 +28,7 @@ class Dependencies(
 suspend fun ResourceScope.dependencies(env: Env): Dependencies {
   val hikari = hikari(env.dataSource)
   val sqlDelight = sqlDelight(hikari)
-  val userRepo = userPersistence(sqlDelight.usersQueries)
+  val userRepo = userPersistence(sqlDelight.usersQueries, sqlDelight.followingQueries)
   val articleRepo = articleRepo(sqlDelight.articlesQueries, sqlDelight.tagsQueries)
   val tagPersistence = tagPersistence(sqlDelight.tagsQueries)
   val jwtService = jwtService(env.auth, userRepo)
