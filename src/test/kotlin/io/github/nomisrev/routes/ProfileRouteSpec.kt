@@ -8,9 +8,7 @@ import io.kotest.matchers.shouldBe
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.plugins.resources.delete
-import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
 
 class ProfileRouteSpec :
   StringSpec({
@@ -31,7 +29,6 @@ class ProfileRouteSpec :
 
         val response = delete(ProfilesResource.Follow(username = validUsernameFollowed)) {
           bearerAuth(token.value)
-          contentType(ContentType.Application.Json)
         }
 
         response.status shouldBe HttpStatusCode.OK
@@ -49,6 +46,20 @@ class ProfileRouteSpec :
         val response = delete(ProfilesResource.Follow(username = validUsernameFollowed))
 
         response.status shouldBe HttpStatusCode.Unauthorized
+      }
+    }
+
+    "Username invalid to unfollow" {
+      withServer {dependencies ->
+        val token = dependencies.userService
+          .register(RegisterUser(validUsername, validEmail, validPw))
+          .shouldBeRight()
+
+        val response = delete(ProfilesResource.Follow(username = validUsernameFollowed)) {
+          bearerAuth(token.value)
+        }
+
+        response.status shouldBe HttpStatusCode.UnprocessableEntity
       }
     }
   })
