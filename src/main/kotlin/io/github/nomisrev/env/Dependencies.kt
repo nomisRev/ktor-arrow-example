@@ -4,6 +4,7 @@ import arrow.fx.coroutines.continuations.ResourceScope
 import com.sksamuel.cohort.HealthCheckRegistry
 import com.sksamuel.cohort.hikari.HikariConnectionsHealthCheck
 import io.github.nomisrev.repo.TagPersistence
+import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.repo.articleRepo
 import io.github.nomisrev.repo.tagPersistence
 import io.github.nomisrev.repo.userPersistence
@@ -22,7 +23,8 @@ class Dependencies(
   val jwtService: JwtService,
   val articleService: ArticleService,
   val healthCheck: HealthCheckRegistry,
-  val tagPersistence: TagPersistence
+  val tagPersistence: TagPersistence,
+  val userPersistence: UserPersistence
 )
 
 suspend fun ResourceScope.dependencies(env: Env): Dependencies {
@@ -45,6 +47,7 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
     jwtService,
     articleService(slugGenerator, articleRepo, userRepo),
     checks,
-    tagPersistence
+    tagPersistence,
+    userRepo
   )
 }
