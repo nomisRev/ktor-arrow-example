@@ -61,27 +61,27 @@ fun Route.userRoutes(
   /* Registration: POST /api/users */
   post<UsersResource> {
     either {
-        val (username, email, password) = receiveCatching<UserWrapper<NewUser>>().bind().user
-        val token = userService.register(RegisterUser(username, email, password)).bind().value
-        UserWrapper(User(email, token, username, "", ""))
-      }
+      val (username, email, password) = receiveCatching<UserWrapper<NewUser>>().bind().user
+      val token = userService.register(RegisterUser(username, email, password)).bind().value
+      UserWrapper(User(email, token, username, "", ""))
+    }
       .respond(HttpStatusCode.Created)
   }
   post<UsersResource.Login> {
     either {
-        val (email, password) = receiveCatching<UserWrapper<LoginUser>>().bind().user
-        val (token, info) = userService.login(Login(email, password)).bind()
-        UserWrapper(User(email, token.value, info.username, info.bio, info.image))
-      }
+      val (email, password) = receiveCatching<UserWrapper<LoginUser>>().bind().user
+      val (token, info) = userService.login(Login(email, password)).bind()
+      UserWrapper(User(email, token.value, info.username, info.bio, info.image))
+    }
       .respond(HttpStatusCode.OK)
   }
   /* Get Current User: GET /api/user */
   get<UserResource> {
     jwtAuth(jwtService) { (token, userId) ->
       either {
-          val info = userService.getUser(userId).bind()
-          UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
-        }
+        val info = userService.getUser(userId).bind()
+        UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
+      }
         .respond(HttpStatusCode.OK)
     }
   }
@@ -90,12 +90,12 @@ fun Route.userRoutes(
   put<UserResource> {
     jwtAuth(jwtService) { (token, userId) ->
       either {
-          val (email, username, password, bio, image) =
-            receiveCatching<UserWrapper<UpdateUser>>().bind().user
-          val info =
-            userService.update(Update(userId, username, email, password, bio, image)).bind()
-          UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
-        }
+        val (email, username, password, bio, image) =
+          receiveCatching<UserWrapper<UpdateUser>>().bind().user
+        val info =
+          userService.update(Update(userId, username, email, password, bio, image)).bind()
+        UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
+      }
         .respond(HttpStatusCode.OK)
     }
   }
