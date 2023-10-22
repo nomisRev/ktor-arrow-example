@@ -43,4 +43,12 @@ class ProfileRouteSpec :
         }
       }
     }
+
+    "Needs token to unfollow" {
+      withServer {
+        val response = delete(ProfilesResource.Follow(username = validUsernameFollowed))
+
+        response.status shouldBe HttpStatusCode.Unauthorized
+      }
+    }
   })
