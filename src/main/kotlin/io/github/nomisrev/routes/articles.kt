@@ -5,13 +5,13 @@ import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.service.ArticleService
 import io.github.nomisrev.service.CreateArticle
 import io.github.nomisrev.service.JwtService
+import io.github.nomisrev.validate
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.Application
 import io.ktor.server.application.call
 import io.ktor.server.request.receive
+import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
-import io.ktor.server.routing.routing
 import java.time.OffsetDateTime
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -60,7 +60,21 @@ data class NewArticle(
   val title: String,
   val description: String,
   val body: String,
-  val tagList: List<String>? = null
+  val tagList: List<String>? = ArrayList()
+)
+
+@Serializable
+data class ArticleResponse(
+  val slug: String,
+  val title: String,
+  val description: String,
+  val body: String,
+  val author: Profile,
+  val favorited: Boolean,
+  val favoritesCount: Int,
+  @Serializable(with = OffsetDateTimeIso8601Serializer::class) val createdAt: OffsetDateTime,
+  @Serializable(with = OffsetDateTimeIso8601Serializer::class) val updatedAt: OffsetDateTime,
+  val tagList: List<String>
 )
 
 private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
@@ -75,12 +89,12 @@ private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
   }
 }
 
-fun Application.articleRoutes(articleService: ArticleService, jwtService: JwtService) = routing {
+fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) {
   route("/articles") {
     post {
       jwtAuth(jwtService) { (_, userId) ->
         either {
-            val (article) = call.receive<ArticleWrapper<NewArticle>>()
+            val article = call.receive<ArticleWrapper<NewArticle>>().article.validate().bind()
             articleService
               .createArticle(
                 CreateArticle(
@@ -91,6 +105,20 @@ fun Application.articleRoutes(articleService: ArticleService, jwtService: JwtSer
                   article.tagList?.toSet() ?: emptySet()
                 )
               )
+              .map {
+                ArticleResponse(
+                  it.slug,
+                  it.title,
+                  it.description,
+                  it.body,
+                  it.author,
+                  it.favorited,
+                  it.favoritesCount,
+                  it.createdAt,
+                  it.updatedAt,
+                  it.tagList
+                )
+              }
               .bind()
           }
           .respond(HttpStatusCode.Created)

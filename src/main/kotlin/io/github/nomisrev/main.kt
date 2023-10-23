@@ -27,6 +27,4 @@ fun Application.app(module: Dependencies) {
   configure()
   routes(module)
   health(module.healthCheck)
-  tagRoutes(module.tagPersistence)
-  articleRoutes(module.articleService, module.jwtService)
 }
