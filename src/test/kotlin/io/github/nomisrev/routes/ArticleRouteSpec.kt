@@ -23,7 +23,7 @@ class ArticleRouteSpec :
     val validPw = "123456789"
     // Article
     val validTags = setOf("arrow", "ktor", "kotlin", "sqldelight")
-    val validTitle = "Fake Article Arrow "
+    val validTitle = "Fake Article Arrow"
     val validDescription = "This is a fake article description."
     val validBody = "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
 
@@ -54,7 +54,7 @@ class ArticleRouteSpec :
               }
 
             response.status shouldBe HttpStatusCode.Created
-            with(response.body<Article>()) {
+            with(response.body<ArticleResponse>()) {
               title shouldBe validTitle
               description shouldBe validDescription
               body shouldBe validBody
@@ -76,7 +76,7 @@ class ArticleRouteSpec :
               }
 
             response.status shouldBe HttpStatusCode.Created
-            with(response.body<Article>()) {
+            with(response.body<ArticleResponse>()) {
               title shouldBe validTitle
               description shouldBe validDescription
               body shouldBe validBody
@@ -85,6 +85,45 @@ class ArticleRouteSpec :
               author.username shouldBe validUsername
               tagList.size shouldBe 0
             }
+          }
+        }
+
+        "body cannot be empty" {
+          withServer {
+            val response =
+              post("/articles") {
+                bearerAuth(token!!.value)
+                contentType(ContentType.Application.Json)
+                setBody(ArticleWrapper(NewArticle(validTitle, validDescription, "", null)))
+              }
+
+            response.status shouldBe HttpStatusCode.UnprocessableEntity
+          }
+        }
+
+        "description cannot be empty" {
+          withServer {
+            val response =
+              post("/articles") {
+                bearerAuth(token!!.value)
+                contentType(ContentType.Application.Json)
+                setBody(ArticleWrapper(NewArticle(validTitle, "", validBody, null)))
+              }
+
+            response.status shouldBe HttpStatusCode.UnprocessableEntity
+          }
+        }
+
+        "title cannot be empty" {
+          withServer {
+            val response =
+              post("/articles") {
+                bearerAuth(token!!.value)
+                contentType(ContentType.Application.Json)
+                setBody(ArticleWrapper(NewArticle("", validDescription, validBody, null)))
+              }
+
+            response.status shouldBe HttpStatusCode.UnprocessableEntity
           }
         }
 
