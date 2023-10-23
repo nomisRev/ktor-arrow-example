@@ -1,6 +1,7 @@
 package io.github.nomisrev.routes
 
 import arrow.core.Either
+import io.github.nomisrev.ArticleBySlugNotFound
 import io.github.nomisrev.CannotGenerateSlug
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.EmailAlreadyExists
@@ -12,7 +13,6 @@ import io.github.nomisrev.JwtInvalid
 import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.UsernameAlreadyExists
-import io.github.nomisrev.ArticleBySlugNotFound
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
