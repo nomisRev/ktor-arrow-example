@@ -10,6 +10,7 @@ import arrow.core.leftNel
 import arrow.core.mapOrAccumulate
 import arrow.core.nonEmptyListOf
 import arrow.core.right
+import io.github.nomisrev.routes.NewArticle
 import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.service.Update
@@ -149,3 +150,13 @@ private val emailPattern = ".+@.+\\..+".toRegex()
 
 private fun String.looksLikeEmail(): EitherNel<String, String> =
   if (emailPattern.matches(this)) right() else "'$this' is invalid email".leftNel()
+
+fun NewArticle.validate(): Either<IncorrectInput, NewArticle> =
+  zipOrAccumulate(
+      title.validTitle(),
+      description.validDescription(),
+      body.validBody(),
+      validTags(tagList ?: listOf()).map { it.toList() },
+      ::NewArticle
+    )
+    .mapLeft(::IncorrectInput)
