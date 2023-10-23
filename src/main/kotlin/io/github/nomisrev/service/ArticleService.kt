@@ -84,7 +84,7 @@ fun articleService(
         article.description,
         article.body,
         Profile(user.username, user.bio, user.image, false),
-        false, // TODO
+        false,
         favouriteCount,
         article.createdAt,
         article.createdAt,
