@@ -47,11 +47,11 @@ fun jwtService(env: Env.Auth, repo: UserPersistence) =
       val jwt =
         JWT.decodeT(token.value, JWSHMAC512Algorithm).mapLeft { JwtInvalid(it.toString()) }.bind()
       val userId =
-        ensureNotNull(jwt.claimValueAsLong("id").orNull()) {
+        ensureNotNull(jwt.claimValueAsLong("id").getOrNull()) {
           JwtInvalid("id missing from JWT Token")
         }
       val expiresAt =
-        ensureNotNull(jwt.expiresAt().orNull()) { JwtInvalid("exp missing from JWT Token") }
+        ensureNotNull(jwt.expiresAt().getOrNull()) { JwtInvalid("exp missing from JWT Token") }
       ensure(expiresAt.isAfter(Instant.now(Clock.systemUTC()))) { JwtInvalid("JWT Token expired") }
       repo.select(UserId(userId)).bind()
       UserId(userId)
