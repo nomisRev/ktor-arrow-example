@@ -1,6 +1,5 @@
 package io.github.nomisrev.routes
 
-import arrow.core.raise.either
 import io.github.nomisrev.service.ArticleService
 import io.github.nomisrev.service.Slug
 import io.ktor.http.HttpStatusCode
@@ -25,7 +24,7 @@ data class Article(
   val body: String,
   val author: Profile,
   val favorited: Boolean,
-  val favoritesCount: Int,
+  val favoritesCount: Long,
   @Serializable(with = OffsetDateTimeIso8601Serializer::class) val createdAt: OffsetDateTime,
   @Serializable(with = OffsetDateTimeIso8601Serializer::class) val updatedAt: OffsetDateTime,
   val tagList: List<String>
@@ -70,7 +69,8 @@ private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
 
 fun Route.articleRoutes(articleService: ArticleService) =
   get<ArticlesResource.Slug> { slug ->
-    articleService.getArticleBySlug(Slug(slug.slug))
+    articleService
+      .getArticleBySlug(Slug(slug.slug))
       .map { SingleArticleResponse(it) }
       .respond(HttpStatusCode.OK)
   }

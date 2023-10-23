@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.raise.either
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.repo.ArticlePersistence
+import io.github.nomisrev.repo.FavouritePersistence
 import io.github.nomisrev.repo.TagPersistence
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.repo.UserPersistence
@@ -31,7 +32,8 @@ fun articleService(
   slugGenerator: SlugGenerator,
   articlePersistence: ArticlePersistence,
   userPersistence: UserPersistence,
-  tagPersistence: TagPersistence
+  tagPersistence: TagPersistence,
+  favouritePersistence: FavouritePersistence
 ): ArticleService =
   object : ArticleService {
     override suspend fun createArticle(input: CreateArticle): Either<DomainError, Article> =
@@ -74,6 +76,7 @@ fun articleService(
       val article = articlePersistence.getArticleBySlug(slug).bind()
       val user = userPersistence.select(article.author_id).bind()
       val articleTags = tagPersistence.selectTagsOfArticle(article.id)
+      val favouriteCount = favouritePersistence.favoriteCount(article.id)
       Article(
         article.id.serial,
         slug.value,
@@ -81,8 +84,8 @@ fun articleService(
         article.description,
         article.body,
         Profile(user.username, user.bio, user.image, false),
-        false,
-        0,
+        false, // TODO
+        favouriteCount,
         article.createdAt,
         article.createdAt,
         articleTags
