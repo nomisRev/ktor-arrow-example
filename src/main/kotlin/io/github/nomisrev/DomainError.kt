@@ -14,7 +14,7 @@ data class IncorrectJson(val exception: MissingFieldException) : ValidationError
 
 data class EmptyUpdate(val description: String) : ValidationError
 
-data class EmptyArticleList(val description: String) : ValidationError
+// data class EmptyArticleList(val description: String) : ValidationError
 
 data class IncorrectInput(val errors: NonEmptyList<InvalidField>) : ValidationError {
   constructor(head: InvalidField) : this(nonEmptyListOf(head))

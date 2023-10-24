@@ -31,7 +31,7 @@ articles.id AS article__id, articles.slug AS article__slug, articles.title AS ar
 users.id AS users__id, users.username AS users__username, users.image AS users__image
 FROM articles
 INNER JOIN users ON articles.author_id = users.id
-WHERE article__author_id IN (
+WHERE articles.author_id IN (
     SELECT following.followed_id
     FROM following
     WHERE following.follower_id = :user_id

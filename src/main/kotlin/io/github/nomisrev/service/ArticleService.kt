@@ -75,8 +75,11 @@ fun articleService(
         )
       }
 
-    override suspend fun getUserFeed(input: GetFeed): Either<DomainError, MultipleArticlesResponse> =
-      either {
-        articlePersistence.getFeed(userId = input.userId, limit = input.limit, offset = input.offset).bind()
-      }
+    override suspend fun getUserFeed(
+      input: GetFeed
+    ): Either<DomainError, MultipleArticlesResponse> = either {
+      articlePersistence
+        .getFeed(userId = input.userId, limit = input.limit, offset = input.offset)
+        .bind()
+    }
   }
