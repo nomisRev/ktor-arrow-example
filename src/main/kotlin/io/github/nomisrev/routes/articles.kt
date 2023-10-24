@@ -14,6 +14,7 @@ import io.ktor.server.request.*
 import io.ktor.server.resources.*
 import io.ktor.server.routing.*
 import io.ktor.util.pipeline.*
+import java.time.OffsetDateTime
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.MissingFieldException
@@ -23,10 +24,8 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import java.time.OffsetDateTime
 
-@Serializable
-data class ArticleWrapper<T : Any>(val article: T)
+@Serializable data class ArticleWrapper<T : Any>(val article: T)
 
 @Serializable
 data class Article(
@@ -74,8 +73,7 @@ data class Comment(
 
 @Resource("/article")
 data class ArticleResource(val parent: RootResource = RootResource) {
-  @Resource("/feed")
-  data class Feed(val parent: ArticleResource = ArticleResource())
+  @Resource("/feed") data class Feed(val parent: ArticleResource = ArticleResource())
 }
 
 fun Route.articleRoutes(
@@ -86,19 +84,20 @@ fun Route.articleRoutes(
   get<ArticleResource.Feed> {
     jwtAuth(jwtService) { (_, userId) ->
       either {
-        val (limit, offset) = receiveCatching<ArticleWrapper<UserFeed>>().bind().article
-        val articlesFeed = articleService.getUserFeed(input = GetFeed(userId, limit, offset)).bind()
-        ArticleWrapper(articlesFeed)
-      }
+          val (limit, offset) = receiveCatching<ArticleWrapper<UserFeed>>().bind().article
+          val articlesFeed =
+            articleService.getUserFeed(input = GetFeed(userId, limit, offset)).bind()
+          ArticleWrapper(articlesFeed)
+        }
         .respond(HttpStatusCode.OK)
     }
   }
-
 }
 
 // TODO improve how we receive models with validation
 @OptIn(ExperimentalSerializationApi::class)
-private suspend inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>.receiveCatching(): Either<IncorrectJson, A> =
+private suspend inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>
+  .receiveCatching(): Either<IncorrectJson, A> =
   Either.catchOrThrow<MissingFieldException, A> { call.receive() }.mapLeft { IncorrectJson(it) }
 
 private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
