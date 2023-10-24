@@ -112,7 +112,6 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
             articlesCount = count,
           )
         }
-      //        ensure(articleList.articlesCount != 0) { EmptyArticleList("") }
       articleList
     }
   }
