@@ -74,5 +74,43 @@ class ArticleServiceSpec :
 
           feed.articlesCount shouldBeExactly 0
         }
+        "get kaaveh's feed when he followed simon" {
+          // Create users
+          val kaavehId =
+            userService
+              .register(RegisterUser(kaavehUsername, kaavehEmail, kaavehPw))
+              .flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
+              .map { it.claimValueAsLong("id").shouldBeSome() }
+              .shouldBeRight()
+          val simonId =
+            userService
+              .register(RegisterUser(simonUsername, simonEmail, simonPw))
+              .flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
+              .map { it.claimValueAsLong("id").shouldBeSome() }
+              .shouldBeRight()
+          val johnId =
+            userService
+              .register(RegisterUser(johnUsername, johnEmail, johnPw))
+              .flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
+              .map { it.claimValueAsLong("id").shouldBeSome() }
+              .shouldBeRight()
+
+          // Create some articles
+          articleService
+            .createArticle(
+              CreateArticle(UserId(simonId), validTitle, validDescription, validBody, validTags)
+            )
+            .shouldBeRight()
+          articleService
+            .createArticle(
+              CreateArticle(UserId(johnId), validTitle, validDescription, validBody, validTags)
+            )
+            .shouldBeRight()
+
+          // Do Kaaveh follow Simon
+
+          // TODO: From this point, first, issue #155 must be done.
+
+        }
       }
   })
