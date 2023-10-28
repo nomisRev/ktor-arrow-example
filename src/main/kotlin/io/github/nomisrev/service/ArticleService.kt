@@ -6,9 +6,7 @@ import io.github.nomisrev.DomainError
 import io.github.nomisrev.repo.ArticlePersistence
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.repo.UserPersistence
-import io.github.nomisrev.routes.Article
-import io.github.nomisrev.routes.MultipleArticlesResponse
-import io.github.nomisrev.routes.Profile
+import io.github.nomisrev.routes.*
 import java.time.OffsetDateTime
 
 data class CreateArticle(
@@ -21,8 +19,8 @@ data class CreateArticle(
 
 data class GetFeed(
   val userId: UserId,
-  val limit: Long,
-  val offset: Long,
+  val limit: Int,
+  val offset: Int,
 )
 
 interface ArticleService {
@@ -79,7 +77,7 @@ fun articleService(
       input: GetFeed
     ): MultipleArticlesResponse {
       val articles = articlePersistence
-        .getFeed(userId = input.userId, limit = input.limit, offset = input.offset)
+        .getFeed(userId = input.userId, limit = FeedLimit(input.limit), offset = FeedOffset(input.offset))
         
       return MultipleArticlesResponse(
         articles = articles,

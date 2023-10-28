@@ -66,7 +66,6 @@ class ArticleServiceSpec :
           val feed =
             articleService
               .getUserFeed(input = GetFeed(userId = UserId(kaavehId), limit = 20, offset = 0))
-              .shouldBeRight()
 
           feed.articlesCount shouldBeExactly 0
         }

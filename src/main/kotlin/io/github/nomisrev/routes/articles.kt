@@ -7,11 +7,8 @@ import io.github.nomisrev.service.JwtService
 import io.github.nomisrev.validate
 import io.ktor.http.*
 import io.ktor.resources.*
-import io.ktor.server.application.*
-import io.ktor.server.request.*
 import io.ktor.server.resources.*
 import io.ktor.server.routing.*
-import io.ktor.util.pipeline.*
 import java.time.OffsetDateTime
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -89,8 +86,7 @@ fun Route.articleRoutes(
       either {
         val getFeed = feed.validate(userId).bind()
 
-        val articlesFeed =
-          articleService.getUserFeed(input = getFeed).bind()
+        val articlesFeed = articleService.getUserFeed(input = getFeed)
           ArticleWrapper(articlesFeed)
         }
         .respond(HttpStatusCode.OK)
