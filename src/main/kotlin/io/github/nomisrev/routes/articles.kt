@@ -48,11 +48,6 @@ data class MultipleArticlesResponse(
   val articlesCount: Int,
 )
 
-@Serializable
-data class UserFeed(
-  val limit: Long,
-  val offset: Long,
-)
 
 @Serializable
 data class Profile(
