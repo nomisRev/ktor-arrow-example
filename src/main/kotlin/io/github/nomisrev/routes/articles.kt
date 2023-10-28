@@ -73,7 +73,12 @@ data class Comment(
 
 @Resource("/article")
 data class ArticleResource(val parent: RootResource = RootResource) {
-  @Resource("/feed") data class Feed(val parent: ArticleResource = ArticleResource())
+  @Resource("/feed")
+  data class Feed(
+    val offsetParam: Int,
+    val limitParam: Int = 20,
+    val parent: ArticleResource = ArticleResource()
+  )
 }
 
 fun Route.articleRoutes(
