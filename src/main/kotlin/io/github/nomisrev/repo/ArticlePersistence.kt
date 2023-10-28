@@ -30,7 +30,7 @@ interface ArticlePersistence {
   /** Verifies if a certain slug already exists or not */
   suspend fun exists(slug: Slug): Boolean
 
-  suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Articles>
+  suspend fun getArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles>
 }
 
 fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
@@ -59,7 +59,7 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
     override suspend fun exists(slug: Slug): Boolean =
       articles.slugExists(slug.value).executeAsOne()
 
-    override suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Articles> = either {
+    override suspend fun getArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles> = either {
       val article = articles.selectBySlug(slug.value).executeAsOneOrNull()
       ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
     }

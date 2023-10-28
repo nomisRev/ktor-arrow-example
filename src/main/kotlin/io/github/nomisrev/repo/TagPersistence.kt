@@ -14,7 +14,6 @@ fun tagPersistence(tags: TagsQueries) =
   object : TagPersistence {
     override suspend fun selectTags() = tags.selectTags().executeAsList()
 
-    override suspend fun selectTagsOfArticle(articleId: ArticleId): List<String> {
-      return tags.selectTagsOfArticle(articleId).executeAsList()
-    }
+    override suspend fun selectTagsOfArticle(articleId: ArticleId): List<String> =
+      tags.selectTagsOfArticle(articleId).executeAsList()
   }
