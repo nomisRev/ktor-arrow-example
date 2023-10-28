@@ -1,6 +1,7 @@
 package io.github.nomisrev.routes
 
 import arrow.core.Either
+import io.github.nomisrev.ArticleBySlugNotFound
 import io.github.nomisrev.CannotGenerateSlug
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.EmailAlreadyExists
@@ -53,6 +54,7 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: DomainError): 
     is UsernameAlreadyExists -> unprocessable("Username ${error.username} already exists")
     is JwtInvalid -> unprocessable(error.description)
     is CannotGenerateSlug -> unprocessable(error.description)
+    is ArticleBySlugNotFound -> unprocessable("Article by slug ${error.slug} not found")
   }
 
 private suspend inline fun PipelineContext<Unit, ApplicationCall>.unprocessable(

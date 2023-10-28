@@ -5,6 +5,7 @@ import com.sksamuel.cohort.HealthCheckRegistry
 import com.sksamuel.cohort.hikari.HikariConnectionsHealthCheck
 import io.github.nomisrev.repo.TagPersistence
 import io.github.nomisrev.repo.articleRepo
+import io.github.nomisrev.repo.favouritePersistence
 import io.github.nomisrev.repo.tagPersistence
 import io.github.nomisrev.repo.userPersistence
 import io.github.nomisrev.service.ArticleService
@@ -31,6 +32,7 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
   val userRepo = userPersistence(sqlDelight.usersQueries)
   val articleRepo = articleRepo(sqlDelight.articlesQueries, sqlDelight.tagsQueries)
   val tagPersistence = tagPersistence(sqlDelight.tagsQueries)
+  val favouritePersistence = favouritePersistence(sqlDelight.favoritesQueries)
   val jwtService = jwtService(env.auth, userRepo)
   val slugGenerator = slugifyGenerator()
   val userService = userService(userRepo, jwtService)
@@ -43,7 +45,7 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
   return Dependencies(
     userService,
     jwtService,
-    articleService(slugGenerator, articleRepo, userRepo),
+    articleService(slugGenerator, articleRepo, userRepo, tagPersistence, favouritePersistence),
     checks,
     tagPersistence
   )
