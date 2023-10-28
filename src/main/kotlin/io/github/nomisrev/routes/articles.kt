@@ -93,12 +93,6 @@ fun Route.articleRoutes(
   }
 }
 
-// TODO improve how we receive models with validation
-@OptIn(ExperimentalSerializationApi::class)
-private suspend inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>
-  .receiveCatching(): Either<IncorrectJson, A> =
-  Either.catchOrThrow<MissingFieldException, A> { call.receive() }.mapLeft { IncorrectJson(it) }
-
 private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
   override val descriptor: SerialDescriptor =
     PrimitiveSerialDescriptor("OffsetDateTime", PrimitiveKind.STRING)
