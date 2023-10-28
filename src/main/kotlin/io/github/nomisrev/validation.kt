@@ -183,5 +183,5 @@ fun ArticleResource.Feed.validate(userId: UserId): Either<IncorrectInput, GetFee
   zipOrAccumulate(
     offsetParam.validFeedOffset(),
     limitParam.validFeedLimit()
-  ) { offset, limit -> GetFeed(userId, limit.limit.toLong(), offset.offset.toLong()) }
+  ) { offset, limit -> GetFeed(userId, limit.limit, offset.offset) }
     .mapLeft(::IncorrectInput)
