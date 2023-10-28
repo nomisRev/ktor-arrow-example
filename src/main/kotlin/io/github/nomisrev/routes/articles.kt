@@ -48,6 +48,13 @@ data class MultipleArticlesResponse(
   val articlesCount: Int,
 )
 
+@JvmInline
+@Serializable
+value class FeedOffset(val offset: Int)
+
+@JvmInline
+@Serializable
+value class FeedLimit(val limit: Int)
 
 @Serializable
 data class Profile(
