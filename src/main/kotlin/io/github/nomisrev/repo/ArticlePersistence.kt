@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensureNotNull
 import io.github.nomisrev.ArticleBySlugNotFound
-import io.github.nomisrev.DomainError
 import io.github.nomisrev.service.Slug
 import io.github.nomisrev.sqldelight.Articles
 import io.github.nomisrev.sqldelight.ArticlesQueries
@@ -59,8 +58,9 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
     override suspend fun exists(slug: Slug): Boolean =
       articles.slugExists(slug.value).executeAsOne()
 
-    override suspend fun getArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles> = either {
-      val article = articles.selectBySlug(slug.value).executeAsOneOrNull()
-      ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
-    }
+    override suspend fun getArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles> =
+      either {
+        val article = articles.selectBySlug(slug.value).executeAsOneOrNull()
+        ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
+      }
   }

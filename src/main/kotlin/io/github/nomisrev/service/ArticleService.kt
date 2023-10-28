@@ -25,7 +25,7 @@ interface ArticleService {
   suspend fun createArticle(input: CreateArticle): Either<DomainError, Article>
 
   /** Get article by Slug */
-  suspend fun getArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Article>
+  suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article>
 }
 
 fun articleService(
@@ -72,7 +72,7 @@ fun articleService(
         )
       }
 
-    override suspend fun getArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Article> = either {
+    override suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article> = either {
       val article = articlePersistence.getArticleBySlug(slug).bind()
       val user = userPersistence.select(article.author_id).bind()
       val articleTags = tagPersistence.selectTagsOfArticle(article.id)
