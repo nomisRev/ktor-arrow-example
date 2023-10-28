@@ -84,8 +84,10 @@ fun Route.articleRoutes(
   get<ArticleResource.Feed> { feed ->
     jwtAuth(jwtService) { (_, userId) ->
       either {
-          val articlesFeed =
-            articleService.getUserFeed(input = GetFeed(userId, limit, offset)).bind()
+        val getFeed = feed.validate(userId).bind()
+
+        val articlesFeed =
+          articleService.getUserFeed(input = getFeed).bind()
           ArticleWrapper(articlesFeed)
         }
         .respond(HttpStatusCode.OK)
