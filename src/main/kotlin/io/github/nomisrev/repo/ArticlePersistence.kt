@@ -66,8 +66,8 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
 
     override suspend fun getFeed(
       userId: UserId,
-      limit: Long,
-      offset: Long,
+      limit: FeedLimit,
+      offset: FeedOffset,
     ): List<Article> =
         val list =
           articles
