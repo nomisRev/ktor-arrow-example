@@ -30,7 +30,7 @@ interface ArticleService {
   suspend fun createArticle(input: CreateArticle): Either<DomainError, Article>
 
   /** Get the user's feed which contains articles of the authors the user followed */
-  suspend fun getUserFeed(input: GetFeed): Either<DomainError, MultipleArticlesResponse>
+  suspend fun getUserFeed(input: GetFeed): MultipleArticlesResponse
 }
 
 fun articleService(
