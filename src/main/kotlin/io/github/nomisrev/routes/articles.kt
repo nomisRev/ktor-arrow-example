@@ -86,7 +86,7 @@ fun Route.articleRoutes(
   jwtService: JwtService,
 ) {
 
-  get<ArticleResource.Feed> {
+  get<ArticleResource.Feed> { feed ->
     jwtAuth(jwtService) { (_, userId) ->
       either {
           val (limit, offset) = receiveCatching<ArticleWrapper<UserFeed>>().bind().article
