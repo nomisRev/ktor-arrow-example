@@ -10,6 +10,11 @@ import arrow.core.leftNel
 import arrow.core.mapOrAccumulate
 import arrow.core.nonEmptyListOf
 import arrow.core.right
+import io.github.nomisrev.repo.UserId
+import io.github.nomisrev.routes.ArticleResource
+import io.github.nomisrev.routes.FeedLimit
+import io.github.nomisrev.routes.FeedOffset
+import io.github.nomisrev.service.GetFeed
 import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.service.Update
@@ -149,3 +154,34 @@ private val emailPattern = ".+@.+\\..+".toRegex()
 
 private fun String.looksLikeEmail(): EitherNel<String, String> =
   if (emailPattern.matches(this)) right() else "'$this' is invalid email".leftNel()
+
+private const val MIN_FEED_SIZE = 1
+private const val MIN_OFFSET = 0
+
+data class InvalidFeedOffset(override val errors: NonEmptyList<String>) : InvalidField {
+  override val field: String = "feed offset"
+}
+
+data class InvalidFeedLimit(override val errors: NonEmptyList<String>) : InvalidField {
+  override val field: String = "feed limit"
+}
+
+private fun Int.minSize(size: Int): EitherNel<String, Int> =
+  if (this >= size) right() else "offset too small (minimum is $size)".leftNel()
+
+fun Int.validFeedOffset(): Either<IncorrectInput, FeedOffset> =
+  minSize(MIN_OFFSET)
+    .map { FeedOffset(it) }
+    .mapLeft { IncorrectInput(InvalidFeedOffset(it)) }
+
+fun Int.validFeedLimit(): Either<IncorrectInput, FeedLimit> =
+  minSize(MIN_FEED_SIZE)
+    .map { FeedLimit(it) }
+    .mapLeft { IncorrectInput(InvalidFeedLimit(it)) }
+
+fun ArticleResource.Feed.validate(userId: UserId): Either<IncorrectInput, GetFeed> =
+  zipOrAccumulate(
+    offsetParam.validFeedOffset(),
+    limitParam.validFeedLimit()
+  ) { offset, limit -> GetFeed(userId, limit.limit.toLong(), offset.offset.toLong()) }
+    .mapLeft(::IncorrectInput)
