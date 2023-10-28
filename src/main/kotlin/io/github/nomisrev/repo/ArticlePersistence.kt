@@ -68,27 +68,25 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
       userId: UserId,
       limit: Long,
       offset: Long,
-    ): Either<DomainError, MultipleArticlesResponse> = either {
-      val articleList =
-        articles.transactionWithResult {
-          val list =
-            articles
-              .selectFeedArticles(
-                userId.serial,
-                limit,
-                offset,
-              ) {
-                articleId,
-                articleSlug,
-                articleTitle,
-                articleDescription,
-                articleBody,
-                articleAuthorId,
-                articleCreatedAt,
-                articleUpdatedAt,
-                usersId,
-                usersUsername,
-                usersImage ->
+    ): List<Article> =
+        val list =
+          articles
+            .selectFeedArticles(
+              userId.serial,
+              limit,
+              offset,
+            ) {
+              articleId,
+              articleSlug,
+              articleTitle,
+              articleDescription,
+              articleBody,
+              articleAuthorId,
+              articleCreatedAt,
+              articleUpdatedAt,
+              usersId,
+              usersUsername,
+              usersImage ->
                 Article(
                   articleId = articleId.serial,
                   slug = articleSlug,
@@ -104,14 +102,4 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
                 )
               }
               .executeAsList()
-
-          val count = list.size
-
-          MultipleArticlesResponse(
-            articles = list,
-            articlesCount = count,
-          )
-        }
-      articleList
-    }
   }
