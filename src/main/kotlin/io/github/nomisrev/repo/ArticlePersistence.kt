@@ -35,7 +35,7 @@ interface ArticlePersistence {
     userId: UserId,
     limit: Long,
     offset: Long
-  ): Either<DomainError, MultipleArticlesResponse>
+  ): List<Article>
 }
 
 fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
