@@ -33,8 +33,8 @@ interface ArticlePersistence {
   /** Get recent articles from users you follow * */
   suspend fun getFeed(
     userId: UserId,
-    limit: Long,
-    offset: Long
+    limit: FeedLimit,
+    offset: FeedOffset
   ): List<Article>
 }
 
