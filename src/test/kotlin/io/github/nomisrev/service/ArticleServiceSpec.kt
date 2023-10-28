@@ -1,9 +1,11 @@
 package io.github.nomisrev.service
 
+import arrow.core.Either
 import arrow.core.flatMap
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
 import io.github.nomisrev.*
+import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.repo.UserId
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.arrow.core.shouldBeSome
@@ -38,21 +40,15 @@ class ArticleServiceSpec :
           val kaavehId =
             userService
               .register(RegisterUser(kaavehUsername, kaavehEmail, kaavehPw))
-              .flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
-              .map { it.claimValueAsLong("id").shouldBeSome() }
-              .shouldBeRight()
+              .shouldHaveUserId()
           val simonId =
             userService
               .register(RegisterUser(simonUsername, simonEmail, simonPw))
-              .flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
-              .map { it.claimValueAsLong("id").shouldBeSome() }
-              .shouldBeRight()
+              .shouldHaveUserId()
           val johnId =
             userService
               .register(RegisterUser(johnUsername, johnEmail, johnPw))
-              .flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
-              .map { it.claimValueAsLong("id").shouldBeSome() }
-              .shouldBeRight()
+              .shouldHaveUserId()
 
           // Create some articles
           articleService
@@ -114,3 +110,8 @@ class ArticleServiceSpec :
         }
       }
   })
+
+fun Either<DomainError, JwtToken>.shouldHaveUserId() =
+  flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
+    .map { it.claimValueAsLong("id").shouldBeSome() }
+    .shouldBeRight()
