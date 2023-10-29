@@ -4,6 +4,8 @@ import arrow.core.Either
 import arrow.core.raise.either
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.repo.ArticlePersistence
+import io.github.nomisrev.repo.FavouritePersistence
+import io.github.nomisrev.repo.TagPersistence
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.routes.*
@@ -27,14 +29,20 @@ interface ArticleService {
   /** Creates a new article and returns the resulting Article */
   suspend fun createArticle(input: CreateArticle): Either<DomainError, Article>
 
+
   /** Get the user's feed which contains articles of the authors the user followed */
   suspend fun getUserFeed(input: GetFeed): MultipleArticlesResponse
+
+  /** Get article by Slug */
+  suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article>
 }
 
 fun articleService(
   slugGenerator: SlugGenerator,
   articlePersistence: ArticlePersistence,
   userPersistence: UserPersistence,
+  tagPersistence: TagPersistence,
+  favouritePersistence: FavouritePersistence
 ): ArticleService =
   object : ArticleService {
     override suspend fun createArticle(input: CreateArticle): Either<DomainError, Article> =
@@ -73,6 +81,7 @@ fun articleService(
         )
       }
 
+
     override suspend fun getUserFeed(input: GetFeed): MultipleArticlesResponse {
       val articles =
         articlePersistence.getFeed(
@@ -84,6 +93,26 @@ fun articleService(
       return MultipleArticlesResponse(
         articles = articles,
         articlesCount = articles.size,
+      )
+    }
+    
+    override suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article> = either {
+      val article = articlePersistence.getArticleBySlug(slug).bind()
+      val user = userPersistence.select(article.author_id).bind()
+      val articleTags = tagPersistence.selectTagsOfArticle(article.id)
+      val favouriteCount = favouritePersistence.favoriteCount(article.id)
+      Article(
+        article.id.serial,
+        slug.value,
+        article.title,
+        article.description,
+        article.body,
+        Profile(user.username, user.bio, user.image, false),
+        false,
+        favouriteCount,
+        article.createdAt,
+        article.createdAt,
+        articleTags
       )
     }
   }

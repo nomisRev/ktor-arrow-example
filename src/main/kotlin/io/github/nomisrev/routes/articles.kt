@@ -5,10 +5,12 @@ import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.service.ArticleService
 import io.github.nomisrev.service.JwtService
 import io.github.nomisrev.validate
-import io.ktor.http.*
-import io.ktor.resources.*
-import io.ktor.server.resources.*
-import io.ktor.server.routing.*
+import io.github.nomisrev.service.ArticleService
+import io.github.nomisrev.service.Slug
+import io.ktor.http.HttpStatusCode
+import io.ktor.resources.Resource
+import io.ktor.server.resources.get
+import io.ktor.server.routing.Route
 import java.time.OffsetDateTime
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -29,11 +31,13 @@ data class Article(
   val body: String,
   val author: Profile,
   val favorited: Boolean,
-  val favoritesCount: Int,
+  val favoritesCount: Long,
   @Serializable(with = OffsetDateTimeIso8601Serializer::class) val createdAt: OffsetDateTime,
   @Serializable(with = OffsetDateTimeIso8601Serializer::class) val updatedAt: OffsetDateTime,
   val tagList: List<String>
 )
+
+@Serializable data class SingleArticleResponse(val article: Article)
 
 @Serializable
 data class MultipleArticlesResponse(
@@ -70,6 +74,9 @@ data class ArticleResource(val parent: RootResource = RootResource) {
     val limitParam: Int = 20,
     val parent: ArticleResource = ArticleResource()
   )
+  
+  @Resource("{slug}")
+  data class Slug(val parent: ArticlesResource = ArticlesResource(), val slug: String)
 }
 
 fun Route.articleRoutes(
@@ -87,6 +94,12 @@ fun Route.articleRoutes(
         }
         .respond(HttpStatusCode.OK)
     }
+    
+  get<ArticlesResource.Slug> { slug ->
+    articleService
+      .getArticleBySlug(Slug(slug.slug))
+      .map { SingleArticleResponse(it) }
+      .respond(HttpStatusCode.OK)
   }
 }
 
