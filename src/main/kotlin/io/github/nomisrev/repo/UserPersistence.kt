@@ -9,6 +9,7 @@ import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.UsernameAlreadyExists
 import io.github.nomisrev.service.UserInfo
+import io.github.nomisrev.sqldelight.FollowingQueries
 import io.github.nomisrev.sqldelight.UsersQueries
 import java.util.UUID
 import javax.crypto.SecretKeyFactory
@@ -43,11 +44,14 @@ interface UserPersistence {
     bio: String?,
     image: String?
   ): Either<DomainError, UserInfo>
+
+  suspend fun unfollowProfile(followedUsername: String, followerId: UserId): Unit
 }
 
 /** UserPersistence implementation based on SqlDelight and JavaX Crypto */
 fun userPersistence(
   usersQueries: UsersQueries,
+  followingQueries: FollowingQueries,
   defaultIterations: Int = 64000,
   defaultKeyLength: Int = 512,
   secretKeysFactory: SecretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512")
@@ -123,6 +127,11 @@ fun userPersistence(
         }
       ensureNotNull(info) { UserNotFound("userId=$userId") }
     }
+
+    override suspend fun unfollowProfile(
+      followedUsername: String,
+      followerId: UserId
+    ): Unit = followingQueries.delete(followedUsername, followerId.serial)
 
     private fun generateSalt(): ByteArray = UUID.randomUUID().toString().toByteArray()
 
