@@ -100,11 +100,6 @@ class ArticleServiceSpec :
               CreateArticle(UserId(johnId), validTitle, validDescription, validBody, validTags)
             )
             .shouldBeRight()
-
-          // Do Kaaveh follow Simon
-
-          // TODO: From this point, first, issue #155 must be done.
-
         }
       }
   })

@@ -119,23 +119,20 @@ private fun String.validUsername(): EitherNel<InvalidUsername, String> {
 }
 
 @Suppress("UnusedPrivateMember")
-private fun String.validTitle(): EitherNel<InvalidTitle, String> =
-  trim().notBlank().mapLeft(toInvalidField(::InvalidTitle))
+private fun String.validTitle(): Either<InvalidTitle, String> =
+  trim().notBlank().mapLeft(::InvalidTitle)
 
 @Suppress("UnusedPrivateMember")
-private fun String.validDescription(): EitherNel<InvalidDescription, String> =
-  trim().notBlank().mapLeft(toInvalidField(::InvalidDescription))
+private fun String.validDescription(): Either<InvalidDescription, String> =
+  trim().notBlank().mapLeft(::InvalidDescription)
 
 @Suppress("UnusedPrivateMember")
-private fun String.validBody(): EitherNel<InvalidBody, String> =
-  trim().notBlank().mapLeft(toInvalidField(::InvalidBody))
+private fun String.validBody(): Either<InvalidBody, String> =
+  trim().notBlank().mapLeft(::InvalidBody)
 
 @Suppress("UnusedPrivateMember")
-private fun validTags(tags: List<String>): EitherNel<InvalidTag, Set<String>> =
-  tags
-    .mapOrAccumulate { it.trim().notBlank().bindNel() }
-    .mapLeft { errors: NonEmptyList<String> -> toInvalidField(::InvalidTag)(errors) }
-    .map { it.toSet() }
+private fun validTags(tags: List<String>): Either<InvalidTag, Set<String>> =
+  tags.mapOrAccumulate { it.trim().notBlank().bindNel() }.mapLeft(::InvalidTag).map { it.toSet() }
 
 private fun <A : InvalidField> toInvalidField(
   transform: (NonEmptyList<String>) -> A
@@ -169,11 +166,11 @@ data class InvalidFeedLimit(override val errors: NonEmptyList<String>) : Invalid
 private fun Int.minSize(size: Int): EitherNel<String, Int> =
   if (this >= size) right() else "offset too small (minimum is $size)".leftNel()
 
-fun Int.validFeedOffset(): Either<IncorrectInput, FeedOffset> =
-  minSize(MIN_OFFSET).map { FeedOffset(it) }.mapLeft { IncorrectInput(InvalidFeedOffset(it)) }
+fun Int.validFeedOffset(): Either<InvalidFeedOffset, FeedOffset> =
+  minSize(MIN_OFFSET).map { FeedOffset(it) }.mapLeft { InvalidFeedOffset(it) }
 
-fun Int.validFeedLimit(): Either<IncorrectInput, FeedLimit> =
-  minSize(MIN_FEED_SIZE).map { FeedLimit(it) }.mapLeft { IncorrectInput(InvalidFeedLimit(it)) }
+fun Int.validFeedLimit(): Either<InvalidFeedLimit, FeedLimit> =
+  minSize(MIN_FEED_SIZE).map { FeedLimit(it) }.mapLeft { InvalidFeedLimit(it) }
 
 fun ArticleResource.Feed.validate(userId: UserId): Either<IncorrectInput, GetFeed> =
   zipOrAccumulate(offsetParam.validFeedOffset(), limitParam.validFeedLimit()) { offset, limit ->

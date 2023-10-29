@@ -11,24 +11,6 @@ import io.ktor.http.*
 
 class ArticleRouteSpec :
   StringSpec({
-
-    // User
-    val kaavehUsername = "kaaveh"
-    val kaavehEmail = "kaaveh@domain.com"
-    val kaavehPw = "123456789"
-    val simonUsername = "simon"
-    val simonEmail = "simon@domain.com"
-    val simonPw = "123456789"
-    val johnUsername = "john"
-    val johnEmail = "john@domain.com"
-    val johnPw = "123456789"
-
-    // Article
-    val validTags = setOf("arrow", "ktor", "kotlin", "sqldelight")
-    val validTitle = "Fake Article Arrow "
-    val validDescription = "This is a fake article description."
-    val validBody = "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
-
     "Check for empty feed" {
       withServer {
         val response =

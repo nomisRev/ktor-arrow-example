@@ -4,9 +4,8 @@ import arrow.core.raise.either
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.service.ArticleService
 import io.github.nomisrev.service.JwtService
-import io.github.nomisrev.validate
-import io.github.nomisrev.service.ArticleService
 import io.github.nomisrev.service.Slug
+import io.github.nomisrev.validate
 import io.ktor.http.HttpStatusCode
 import io.ktor.resources.Resource
 import io.ktor.server.resources.get
@@ -74,7 +73,10 @@ data class ArticleResource(val parent: RootResource = RootResource) {
     val limitParam: Int = 20,
     val parent: ArticleResource = ArticleResource()
   )
-  
+}
+
+@Resource("/articles")
+data class ArticlesResource(val parent: RootResource = RootResource) {
   @Resource("{slug}")
   data class Slug(val parent: ArticlesResource = ArticlesResource(), val slug: String)
 }
@@ -94,7 +96,8 @@ fun Route.articleRoutes(
         }
         .respond(HttpStatusCode.OK)
     }
-    
+  }
+
   get<ArticlesResource.Slug> { slug ->
     articleService
       .getArticleBySlug(Slug(slug.slug))
