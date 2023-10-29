@@ -29,7 +29,6 @@ fun GenericErrorModel(vararg msg: String): GenericErrorModel =
   GenericErrorModel(GenericErrorModelErrors(msg.toList()))
 
 context(PipelineContext<Unit, ApplicationCall>)
-
 suspend inline fun <reified A : Any> Either<DomainError, A>.respond(status: HttpStatusCode): Unit =
   when (this) {
     is Either.Left -> respond(value)

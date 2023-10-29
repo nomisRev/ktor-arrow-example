@@ -39,8 +39,7 @@ suspend inline fun PipelineContext<Unit, ApplicationCall>.optionalJwtAuth(
         { error -> respond(error) },
         { userId -> body(this, JwtContext(JwtToken(token), userId)) }
       )
-  }
-    ?: body(this, null)
+  } ?: body(this, null)
 }
 
 fun PipelineContext<Unit, ApplicationCall>.jwtToken(): String? =
