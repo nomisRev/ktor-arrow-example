@@ -60,7 +60,7 @@ data class NewArticle(
   val title: String,
   val description: String,
   val body: String,
-  val tagList: List<String>? = ArrayList()
+  val tagList: List<String> = emptyList()
 )
 
 @Serializable
