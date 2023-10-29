@@ -18,6 +18,10 @@ insert:
 INSERT INTO following(followed_id, follower_id)
 VALUES (:followedId, :followerId);
 
+insertByUsername:
+INSERT INTO following(followed_id, follower_id)
+VALUES ((SELECT id FROM users WHERE users.username=:username), :followerId);
+
 delete:
 DELETE FROM following
 WHERE followed_id=(SELECT id FROM users WHERE users.username=:username) AND follower_id = :followerId;

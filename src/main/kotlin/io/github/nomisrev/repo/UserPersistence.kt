@@ -1,6 +1,8 @@
 package io.github.nomisrev.repo
 
 import arrow.core.Either
+import arrow.core.raise.Raise
+import arrow.core.raise.catch
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
@@ -46,6 +48,9 @@ interface UserPersistence {
   ): Either<DomainError, UserInfo>
 
   suspend fun unfollowProfile(followedUsername: String, followerId: UserId)
+
+  context(Raise<DomainError>)
+  suspend fun followProfile(followedUsername: String, followerId: UserId)
 }
 
 /** UserPersistence implementation based on SqlDelight and JavaX Crypto */
@@ -130,6 +135,16 @@ fun userPersistence(
 
     override suspend fun unfollowProfile(followedUsername: String, followerId: UserId): Unit =
       followingQueries.delete(followedUsername, followerId.serial)
+
+    context(Raise<DomainError>)
+    override suspend fun followProfile(followedUsername: String, followerId: UserId) =
+      catch<PSQLException, Unit>({
+        followingQueries.insertByUsername(followedUsername, followerId.serial)
+      }) { psqlException ->
+        if (psqlException.sqlState == PSQLState.NOT_NULL_VIOLATION.state)
+          raise(UserNotFound("username=$followedUsername"))
+        else throw psqlException
+      }
 
     private fun generateSalt(): ByteArray = UUID.randomUUID().toString().toByteArray()
 
