@@ -20,4 +20,4 @@ VALUES (:followedId, :followerId);
 
 delete:
 DELETE FROM following
-WHERE followed_id = :followedId AND follower_id = :followerId;
+WHERE followed_id=(SELECT id FROM users WHERE users.username=:username) AND follower_id = :followerId;
