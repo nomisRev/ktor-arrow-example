@@ -102,7 +102,7 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
                   article.title,
                   article.description,
                   article.body,
-                  article.tagList?.toSet() ?: emptySet()
+                  article.tagList.toSet()
                 )
               )
               .map {
