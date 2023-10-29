@@ -6,7 +6,6 @@ import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.service.JwtService
 import io.ktor.http.HttpStatusCode
 import io.ktor.resources.Resource
-import io.ktor.server.application.call
 import io.ktor.server.resources.delete
 import io.ktor.server.routing.Route
 
@@ -33,15 +32,13 @@ fun Route.profileRoutes(
   userPersistence: UserPersistence,
   jwtService: JwtService
 ) {
-  delete<ProfilesResource.Follow> {
+  delete<ProfilesResource.Follow> { follow ->
     jwtAuth(jwtService) { (_, userId) ->
       either {
-        val usernameToUnfollow = call.parameters["username"]!!
-        userPersistence.unfollowProfile(usernameToUnfollow, userId).bind()
-        val userUnfollowed =  userPersistence.select(usernameToUnfollow).bind()
+        userPersistence.unfollowProfile(follow.username, userId)
+        val userUnfollowed =  userPersistence.select(follow.username).bind()
         ProfileWrapper(Profile(userUnfollowed.username, userUnfollowed.bio, userUnfollowed.image, false))
       }.respond(HttpStatusCode.OK)
     }
   }
-
 }
