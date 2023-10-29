@@ -1,6 +1,8 @@
 package io.github.nomisrev.routes
 
 import io.github.nomisrev.KotestProject
+import io.github.nomisrev.MIN_FEED_SIZE
+import io.github.nomisrev.MIN_OFFSET
 import io.github.nomisrev.SuspendFun
 import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.service.RegisterUser
@@ -8,8 +10,9 @@ import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.matchers.shouldBe
 import io.ktor.client.call.body
+import io.ktor.client.plugins.resources.get
+import io.ktor.client.plugins.resources.post
 import io.ktor.client.request.bearerAuth
-import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -17,18 +20,82 @@ import io.ktor.http.contentType
 
 class ArticleRouteSpec :
   SuspendFun({
-    // User
-    val validUsername = "username3"
-    val validEmail = "valid1@domain.com"
-    val validPw = "123456789"
-    // Article
-    val validTags = setOf("arrow", "ktor", "kotlin", "sqldelight")
-    val validTitle = "Fake Article Arrow"
-    val validDescription = "This is a fake article description."
-    val validBody = "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+    "Check for empty feed" {
+      withServer {
+        val response =
+          get(ArticleResource.Feed(offsetParam = 0)) { contentType(ContentType.Application.Json) }
+
+        response.status shouldBe HttpStatusCode.OK
+        response.body<MultipleArticlesResponse>().articles.toSet() shouldBe emptySet()
+        response.body<MultipleArticlesResponse>().articlesCount shouldBe 0
+      }
+    }
+
+    "ٰValidate correct both offset and limit value" {
+      withServer {
+        val response =
+          get(ArticleResource.Feed(offsetParam = 0, limitParam = 5)) {
+            contentType(ContentType.Application.Json)
+          }
+
+        response.status shouldBe HttpStatusCode.OK
+        response.body<MultipleArticlesResponse>().articles.toSet() shouldBe emptySet()
+        response.body<MultipleArticlesResponse>().articlesCount shouldBe 0
+      }
+    }
+
+    "ٰValidate wrong offset value" {
+      withServer {
+        val response =
+          get(ArticleResource.Feed(offsetParam = -1)) { contentType(ContentType.Application.Json) }
+
+        response.status shouldBe HttpStatusCode.UnprocessableEntity
+        response.body<GenericErrorModel>().errors.body shouldBe
+          listOf("offset too small (minimum is $MIN_OFFSET)")
+      }
+    }
+
+    "ٰValidate wrong limit value" {
+      withServer {
+        val response =
+          get(ArticleResource.Feed(offsetParam = 0, limitParam = -1)) {
+            contentType(ContentType.Application.Json)
+          }
+
+        response.status shouldBe HttpStatusCode.UnprocessableEntity
+        response.body<GenericErrorModel>().errors.body shouldBe
+          listOf("offset too small (minimum is $MIN_FEED_SIZE)")
+      }
+    }
+
+    "ٰValidate wrong both limit and value" {
+      withServer {
+        val response =
+          get(ArticleResource.Feed(offsetParam = -1, limitParam = -1)) {
+            contentType(ContentType.Application.Json)
+          }
+
+        response.status shouldBe HttpStatusCode.UnprocessableEntity
+        response.body<GenericErrorModel>().errors.body shouldBe
+          listOf(
+            "offset too small (minimum is $MIN_FEED_SIZE)",
+            "offset too small (minimum is $MIN_OFFSET)",
+          )
+      }
+    }
 
     "create" -
       {
+        // User
+        val validUsername = "username3"
+        val validEmail = "valid1@domain.com"
+        val validPw = "123456789"
+        // Article
+        val validTags = setOf("arrow", "ktor", "kotlin", "sqldelight")
+        val validTitle = "Fake Article Arrow"
+        val validDescription = "This is a fake article description."
+        val validBody = "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+
         var token: JwtToken? = null
 
         beforeTest {
@@ -43,7 +110,7 @@ class ArticleRouteSpec :
         "article with tags" {
           withServer {
             val response =
-              post("/articles") {
+              post(ArticlesResource()) {
                 bearerAuth(token!!.value)
                 contentType(ContentType.Application.Json)
                 setBody(
@@ -69,10 +136,12 @@ class ArticleRouteSpec :
         "article without tags" {
           withServer {
             val response =
-              post("/articles") {
+              post(ArticlesResource()) {
                 bearerAuth(token!!.value)
                 contentType(ContentType.Application.Json)
-                setBody(ArticleWrapper(NewArticle(validTitle, validDescription, validBody, emptyList())))
+                setBody(
+                  ArticleWrapper(NewArticle(validTitle, validDescription, validBody, emptyList()))
+                )
               }
 
             response.status shouldBe HttpStatusCode.Created
@@ -91,7 +160,7 @@ class ArticleRouteSpec :
         "body cannot be empty" {
           withServer {
             val response =
-              post("/articles") {
+              post(ArticlesResource()) {
                 bearerAuth(token!!.value)
                 contentType(ContentType.Application.Json)
                 setBody(ArticleWrapper(NewArticle(validTitle, validDescription, "", emptyList())))
@@ -104,7 +173,7 @@ class ArticleRouteSpec :
         "description cannot be empty" {
           withServer {
             val response =
-              post("/articles") {
+              post(ArticlesResource()) {
                 bearerAuth(token!!.value)
                 contentType(ContentType.Application.Json)
                 setBody(ArticleWrapper(NewArticle(validTitle, "", validBody, emptyList())))
@@ -117,7 +186,7 @@ class ArticleRouteSpec :
         "title cannot be empty" {
           withServer {
             val response =
-              post("/articles") {
+              post(ArticlesResource()) {
                 bearerAuth(token!!.value)
                 contentType(ContentType.Application.Json)
                 setBody(ArticleWrapper(NewArticle("", validDescription, validBody, emptyList())))
@@ -130,9 +199,11 @@ class ArticleRouteSpec :
         "Unauthorized user cannot create article" {
           withServer {
             val response =
-              post("/articles") {
+              post(ArticlesResource()) {
                 contentType(ContentType.Application.Json)
-                setBody(ArticleWrapper(NewArticle(validTitle, validDescription, validBody, emptyList())))
+                setBody(
+                  ArticleWrapper(NewArticle(validTitle, validDescription, validBody, emptyList()))
+                )
               }
 
             response.status shouldBe HttpStatusCode.Unauthorized
