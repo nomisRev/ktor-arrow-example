@@ -6,8 +6,8 @@ import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.call.body
-import io.ktor.client.request.bearerAuth
 import io.ktor.client.plugins.resources.delete
+import io.ktor.client.request.bearerAuth
 import io.ktor.http.HttpStatusCode
 
 class ProfileRouteSpec :
@@ -20,16 +20,18 @@ class ProfileRouteSpec :
 
     "Can unfollow profile" {
       withServer { dependencies ->
-        val token = dependencies.userService
-          .register(RegisterUser(validUsername, validEmail, validPw))
-          .shouldBeRight()
+        val token =
+          dependencies.userService
+            .register(RegisterUser(validUsername, validEmail, validPw))
+            .shouldBeRight()
         dependencies.userService
           .register(RegisterUser(validUsernameFollowed, validEmailFollowed, validPw))
           .shouldBeRight()
 
-        val response = delete(ProfilesResource.Follow(username = validUsernameFollowed)) {
-          bearerAuth(token.value)
-        }
+        val response =
+          delete(ProfilesResource.Follow(username = validUsernameFollowed)) {
+            bearerAuth(token.value)
+          }
 
         response.status shouldBe HttpStatusCode.OK
         with(response.body<ProfileWrapper<Profile>>().profile) {
@@ -50,14 +52,16 @@ class ProfileRouteSpec :
     }
 
     "Username invalid to unfollow" {
-      withServer {dependencies ->
-        val token = dependencies.userService
-          .register(RegisterUser(validUsername, validEmail, validPw))
-          .shouldBeRight()
+      withServer { dependencies ->
+        val token =
+          dependencies.userService
+            .register(RegisterUser(validUsername, validEmail, validPw))
+            .shouldBeRight()
 
-        val response = delete(ProfilesResource.Follow(username = validUsernameFollowed)) {
-          bearerAuth(token.value)
-        }
+        val response =
+          delete(ProfilesResource.Follow(username = validUsernameFollowed)) {
+            bearerAuth(token.value)
+          }
 
         response.status shouldBe HttpStatusCode.UnprocessableEntity
       }

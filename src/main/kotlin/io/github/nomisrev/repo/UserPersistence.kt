@@ -45,7 +45,7 @@ interface UserPersistence {
     image: String?
   ): Either<DomainError, UserInfo>
 
-  suspend fun unfollowProfile(followedUsername: String, followerId: UserId): Unit
+  suspend fun unfollowProfile(followedUsername: String, followerId: UserId)
 }
 
 /** UserPersistence implementation based on SqlDelight and JavaX Crypto */
@@ -128,10 +128,8 @@ fun userPersistence(
       ensureNotNull(info) { UserNotFound("userId=$userId") }
     }
 
-    override suspend fun unfollowProfile(
-      followedUsername: String,
-      followerId: UserId
-    ): Unit = followingQueries.delete(followedUsername, followerId.serial)
+    override suspend fun unfollowProfile(followedUsername: String, followerId: UserId): Unit =
+      followingQueries.delete(followedUsername, followerId.serial)
 
     private fun generateSalt(): ByteArray = UUID.randomUUID().toString().toByteArray()
 
