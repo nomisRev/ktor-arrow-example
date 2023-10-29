@@ -7,9 +7,10 @@ import io.ktor.server.routing.routing
 
 fun Application.routes(deps: Dependencies) = routing {
   userRoutes(deps.userService, deps.jwtService)
+  articleRoutes(deps.articleService, deps.jwtService)
   tagRoutes(deps.tagPersistence)
   profileRoutes(deps.userPersistence, deps.jwtService)
-  articleRoutes(deps.articleService)
+  articleRoutes(deps.articleService, deps.jwtService)
 }
 
 @Resource("/api") data object RootResource

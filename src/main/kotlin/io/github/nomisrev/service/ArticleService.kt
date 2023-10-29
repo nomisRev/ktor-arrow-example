@@ -9,6 +9,9 @@ import io.github.nomisrev.repo.TagPersistence
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.routes.Article
+import io.github.nomisrev.routes.FeedLimit
+import io.github.nomisrev.routes.FeedOffset
+import io.github.nomisrev.routes.MultipleArticlesResponse
 import io.github.nomisrev.routes.Profile
 import java.time.OffsetDateTime
 
@@ -20,9 +23,18 @@ data class CreateArticle(
   val tags: Set<String>
 )
 
+data class GetFeed(
+  val userId: UserId,
+  val limit: Int,
+  val offset: Int,
+)
+
 interface ArticleService {
   /** Creates a new article and returns the resulting Article */
   suspend fun createArticle(input: CreateArticle): Either<DomainError, Article>
+
+  /** Get the user's feed which contains articles of the authors the user followed */
+  suspend fun getUserFeed(input: GetFeed): MultipleArticlesResponse
 
   /** Get article by Slug */
   suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article>
@@ -71,6 +83,20 @@ fun articleService(
           input.tags.toList()
         )
       }
+
+    override suspend fun getUserFeed(input: GetFeed): MultipleArticlesResponse {
+      val articles =
+        articlePersistence.getFeed(
+          userId = input.userId,
+          limit = FeedLimit(input.limit),
+          offset = FeedOffset(input.offset)
+        )
+
+      return MultipleArticlesResponse(
+        articles = articles,
+        articlesCount = articles.size,
+      )
+    }
 
     override suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article> = either {
       val article = articlePersistence.getArticleBySlug(slug).bind()
