@@ -41,13 +41,9 @@ data class MultipleArticlesResponse(
   val articlesCount: Int,
 )
 
-@JvmInline
-@Serializable
-value class FeedOffset(val offset: Int)
+@JvmInline @Serializable value class FeedOffset(val offset: Int)
 
-@JvmInline
-@Serializable
-value class FeedLimit(val limit: Int)
+@JvmInline @Serializable value class FeedLimit(val limit: Int)
 
 @Serializable
 data class Profile(
@@ -84,9 +80,9 @@ fun Route.articleRoutes(
   get<ArticleResource.Feed> { feed ->
     jwtAuth(jwtService) { (_, userId) ->
       either {
-        val getFeed = feed.validate(userId).bind()
+          val getFeed = feed.validate(userId).bind()
 
-        val articlesFeed = articleService.getUserFeed(input = getFeed)
+          val articlesFeed = articleService.getUserFeed(input = getFeed)
           ArticleWrapper(articlesFeed)
         }
         .respond(HttpStatusCode.OK)

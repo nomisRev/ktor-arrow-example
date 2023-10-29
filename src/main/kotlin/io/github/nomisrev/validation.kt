@@ -170,18 +170,13 @@ private fun Int.minSize(size: Int): EitherNel<String, Int> =
   if (this >= size) right() else "offset too small (minimum is $size)".leftNel()
 
 fun Int.validFeedOffset(): Either<IncorrectInput, FeedOffset> =
-  minSize(MIN_OFFSET)
-    .map { FeedOffset(it) }
-    .mapLeft { IncorrectInput(InvalidFeedOffset(it)) }
+  minSize(MIN_OFFSET).map { FeedOffset(it) }.mapLeft { IncorrectInput(InvalidFeedOffset(it)) }
 
 fun Int.validFeedLimit(): Either<IncorrectInput, FeedLimit> =
-  minSize(MIN_FEED_SIZE)
-    .map { FeedLimit(it) }
-    .mapLeft { IncorrectInput(InvalidFeedLimit(it)) }
+  minSize(MIN_FEED_SIZE).map { FeedLimit(it) }.mapLeft { IncorrectInput(InvalidFeedLimit(it)) }
 
 fun ArticleResource.Feed.validate(userId: UserId): Either<IncorrectInput, GetFeed> =
-  zipOrAccumulate(
-    offsetParam.validFeedOffset(),
-    limitParam.validFeedLimit()
-  ) { offset, limit -> GetFeed(userId, limit.limit, offset.offset) }
+  zipOrAccumulate(offsetParam.validFeedOffset(), limitParam.validFeedLimit()) { offset, limit ->
+      GetFeed(userId, limit.limit, offset.offset)
+    }
     .mapLeft(::IncorrectInput)

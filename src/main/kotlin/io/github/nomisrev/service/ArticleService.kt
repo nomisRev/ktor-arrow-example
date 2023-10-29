@@ -73,12 +73,14 @@ fun articleService(
         )
       }
 
-    override suspend fun getUserFeed(
-      input: GetFeed
-    ): MultipleArticlesResponse {
-      val articles = articlePersistence
-        .getFeed(userId = input.userId, limit = FeedLimit(input.limit), offset = FeedOffset(input.offset))
-        
+    override suspend fun getUserFeed(input: GetFeed): MultipleArticlesResponse {
+      val articles =
+        articlePersistence.getFeed(
+          userId = input.userId,
+          limit = FeedLimit(input.limit),
+          offset = FeedOffset(input.offset)
+        )
+
       return MultipleArticlesResponse(
         articles = articles,
         articlesCount = articles.size,

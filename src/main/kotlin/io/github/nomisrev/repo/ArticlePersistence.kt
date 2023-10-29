@@ -29,11 +29,7 @@ interface ArticlePersistence {
   suspend fun exists(slug: Slug): Boolean
 
   /** Get recent articles from users you follow * */
-  suspend fun getFeed(
-    userId: UserId,
-    limit: FeedLimit,
-    offset: FeedOffset
-  ): List<Article>
+  suspend fun getFeed(userId: UserId, limit: FeedLimit, offset: FeedOffset): List<Article>
 }
 
 fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
@@ -67,36 +63,36 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
       limit: FeedLimit,
       offset: FeedOffset,
     ): List<Article> =
-          articles
-            .selectFeedArticles(
-              userId.serial,
-              limit.limit.toLong(),
-              offset.offset.toLong(),
-            ) {
-              articleId,
-              articleSlug,
-              articleTitle,
-              articleDescription,
-              articleBody,
-              articleAuthorId,
-              articleCreatedAt,
-              articleUpdatedAt,
-              usersId,
-              usersUsername,
-              usersImage ->
-                Article(
-                  articleId = articleId.serial,
-                  slug = articleSlug,
-                  title = articleTitle,
-                  description = articleDescription,
-                  body = articleBody,
-                  author = Profile(usersUsername, "", usersImage, true),
-                  favorited = false,
-                  favoritesCount = 0,
-                  createdAt = articleCreatedAt,
-                  updatedAt = articleUpdatedAt,
-                  tagList = listOf(),
-                )
-              }
-              .executeAsList()
+      articles
+        .selectFeedArticles(
+          userId.serial,
+          limit.limit.toLong(),
+          offset.offset.toLong(),
+        ) {
+          articleId,
+          articleSlug,
+          articleTitle,
+          articleDescription,
+          articleBody,
+          articleAuthorId,
+          articleCreatedAt,
+          articleUpdatedAt,
+          usersId,
+          usersUsername,
+          usersImage ->
+          Article(
+            articleId = articleId.serial,
+            slug = articleSlug,
+            title = articleTitle,
+            description = articleDescription,
+            body = articleBody,
+            author = Profile(usersUsername, "", usersImage, true),
+            favorited = false,
+            favoritesCount = 0,
+            createdAt = articleCreatedAt,
+            updatedAt = articleUpdatedAt,
+            tagList = listOf(),
+          )
+        }
+        .executeAsList()
   }
