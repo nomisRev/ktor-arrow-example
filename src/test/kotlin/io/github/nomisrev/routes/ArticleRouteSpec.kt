@@ -72,7 +72,7 @@ class ArticleRouteSpec :
               post("/articles") {
                 bearerAuth(token!!.value)
                 contentType(ContentType.Application.Json)
-                setBody(ArticleWrapper(NewArticle(validTitle, validDescription, validBody, null)))
+                setBody(ArticleWrapper(NewArticle(validTitle, validDescription, validBody, emptyList())))
               }
 
             response.status shouldBe HttpStatusCode.Created
@@ -94,7 +94,7 @@ class ArticleRouteSpec :
               post("/articles") {
                 bearerAuth(token!!.value)
                 contentType(ContentType.Application.Json)
-                setBody(ArticleWrapper(NewArticle(validTitle, validDescription, "", null)))
+                setBody(ArticleWrapper(NewArticle(validTitle, validDescription, "", emptyList())))
               }
 
             response.status shouldBe HttpStatusCode.UnprocessableEntity
@@ -107,7 +107,7 @@ class ArticleRouteSpec :
               post("/articles") {
                 bearerAuth(token!!.value)
                 contentType(ContentType.Application.Json)
-                setBody(ArticleWrapper(NewArticle(validTitle, "", validBody, null)))
+                setBody(ArticleWrapper(NewArticle(validTitle, "", validBody, emptyList())))
               }
 
             response.status shouldBe HttpStatusCode.UnprocessableEntity
@@ -120,7 +120,7 @@ class ArticleRouteSpec :
               post("/articles") {
                 bearerAuth(token!!.value)
                 contentType(ContentType.Application.Json)
-                setBody(ArticleWrapper(NewArticle("", validDescription, validBody, null)))
+                setBody(ArticleWrapper(NewArticle("", validDescription, validBody, emptyList())))
               }
 
             response.status shouldBe HttpStatusCode.UnprocessableEntity
@@ -132,7 +132,7 @@ class ArticleRouteSpec :
             val response =
               post("/articles") {
                 contentType(ContentType.Application.Json)
-                setBody(ArticleWrapper(NewArticle(validTitle, validDescription, validBody, null)))
+                setBody(ArticleWrapper(NewArticle(validTitle, validDescription, validBody, emptyList())))
               }
 
             response.status shouldBe HttpStatusCode.Unauthorized
