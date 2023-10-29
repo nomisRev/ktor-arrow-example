@@ -155,8 +155,8 @@ private val emailPattern = ".+@.+\\..+".toRegex()
 private fun String.looksLikeEmail(): EitherNel<String, String> =
   if (emailPattern.matches(this)) right() else "'$this' is invalid email".leftNel()
 
-private const val MIN_FEED_SIZE = 1
-private const val MIN_OFFSET = 0
+const val MIN_FEED_SIZE = 1
+const val MIN_OFFSET = 0
 
 data class InvalidFeedOffset(override val errors: NonEmptyList<String>) : InvalidField {
   override val field: String = "feed offset"
