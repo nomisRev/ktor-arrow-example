@@ -37,3 +37,5 @@ data class JwtInvalid(val description: String) : JwtError
 sealed interface ArticleError : DomainError
 
 data class CannotGenerateSlug(val description: String) : ArticleError
+
+data class ArticleBySlugNotFound(val slug: String) : ArticleError
