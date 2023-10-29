@@ -1,7 +1,11 @@
 package io.github.nomisrev.routes
 
+import arrow.core.raise.either
+import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.service.ArticleService
+import io.github.nomisrev.service.JwtService
 import io.github.nomisrev.service.Slug
+import io.github.nomisrev.validate
 import io.ktor.http.HttpStatusCode
 import io.ktor.resources.Resource
 import io.ktor.server.resources.get
@@ -14,6 +18,8 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+
+@Serializable data class ArticleWrapper<T : Any>(val article: T)
 
 @Serializable
 data class Article(
@@ -29,6 +35,18 @@ data class Article(
   @Serializable(with = OffsetDateTimeIso8601Serializer::class) val updatedAt: OffsetDateTime,
   val tagList: List<String>
 )
+
+@Serializable data class SingleArticleResponse(val article: Article)
+
+@Serializable
+data class MultipleArticlesResponse(
+  val articles: List<Article>,
+  val articlesCount: Int,
+)
+
+@JvmInline @Serializable value class FeedOffset(val offset: Int)
+
+@JvmInline @Serializable value class FeedLimit(val limit: Int)
 
 @Serializable
 data class Profile(
@@ -47,12 +65,45 @@ data class Comment(
   val author: Profile
 )
 
-@Serializable data class SingleArticleResponse(val article: Article)
+@Resource("/article")
+data class ArticleResource(val parent: RootResource = RootResource) {
+  @Resource("/feed")
+  data class Feed(
+    val offsetParam: Int,
+    val limitParam: Int = 20,
+    val parent: ArticleResource = ArticleResource()
+  )
+}
 
 @Resource("/articles")
 data class ArticlesResource(val parent: RootResource = RootResource) {
   @Resource("{slug}")
   data class Slug(val parent: ArticlesResource = ArticlesResource(), val slug: String)
+}
+
+fun Route.articleRoutes(
+  articleService: ArticleService,
+  jwtService: JwtService,
+) {
+
+  get<ArticleResource.Feed> { feed ->
+    jwtAuth(jwtService) { (_, userId) ->
+      either {
+          val getFeed = feed.validate(userId).bind()
+
+          val articlesFeed = articleService.getUserFeed(input = getFeed)
+          ArticleWrapper(articlesFeed)
+        }
+        .respond(HttpStatusCode.OK)
+    }
+  }
+
+  get<ArticlesResource.Slug> { slug ->
+    articleService
+      .getArticleBySlug(Slug(slug.slug))
+      .map { SingleArticleResponse(it) }
+      .respond(HttpStatusCode.OK)
+  }
 }
 
 private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
@@ -66,11 +117,3 @@ private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
     encoder.encodeString(value.toString())
   }
 }
-
-fun Route.articleRoutes(articleService: ArticleService) =
-  get<ArticlesResource.Slug> { slug ->
-    articleService
-      .getArticleBySlug(Slug(slug.slug))
-      .map { SingleArticleResponse(it) }
-      .respond(HttpStatusCode.OK)
-  }

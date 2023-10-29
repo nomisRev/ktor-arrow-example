@@ -25,6 +25,20 @@ WHERE author_id = :authorId
 ORDER BY createdAt DESC
 LIMIT :limit OFFSET :offset;
 
+selectFeedArticles:
+SELECT
+articles.id AS article__id, articles.slug AS article__slug, articles.title AS article__title, articles.description AS article__description, articles.body AS article__body, articles.author_id AS article__author_id, articles.createdAt AS article__createdAt, articles.updatedAt AS article__updatedAt,
+users.id AS users__id, users.username AS users__username, users.image AS users__image
+FROM articles
+INNER JOIN users ON articles.author_id = users.id
+WHERE articles.author_id IN (
+    SELECT following.followed_id
+    FROM following
+    WHERE following.follower_id = :user_id
+)
+ORDER BY createdAt DESC
+LIMIT :limit OFFSET :offset;
+
 update:
 UPDATE articles
 SET title = :title, description = :description, body = :body;
