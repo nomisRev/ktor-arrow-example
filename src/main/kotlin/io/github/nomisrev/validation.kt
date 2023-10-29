@@ -156,7 +156,7 @@ fun NewArticle.validate(): Either<IncorrectInput, NewArticle> =
       title.validTitle(),
       description.validDescription(),
       body.validBody(),
-      validTags(tagList ?: listOf()).map { it.toList() },
+validTags(tagList).map { it.toList() },
       ::NewArticle
     )
     .mapLeft(::IncorrectInput)
