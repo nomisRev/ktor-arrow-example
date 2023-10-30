@@ -46,14 +46,9 @@ fun Route.profileRoutes(
     userPersistence: UserPersistence,
     jwtService: JwtService
 ) {
-    get<ProfileResource.Username> {
-        either {
-            val username = parameter(USERNAME) { it }.bind()
-            repo.selectProfile(username).bind()
-        }
-            .respond(HttpStatusCode.OK)
-    }
-    delete<ProfilesResource.Follow> { follow ->
+  get<ProfileResource.Username> { route ->
+    either { repo.selectProfile(route.username).bind() }.respond(HttpStatusCode.OK)
+  }delete<ProfilesResource.Follow> { follow ->
         jwtAuth(jwtService) { (_, userId) ->
             either {
                 userPersistence.unfollowProfile(follow.username, userId)
