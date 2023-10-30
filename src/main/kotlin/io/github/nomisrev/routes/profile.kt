@@ -8,11 +8,9 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.resources.Resource
 import io.ktor.server.resources.delete
 import io.ktor.server.routing.Route
-
 import kotlinx.serialization.Serializable
 
-@Serializable
-data class ProfileWrapper<T : Any>(val profile: T)
+@Serializable data class ProfileWrapper<T : Any>(val profile: T)
 
 @Serializable
 data class Profile(
@@ -28,17 +26,17 @@ data class ProfilesResource(val parent: RootResource = RootResource) {
   data class Follow(val parent: ProfilesResource = ProfilesResource(), val username: String)
 }
 
-fun Route.profileRoutes(
-  userPersistence: UserPersistence,
-  jwtService: JwtService
-) {
+fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtService) {
   delete<ProfilesResource.Follow> { follow ->
     jwtAuth(jwtService) { (_, userId) ->
       either {
-        userPersistence.unfollowProfile(follow.username, userId)
-        val userUnfollowed =  userPersistence.select(follow.username).bind()
-        ProfileWrapper(Profile(userUnfollowed.username, userUnfollowed.bio, userUnfollowed.image, false))
-      }.respond(HttpStatusCode.OK)
+          userPersistence.unfollowProfile(follow.username, userId)
+          val userUnfollowed = userPersistence.select(follow.username).bind()
+          ProfileWrapper(
+            Profile(userUnfollowed.username, userUnfollowed.bio, userUnfollowed.image, false)
+          )
+        }
+        .respond(HttpStatusCode.OK)
     }
   }
 }
