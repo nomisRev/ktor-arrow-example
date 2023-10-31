@@ -3,6 +3,8 @@
 package io.github.nomisrev.routes
 
 import arrow.core.raise.either
+import arrow.core.raise.ensure
+import io.github.nomisrev.MissingParameter
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.service.JwtService
@@ -25,8 +27,8 @@ data class Profile(
 
 @Resource("/profiles")
 data class ProfilesResource(val parent: RootResource = RootResource) {
-  @Resource("/{username}")
-  data class Username(val parent: ProfilesResource = ProfilesResource(), val username: String)
+  @Resource("/{username?}")
+  data class Username(val parent: ProfilesResource = ProfilesResource(), val username: String?)
 
   @Resource("/{username}/follow")
   data class Follow(val parent: ProfilesResource = ProfilesResource(), val username: String)
@@ -34,7 +36,11 @@ data class ProfilesResource(val parent: RootResource = RootResource) {
 
 fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtService) {
   get<ProfilesResource.Username> { route ->
-    either { userPersistence.selectProfile(route.username).bind() }.respond(HttpStatusCode.OK)
+    either {
+        ensure(!route.username.isNullOrBlank()) { MissingParameter("username") }
+        userPersistence.selectProfile(route.username).bind()
+      }
+      .respond(HttpStatusCode.OK)
   }
   delete<ProfilesResource.Follow> { follow ->
     jwtAuth(jwtService) { (_, userId) ->
