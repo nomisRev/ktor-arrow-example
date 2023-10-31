@@ -21,7 +21,6 @@ import kotlinx.coroutines.Dispatchers
 
 class Dependencies(
   val userService: UserService,
-  val userRepo: UserPersistence,
   val jwtService: JwtService,
   val articleService: ArticleService,
   val healthCheck: HealthCheckRegistry,
@@ -47,10 +46,11 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
 
   return Dependencies(
     userService = userService,
-    userRepo = userRepo,
     jwtService = jwtService,
-    articleService = articleService(slugGenerator, articleRepo, userRepo, tagPersistence, favouritePersistence),
+    articleService =
+      articleService(slugGenerator, articleRepo, userRepo, tagPersistence, favouritePersistence),
     healthCheck = checks,
-    tagPersistence = tagPersistence
+    tagPersistence = tagPersistence,
+    userPersistence = userRepo,
   )
 }
