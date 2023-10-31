@@ -49,14 +49,6 @@ data class MultipleArticlesResponse(
 @JvmInline @Serializable value class FeedLimit(val limit: Int)
 
 @Serializable
-data class Profile(
-  val username: String,
-  val bio: String,
-  val image: String,
-  val following: Boolean
-)
-
-@Serializable
 data class Comment(
   val commentId: Long,
   @Serializable(with = OffsetDateTimeIso8601Serializer::class) val createdAt: OffsetDateTime,
