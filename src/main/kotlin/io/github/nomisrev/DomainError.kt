@@ -18,6 +18,8 @@ data class IncorrectInput(val errors: NonEmptyList<InvalidField>) : ValidationEr
   constructor(head: InvalidField) : this(nonEmptyListOf(head))
 }
 
+data class MissingParameter(val name: String) : ValidationError
+
 sealed interface UserError : DomainError
 
 data class UserNotFound(val property: String) : UserError
