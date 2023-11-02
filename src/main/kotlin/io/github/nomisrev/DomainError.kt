@@ -18,6 +18,8 @@ data class IncorrectInput(val errors: NonEmptyList<InvalidField>) : ValidationEr
   constructor(head: InvalidField) : this(nonEmptyListOf(head))
 }
 
+data class MissingParameter(val name: String) : ValidationError
+
 sealed interface UserError : DomainError
 
 data class UserNotFound(val property: String) : UserError
@@ -37,3 +39,5 @@ data class JwtInvalid(val description: String) : JwtError
 sealed interface ArticleError : DomainError
 
 data class CannotGenerateSlug(val description: String) : ArticleError
+
+data class ArticleBySlugNotFound(val slug: String) : ArticleError

@@ -2,12 +2,16 @@
 
 package io.github.nomisrev
 
+import arrow.core.raise.recover
+import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.env.Env
 import io.github.nomisrev.env.kotlinXSerializersModule
 import io.github.nomisrev.repo.ArticlePersistence
 import io.github.nomisrev.repo.TagPersistence
 import io.github.nomisrev.repo.UserPersistence
+import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.service.SlugGenerator
+import io.github.nomisrev.service.register
 import io.github.nomisrev.service.slugifyGenerator
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -51,3 +55,12 @@ suspend fun withServer(test: suspend context(
       }
   }
 }
+
+suspend fun registerUser(name: String): JwtToken =
+  with(KotestProject.env.auth) {
+    with(KotestProject.dependencies.get().userPersistence) {
+      recover({
+        register(RegisterUser(name, "$name@email.com", "password"))
+      }) { throw AssertionError("Registering user: $name failed", RuntimeException(it.toString())) }
+    }
+  }

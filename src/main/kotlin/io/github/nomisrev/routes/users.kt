@@ -81,7 +81,7 @@ fun userRoutes() {
   }
   /* Get Current User: GET /api/user */
   get<UserResource> {
-    jwtAuth { (token, userId) ->
+    jwtAuth { token, userId ->
       conduit(HttpStatusCode.OK) {
         val info = select(userId)
         UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
@@ -91,7 +91,7 @@ fun userRoutes() {
 
   /* Update current user: PUT /api/user */
   put<UserResource> {
-    jwtAuth { (token, userId) ->
+    jwtAuth { token, userId ->
       conduit(HttpStatusCode.OK) {
         val (email, username, password, bio, image) =
           receiveCatching<UserWrapper<UpdateUser>>().user
@@ -105,4 +105,4 @@ fun userRoutes() {
 context(Raise<IncorrectJson>)
 @OptIn(ExperimentalSerializationApi::class)
 private suspend inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>.receiveCatching(): A =
-  catch({ call.receive() }) { e: MissingFieldException -> shift(IncorrectJson(e)) }
+  catch({ call.receive() }) { e: MissingFieldException -> raise(IncorrectJson(e)) }

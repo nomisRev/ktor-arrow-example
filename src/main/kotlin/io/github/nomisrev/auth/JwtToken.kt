@@ -17,30 +17,32 @@ import io.ktor.server.response.respond
 @JvmInline
 value class JwtToken(val value: String)
 
-data class JwtContext(val token: JwtToken, val userId: UserId)
-
 // Small middleware to validate JWT token without using Ktor Auth / Nullable principle
 context(KtorCtx, UserPersistence, Env.Auth)
 suspend inline fun jwtAuth( // BUG: inline + same context as lambda as function
-  crossinline body: suspend /*context(KtorCtx)*/ (JwtContext) -> Unit
+  crossinline body: suspend /*context(KtorCtx)*/ (token: JwtToken, userId: UserId) -> Unit
 ) {
-  optionalJwtAuth { context ->
-    context?.let { body(it) } ?: call.respond(HttpStatusCode.Unauthorized)
+  optionalJwtAuth { token, userId ->
+    token?.let {
+      userId?.let {
+        body(token, userId)
+      }
+    } ?: call.respond(HttpStatusCode.Unauthorized)
   }
 }
 
 // TODO Report YT: BUG: inline + same context as lambda as function
 context(KtorCtx, UserPersistence, Env.Auth)
 suspend inline fun optionalJwtAuth( // BUG: inline + same context as lambda as function
-  crossinline body: suspend /*context(KtorCtx)*/ (JwtContext?) -> Unit
+  crossinline body: suspend /*context(KtorCtx)*/ (token: JwtToken?, userId: UserId?) -> Unit
 ) = effect {
   jwtTokenStringOrNul()?.let { token ->
     val userId = verifyJwtToken(JwtToken(token))
-    JwtContext(JwtToken(token), userId)
+    Pair(JwtToken(token), userId)
   }
 }.fold(
   { error -> respond(error) },
-  { context -> body(context) }
+  { pair -> body(pair?.first, pair?.second) }
 )
 
 context(KtorCtx)

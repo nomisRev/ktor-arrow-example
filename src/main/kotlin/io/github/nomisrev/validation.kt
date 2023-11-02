@@ -10,6 +10,12 @@ import arrow.core.leftNel
 import arrow.core.mapOrAccumulate
 import arrow.core.nonEmptyListOf
 import arrow.core.right
+import io.github.nomisrev.repo.UserId
+import io.github.nomisrev.routes.ArticleResource
+import io.github.nomisrev.routes.FeedLimit
+import io.github.nomisrev.routes.FeedOffset
+import io.github.nomisrev.routes.NewArticle
+import io.github.nomisrev.service.GetFeed
 import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.service.Update
@@ -114,23 +120,20 @@ private fun String.validUsername(): EitherNel<InvalidUsername, String> {
 }
 
 @Suppress("UnusedPrivateMember")
-private fun String.validTitle(): EitherNel<InvalidTitle, String> =
-  trim().notBlank().mapLeft(toInvalidField(::InvalidTitle))
+private fun String.validTitle(): Either<InvalidTitle, String> =
+  trim().notBlank().mapLeft(::InvalidTitle)
 
 @Suppress("UnusedPrivateMember")
-private fun String.validDescription(): EitherNel<InvalidDescription, String> =
-  trim().notBlank().mapLeft(toInvalidField(::InvalidDescription))
+private fun String.validDescription(): Either<InvalidDescription, String> =
+  trim().notBlank().mapLeft(::InvalidDescription)
 
 @Suppress("UnusedPrivateMember")
-private fun String.validBody(): EitherNel<InvalidBody, String> =
-  trim().notBlank().mapLeft(toInvalidField(::InvalidBody))
+private fun String.validBody(): Either<InvalidBody, String> =
+  trim().notBlank().mapLeft(::InvalidBody)
 
 @Suppress("UnusedPrivateMember")
-private fun validTags(tags: List<String>): EitherNel<InvalidTag, Set<String>> =
-  tags
-    .mapOrAccumulate { it.trim().notBlank().bindNel() }
-    .mapLeft { errors: NonEmptyList<String> -> toInvalidField(::InvalidTag)(errors) }
-    .map { it.toSet() }
+private fun validTags(tags: List<String>): Either<InvalidTag, Set<String>> =
+  tags.mapOrAccumulate { it.trim().notBlank().bindNel() }.mapLeft(::InvalidTag).map { it.toSet() }
 
 private fun <A : InvalidField> toInvalidField(
   transform: (NonEmptyList<String>) -> A
@@ -149,3 +152,39 @@ private val emailPattern = ".+@.+\\..+".toRegex()
 
 private fun String.looksLikeEmail(): EitherNel<String, String> =
   if (emailPattern.matches(this)) right() else "'$this' is invalid email".leftNel()
+
+fun NewArticle.validate(): Either<IncorrectInput, NewArticle> =
+  zipOrAccumulate(
+      title.validTitle(),
+      description.validDescription(),
+      body.validBody(),
+      validTags(tagList).map { it.toList() },
+      ::NewArticle
+    )
+    .mapLeft(::IncorrectInput)
+
+const val MIN_FEED_LIMIT = 1
+const val MIN_FEED_OFFSET = 0
+
+data class InvalidFeedOffset(override val errors: NonEmptyList<String>) : InvalidField {
+  override val field: String = "feed offset"
+}
+
+data class InvalidFeedLimit(override val errors: NonEmptyList<String>) : InvalidField {
+  override val field: String = "feed limit"
+}
+
+private fun Int.minSize(size: Int): EitherNel<String, Int> =
+  if (this >= size) right() else "too small, minimum is $size, and found $this".leftNel()
+
+fun Int.validFeedOffset(): Either<InvalidFeedOffset, FeedOffset> =
+  minSize(MIN_FEED_OFFSET).map { FeedOffset(it) }.mapLeft { InvalidFeedOffset(it) }
+
+fun Int.validFeedLimit(): Either<InvalidFeedLimit, FeedLimit> =
+  minSize(MIN_FEED_LIMIT).map { FeedLimit(it) }.mapLeft { InvalidFeedLimit(it) }
+
+fun ArticleResource.Feed.validate(userId: UserId): Either<IncorrectInput, GetFeed> =
+  zipOrAccumulate(offsetParam.validFeedOffset(), limitParam.validFeedLimit()) { offset, limit ->
+      GetFeed(userId, limit.limit, offset.offset)
+    }
+    .mapLeft(::IncorrectInput)

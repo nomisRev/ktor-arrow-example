@@ -9,6 +9,7 @@ import io.github.nomisrev.env.configure
 import io.github.nomisrev.env.dependencies
 import io.github.nomisrev.routes.health
 import io.github.nomisrev.routes.routes
+import io.github.nomisrev.service.slugifyGenerator
 import io.ktor.server.application.Application
 import io.ktor.server.netty.Netty
 import kotlinx.coroutines.awaitCancellation
@@ -26,7 +27,14 @@ fun main(): Unit = SuspendApp {
 
 fun Application.app(env: Env, module: Dependencies) {
   configure()
-  with(module.userPersistence, module.tagPersistence, env.auth) {
+  with(
+    env.auth,
+    module.userPersistence,
+    module.articlePersistence,
+    module.tagPersistence,
+    module.favouritePersistence,
+    slugifyGenerator()
+  ) {
     routes()
   }
   health(module.healthCheck)

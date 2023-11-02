@@ -2,13 +2,16 @@ package io.github.nomisrev.repo
 
 import arrow.core.Either
 import arrow.core.raise.Raise
+import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.UsernameAlreadyExists
+import io.github.nomisrev.routes.Profile
 import io.github.nomisrev.service.UserInfo
+import io.github.nomisrev.sqldelight.FollowingQueries
 import io.github.nomisrev.sqldelight.UsersQueries
 import java.util.UUID
 import javax.crypto.SecretKeyFactory
@@ -40,6 +43,9 @@ interface UserPersistence {
   suspend fun select(username: String): UserInfo
 
   context(Raise<DomainError>)
+  suspend fun selectProfile(username: String): Profile
+
+  context(Raise<DomainError>)
   @Suppress("LongParameterList")
   suspend fun update(
     userId: UserId,
@@ -49,11 +55,14 @@ interface UserPersistence {
     bio: String?,
     image: String?
   ): UserInfo
+
+  suspend fun unfollowProfile(followedUsername: String, followerId: UserId): Unit
 }
 
 /** UserPersistence implementation based on SqlDelight and JavaX Crypto */
 fun userPersistence(
   usersQueries: UsersQueries,
+  followingQueries: FollowingQueries,
   defaultIterations: Int = 64000,
   defaultKeyLength: Int = 512,
   secretKeysFactory: SecretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512")
@@ -110,6 +119,15 @@ fun userPersistence(
   }
 
   context(Raise<DomainError>)
+  override suspend fun selectProfile(username: String): Profile {
+    val profileInfo = usersQueries.selectProfile(username, ::toProfile).executeAsOneOrNull()
+    return ensureNotNull(profileInfo) { UserNotFound("username=$username") }
+  }
+
+  fun toProfile(username: String, bio: String, image: String, following: Long): Profile =
+    Profile(username, bio, image, following > 0)
+
+  context(Raise<DomainError>)
   override suspend fun update(
     userId: UserId,
     email: String?,
@@ -134,7 +152,10 @@ fun userPersistence(
     return ensureNotNull(info) { UserNotFound("userId=$userId") }
   }
 
-  private fun generateSalt(): ByteArray = UUID.randomUUID().toString().toByteArray()
+  override suspend fun unfollowProfile(followedUsername: String, followerId: UserId): Unit =
+      followingQueries.delete(followedUsername, followerId.serial)
+
+    private fun generateSalt(): ByteArray = UUID.randomUUID().toString().toByteArray()
 
   private fun generateKey(password: String, salt: ByteArray): ByteArray {
     val spec = PBEKeySpec(password.toCharArray(), salt, defaultIterations, defaultKeyLength)
