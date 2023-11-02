@@ -107,11 +107,12 @@ fun Route.articleRoutes(
   get<ArticleResource.Feed> { feed ->
     jwtAuth(jwtService) { (_, userId) ->
       either {
-          val getFeed = feed.validate(userId).bind()
+          val getFeed = feed.validate(userId).also(::println).bind()
 
           val articlesFeed = articleService.getUserFeed(input = getFeed)
           ArticleWrapper(articlesFeed)
         }
+        .also(::println)
         .respond(HttpStatusCode.OK)
     }
   }

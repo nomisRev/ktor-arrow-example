@@ -26,9 +26,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class GenericErrorModelErrors(val body: List<String>)
 
-fun GenericErrorModel(vararg msg: String): GenericErrorModel =
-  GenericErrorModel(GenericErrorModelErrors(msg.toList()))
-
 context(PipelineContext<Unit, ApplicationCall>)
 
 suspend inline fun <reified A : Any> Either<DomainError, A>.respond(status: HttpStatusCode): Unit =
@@ -43,9 +40,7 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: DomainError): 
   when (error) {
     PasswordNotMatched -> call.respond(HttpStatusCode.Unauthorized)
     is IncorrectInput ->
-      unprocessable(
-        error.errors.joinToString { field -> "${field.field}: ${field.errors.joinToString()}" }
-      )
+      unprocessable(error.errors.map { field -> "${field.field}: ${field.errors.joinToString()}" })
     is IncorrectJson ->
       unprocessable("Json is missing fields: ${error.exception.missingFields.joinToString()}")
     is EmptyUpdate -> unprocessable(error.description)
@@ -61,4 +56,16 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: DomainError): 
 
 private suspend inline fun PipelineContext<Unit, ApplicationCall>.unprocessable(
   error: String
-): Unit = call.respond(HttpStatusCode.UnprocessableEntity, GenericErrorModel(error))
+): Unit =
+  call.respond(
+    HttpStatusCode.UnprocessableEntity,
+    GenericErrorModel(GenericErrorModelErrors(listOf(error)))
+  )
+
+private suspend inline fun PipelineContext<Unit, ApplicationCall>.unprocessable(
+  errors: List<String>
+): Unit =
+  call.respond(
+    HttpStatusCode.UnprocessableEntity,
+    GenericErrorModel(GenericErrorModelErrors(errors))
+  )

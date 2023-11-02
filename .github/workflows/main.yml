@@ -1,6 +1,6 @@
 name: "build"
 
-on: push
+on: [push, pull_request]
 
 env:
   GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"

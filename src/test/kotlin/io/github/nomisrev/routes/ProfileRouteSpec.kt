@@ -107,7 +107,7 @@ class ProfileRouteSpec :
     "Get profile by username missing username" {
       withServer {
         val response =
-          get(ProfilesResource.Username(username = "")) {
+          get(ProfilesResource.Username(username = " ")) {
             contentType(ContentType.Application.Json)
           }
 

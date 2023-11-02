@@ -163,8 +163,8 @@ fun NewArticle.validate(): Either<IncorrectInput, NewArticle> =
     )
     .mapLeft(::IncorrectInput)
 
-const val MIN_FEED_SIZE = 1
-const val MIN_OFFSET = 0
+const val MIN_FEED_LIMIT = 1
+const val MIN_FEED_OFFSET = 0
 
 data class InvalidFeedOffset(override val errors: NonEmptyList<String>) : InvalidField {
   override val field: String = "feed offset"
@@ -175,13 +175,13 @@ data class InvalidFeedLimit(override val errors: NonEmptyList<String>) : Invalid
 }
 
 private fun Int.minSize(size: Int): EitherNel<String, Int> =
-  if (this >= size) right() else "offset too small (minimum is $size)".leftNel()
+  if (this >= size) right() else "too small, minimum is $size, and found $this".leftNel()
 
 fun Int.validFeedOffset(): Either<InvalidFeedOffset, FeedOffset> =
-  minSize(MIN_OFFSET).map { FeedOffset(it) }.mapLeft { InvalidFeedOffset(it) }
+  minSize(MIN_FEED_OFFSET).map { FeedOffset(it) }.mapLeft { InvalidFeedOffset(it) }
 
 fun Int.validFeedLimit(): Either<InvalidFeedLimit, FeedLimit> =
-  minSize(MIN_FEED_SIZE).map { FeedLimit(it) }.mapLeft { InvalidFeedLimit(it) }
+  minSize(MIN_FEED_LIMIT).map { FeedLimit(it) }.mapLeft { InvalidFeedLimit(it) }
 
 fun ArticleResource.Feed.validate(userId: UserId): Either<IncorrectInput, GetFeed> =
   zipOrAccumulate(offsetParam.validFeedOffset(), limitParam.validFeedLimit()) { offset, limit ->
