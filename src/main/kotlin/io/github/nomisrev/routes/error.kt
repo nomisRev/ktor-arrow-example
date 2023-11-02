@@ -10,6 +10,7 @@ import io.github.nomisrev.IncorrectInput
 import io.github.nomisrev.IncorrectJson
 import io.github.nomisrev.JwtGeneration
 import io.github.nomisrev.JwtInvalid
+import io.github.nomisrev.MissingParameter
 import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.UsernameAlreadyExists
@@ -25,9 +26,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class GenericErrorModelErrors(val body: List<String>)
 
-fun GenericErrorModel(vararg msg: String): GenericErrorModel =
-  GenericErrorModel(GenericErrorModelErrors(msg.toList()))
-
 context(PipelineContext<Unit, ApplicationCall>)
 suspend inline fun <reified A : Any> Either<DomainError, A>.respond(status: HttpStatusCode): Unit =
   when (this) {
@@ -41,9 +39,7 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: DomainError): 
   when (error) {
     PasswordNotMatched -> call.respond(HttpStatusCode.Unauthorized)
     is IncorrectInput ->
-      unprocessable(
-        error.errors.joinToString { field -> "${field.field}: ${field.errors.joinToString()}" }
-      )
+      unprocessable(error.errors.map { field -> "${field.field}: ${field.errors.joinToString()}" })
     is IncorrectJson ->
       unprocessable("Json is missing fields: ${error.exception.missingFields.joinToString()}")
     is EmptyUpdate -> unprocessable(error.description)
@@ -54,8 +50,21 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: DomainError): 
     is JwtInvalid -> unprocessable(error.description)
     is CannotGenerateSlug -> unprocessable(error.description)
     is ArticleBySlugNotFound -> unprocessable("Article by slug ${error.slug} not found")
+    is MissingParameter -> unprocessable("Missing ${error.name} parameter in request")
   }
 
 private suspend inline fun PipelineContext<Unit, ApplicationCall>.unprocessable(
   error: String
-): Unit = call.respond(HttpStatusCode.UnprocessableEntity, GenericErrorModel(error))
+): Unit =
+  call.respond(
+    HttpStatusCode.UnprocessableEntity,
+    GenericErrorModel(GenericErrorModelErrors(listOf(error)))
+  )
+
+private suspend inline fun PipelineContext<Unit, ApplicationCall>.unprocessable(
+  errors: List<String>
+): Unit =
+  call.respond(
+    HttpStatusCode.UnprocessableEntity,
+    GenericErrorModel(GenericErrorModelErrors(errors))
+  )

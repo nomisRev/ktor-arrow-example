@@ -20,6 +20,16 @@ SELECT email, username, bio, image
 FROM users
 WHERE username = :username;
 
+selectProfile:
+SELECT users.username, users.bio, users.image,
+CASE
+    WHEN following.follower_id IS NULL THEN 0
+    ELSE 1
+END AS following
+FROM users
+LEFT JOIN following ON CAST(users.id AS BIGINT) = following.followed_id
+WHERE users.username = :username;
+
 selectSecurityByEmail:
 SELECT id, username, salt, hashed_password, bio, image
 FROM users

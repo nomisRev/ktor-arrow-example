@@ -14,6 +14,7 @@ import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.routes.ArticleResource
 import io.github.nomisrev.routes.FeedLimit
 import io.github.nomisrev.routes.FeedOffset
+import io.github.nomisrev.routes.NewArticle
 import io.github.nomisrev.service.GetFeed
 import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
@@ -152,8 +153,18 @@ private val emailPattern = ".+@.+\\..+".toRegex()
 private fun String.looksLikeEmail(): EitherNel<String, String> =
   if (emailPattern.matches(this)) right() else "'$this' is invalid email".leftNel()
 
-const val MIN_FEED_SIZE = 1
-const val MIN_OFFSET = 0
+fun NewArticle.validate(): Either<IncorrectInput, NewArticle> =
+  zipOrAccumulate(
+      title.validTitle(),
+      description.validDescription(),
+      body.validBody(),
+      validTags(tagList).map { it.toList() },
+      ::NewArticle
+    )
+    .mapLeft(::IncorrectInput)
+
+const val MIN_FEED_LIMIT = 1
+const val MIN_FEED_OFFSET = 0
 
 data class InvalidFeedOffset(override val errors: NonEmptyList<String>) : InvalidField {
   override val field: String = "feed offset"
@@ -164,13 +175,13 @@ data class InvalidFeedLimit(override val errors: NonEmptyList<String>) : Invalid
 }
 
 private fun Int.minSize(size: Int): EitherNel<String, Int> =
-  if (this >= size) right() else "offset too small (minimum is $size)".leftNel()
+  if (this >= size) right() else "too small, minimum is $size, and found $this".leftNel()
 
 fun Int.validFeedOffset(): Either<InvalidFeedOffset, FeedOffset> =
-  minSize(MIN_OFFSET).map { FeedOffset(it) }.mapLeft { InvalidFeedOffset(it) }
+  minSize(MIN_FEED_OFFSET).map { FeedOffset(it) }.mapLeft { InvalidFeedOffset(it) }
 
 fun Int.validFeedLimit(): Either<InvalidFeedLimit, FeedLimit> =
-  minSize(MIN_FEED_SIZE).map { FeedLimit(it) }.mapLeft { InvalidFeedLimit(it) }
+  minSize(MIN_FEED_LIMIT).map { FeedLimit(it) }.mapLeft { InvalidFeedLimit(it) }
 
 fun ArticleResource.Feed.validate(userId: UserId): Either<IncorrectInput, GetFeed> =
   zipOrAccumulate(offsetParam.validFeedOffset(), limitParam.validFeedLimit()) { offset, limit ->
