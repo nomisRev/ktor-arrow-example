@@ -14,6 +14,7 @@ import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.routes.ArticleResource
 import io.github.nomisrev.routes.FeedLimit
 import io.github.nomisrev.routes.FeedOffset
+import io.github.nomisrev.routes.NewArticle
 import io.github.nomisrev.service.GetFeed
 import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
@@ -151,6 +152,16 @@ private val emailPattern = ".+@.+\\..+".toRegex()
 
 private fun String.looksLikeEmail(): EitherNel<String, String> =
   if (emailPattern.matches(this)) right() else "'$this' is invalid email".leftNel()
+
+fun NewArticle.validate(): Either<IncorrectInput, NewArticle> =
+  zipOrAccumulate(
+      title.validTitle(),
+      description.validDescription(),
+      body.validBody(),
+      validTags(tagList).map { it.toList() },
+      ::NewArticle
+    )
+    .mapLeft(::IncorrectInput)
 
 const val MIN_FEED_SIZE = 1
 const val MIN_OFFSET = 0

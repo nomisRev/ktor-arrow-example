@@ -42,6 +42,7 @@ fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtService
       }
       .respond(HttpStatusCode.OK)
   }
+
   delete<ProfilesResource.Follow> { follow ->
     jwtAuth(jwtService) { (_, userId) ->
       either {
