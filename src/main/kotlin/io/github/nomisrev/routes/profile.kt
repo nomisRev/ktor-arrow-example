@@ -11,8 +11,8 @@ import io.github.nomisrev.service.JwtService
 import io.ktor.http.HttpStatusCode
 import io.ktor.resources.Resource
 import io.ktor.server.resources.delete
-import io.ktor.server.resources.post
 import io.ktor.server.resources.get
+import io.ktor.server.resources.post
 import io.ktor.server.routing.Route
 import kotlinx.serialization.Serializable
 
