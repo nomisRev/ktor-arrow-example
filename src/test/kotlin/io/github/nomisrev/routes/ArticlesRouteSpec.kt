@@ -10,7 +10,6 @@ import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.arrow.core.shouldBeSome
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.matchers.shouldBe
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import io.ktor.http.HttpStatusCode
@@ -31,9 +30,10 @@ class ArticlesRouteSpec :
       withServer {
         val response = get(ArticlesResource.Slug(slug = "slug"))
 
-        response.status shouldBe HttpStatusCode.UnprocessableEntity
-        response.body<GenericErrorModel>().errors.body shouldBe
-          listOf("Article by slug slug not found")
+        assert(response.status == HttpStatusCode.UnprocessableEntity)
+        assert(
+          response.body<GenericErrorModel>().errors.body == listOf("Article by slug slug not found")
+        )
       }
     }
 
@@ -55,8 +55,8 @@ class ArticlesRouteSpec :
 
         val response = get(ArticlesResource.Slug(slug = article.slug))
 
-        response.status shouldBe HttpStatusCode.OK
-        response.body<SingleArticleResponse>().article shouldBe article
+        assert(response.status == HttpStatusCode.OK)
+        assert(response.body<SingleArticleResponse>().article == article)
       }
     }
   })

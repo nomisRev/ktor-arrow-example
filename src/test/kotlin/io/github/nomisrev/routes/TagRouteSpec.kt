@@ -10,9 +10,11 @@ import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.arrow.core.shouldBeSome
 import io.kotest.core.spec.style.StringSpec
-import io.ktor.client.call.*
-import io.ktor.client.plugins.resources.*
-import io.ktor.http.*
+import io.ktor.client.call.body
+import io.ktor.client.plugins.resources.get
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
 
 class TagRouteSpec :
   StringSpec({
@@ -31,7 +33,7 @@ class TagRouteSpec :
         val response = get(TagsResource()) { contentType(ContentType.Application.Json) }
 
         assert(response.status == HttpStatusCode.OK)
-        assert(response.body<TagsResponse>().tags.isEmpty())
+        assert(response.body<TagsResponse>().tags == emptyList<String>())
       }
     }
 

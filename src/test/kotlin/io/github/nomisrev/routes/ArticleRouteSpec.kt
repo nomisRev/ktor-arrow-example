@@ -8,7 +8,6 @@ import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
-import io.kotest.matchers.shouldBe
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import io.ktor.client.plugins.resources.post
@@ -48,10 +47,12 @@ class ArticleRouteSpec :
             bearerAuth(token.value)
           }
 
-        response.status shouldBe HttpStatusCode.OK
-        response.body<ArticleWrapper<MultipleArticlesResponse>>().article.articles.toSet() shouldBe
-          emptySet()
-        response.body<ArticleWrapper<MultipleArticlesResponse>>().article.articlesCount shouldBe 0
+        assert(response.status == HttpStatusCode.OK)
+        assert(
+          response.body<ArticleWrapper<MultipleArticlesResponse>>().article.articles ==
+            emptyList<Article>()
+        )
+        assert(response.body<ArticleWrapper<MultipleArticlesResponse>>().article.articlesCount == 0)
       }
     }
 
@@ -63,10 +64,12 @@ class ArticleRouteSpec :
             contentType(ContentType.Application.Json)
           }
 
-        response.status shouldBe HttpStatusCode.OK
-        response.body<ArticleWrapper<MultipleArticlesResponse>>().article.articles.toSet() shouldBe
-          emptySet()
-        response.body<ArticleWrapper<MultipleArticlesResponse>>().article.articlesCount shouldBe 0
+        assert(response.status == HttpStatusCode.OK)
+        assert(
+          response.body<ArticleWrapper<MultipleArticlesResponse>>().article.articles ==
+            emptyList<Article>()
+        )
+        assert(response.body<ArticleWrapper<MultipleArticlesResponse>>().article.articlesCount == 0)
       }
     }
 
@@ -78,9 +81,11 @@ class ArticleRouteSpec :
             contentType(ContentType.Application.Json)
           }
 
-        response.status shouldBe HttpStatusCode.UnprocessableEntity
-        response.body<GenericErrorModel>().errors.body shouldBe
-          listOf("feed offset: too small, minimum is $MIN_FEED_OFFSET, and found -1")
+        assert(response.status == HttpStatusCode.UnprocessableEntity)
+        assert(
+          response.body<GenericErrorModel>().errors.body ==
+            listOf("feed offset: too small, minimum is $MIN_FEED_OFFSET, and found -1")
+        )
       }
     }
 
@@ -92,9 +97,11 @@ class ArticleRouteSpec :
             contentType(ContentType.Application.Json)
           }
 
-        response.status shouldBe HttpStatusCode.UnprocessableEntity
-        response.body<GenericErrorModel>().errors.body shouldBe
-          listOf("feed limit: too small, minimum is $MIN_FEED_LIMIT, and found 0")
+        assert(response.status == HttpStatusCode.UnprocessableEntity)
+        assert(
+          response.body<GenericErrorModel>().errors.body ==
+            listOf("feed limit: too small, minimum is $MIN_FEED_LIMIT, and found 0")
+        )
       }
     }
 
@@ -106,12 +113,14 @@ class ArticleRouteSpec :
             contentType(ContentType.Application.Json)
           }
 
-        response.status shouldBe HttpStatusCode.UnprocessableEntity
-        response.body<GenericErrorModel>().errors.body shouldBe
-          listOf(
-            "feed offset: too small, minimum is $MIN_FEED_OFFSET, and found -1",
-            "feed limit: too small, minimum is $MIN_FEED_LIMIT, and found 0"
-          )
+        assert(response.status == HttpStatusCode.UnprocessableEntity)
+        assert(
+          response.body<GenericErrorModel>().errors.body ==
+            listOf(
+              "feed offset: too small, minimum is $MIN_FEED_OFFSET, and found -1",
+              "feed limit: too small, minimum is $MIN_FEED_LIMIT, and found 0"
+            )
+        )
       }
     }
 
@@ -124,15 +133,15 @@ class ArticleRouteSpec :
             setBody(ArticleWrapper(NewArticle(title, description, body, tags.toList())))
           }
 
-        response.status shouldBe HttpStatusCode.Created
+        assert(response.status == HttpStatusCode.Created)
         with(response.body<ArticleResponse>()) {
-          title shouldBe title
-          description shouldBe description
-          body shouldBe body
-          favoritesCount shouldBe 0
-          favorited shouldBe false
-          author.username shouldBe username
-          tagList.toSet() shouldBe tags
+          assert(this.title == title)
+          assert(this.description == description)
+          assert(this.body == body)
+          assert(this.favoritesCount == 0L)
+          assert(this.favorited == false)
+          assert(this.author.username == username)
+          assert(this.tagList.toSet() == tags)
         }
       }
     }
@@ -146,15 +155,15 @@ class ArticleRouteSpec :
             setBody(ArticleWrapper(NewArticle(title, description, body, emptyList())))
           }
 
-        response.status shouldBe HttpStatusCode.Created
+        assert(response.status == HttpStatusCode.Created)
         with(response.body<ArticleResponse>()) {
-          title shouldBe title
-          description shouldBe description
-          body shouldBe body
-          favoritesCount shouldBe 0
-          favorited shouldBe false
-          author.username shouldBe username
-          tagList.size shouldBe 0
+          assert(this.title == title)
+          assert(this.description == description)
+          assert(this.body == body)
+          assert(this.favoritesCount == 0L)
+          assert(this.favorited == false)
+          assert(this.author.username == username)
+          assert(this.tagList.size == 0)
         }
       }
     }
@@ -168,7 +177,7 @@ class ArticleRouteSpec :
             setBody(ArticleWrapper(NewArticle(title, description, "", emptyList())))
           }
 
-        response.status shouldBe HttpStatusCode.UnprocessableEntity
+        assert(response.status == HttpStatusCode.UnprocessableEntity)
       }
     }
 
@@ -181,7 +190,7 @@ class ArticleRouteSpec :
             setBody(ArticleWrapper(NewArticle(title, "", body, emptyList())))
           }
 
-        response.status shouldBe HttpStatusCode.UnprocessableEntity
+        assert(response.status == HttpStatusCode.UnprocessableEntity)
       }
     }
 
@@ -194,7 +203,7 @@ class ArticleRouteSpec :
             setBody(ArticleWrapper(NewArticle("", description, body, emptyList())))
           }
 
-        response.status shouldBe HttpStatusCode.UnprocessableEntity
+        assert(response.status == HttpStatusCode.UnprocessableEntity)
       }
     }
 
@@ -206,7 +215,7 @@ class ArticleRouteSpec :
             setBody(ArticleWrapper(NewArticle(title, description, body, emptyList())))
           }
 
-        response.status shouldBe HttpStatusCode.Unauthorized
+        assert(response.status == HttpStatusCode.Unauthorized)
       }
     }
   })

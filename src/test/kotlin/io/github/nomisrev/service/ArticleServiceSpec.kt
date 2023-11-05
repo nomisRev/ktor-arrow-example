@@ -4,12 +4,13 @@ import arrow.core.Either
 import arrow.core.flatMap
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
-import io.github.nomisrev.*
+import io.github.nomisrev.DomainError
+import io.github.nomisrev.KotestProject
+import io.github.nomisrev.SuspendFun
 import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.repo.UserId
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.arrow.core.shouldBeSome
-import io.kotest.matchers.ints.shouldBeExactly
 
 class ArticleServiceSpec :
   SuspendFun({
@@ -66,7 +67,7 @@ class ArticleServiceSpec :
               input = GetFeed(userId = UserId(kaavehId), limit = 20, offset = 0)
             )
 
-          feed.articlesCount shouldBeExactly 0
+          assert(feed.articlesCount == 0)
         }
         "get kaaveh's feed when he followed simon" {
           // Create users

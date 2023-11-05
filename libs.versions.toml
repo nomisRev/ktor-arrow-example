@@ -21,6 +21,7 @@ slugify="3.0.6"
 suspendapp="0.4.0"
 cohort="2.2.1"
 spotless="6.22.0"
+power-assert = "0.13.0"
 
 [libraries]
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
@@ -111,3 +112,4 @@ kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", vers
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+power-assert = { id = "com.bnorm.power.kotlin-power-assert",  version.ref = "power-assert" }

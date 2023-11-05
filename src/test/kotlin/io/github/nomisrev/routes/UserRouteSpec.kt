@@ -4,7 +4,6 @@ import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.matchers.shouldBe
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import io.ktor.client.plugins.resources.post
@@ -29,12 +28,12 @@ class UserRouteSpec :
             setBody(UserWrapper(NewUser(validUsername, validEmail, validPw)))
           }
 
-        response.status shouldBe HttpStatusCode.Created
+        assert(response.status == HttpStatusCode.Created)
         with(response.body<UserWrapper<User>>().user) {
-          username shouldBe validUsername
-          email shouldBe validEmail
-          bio shouldBe ""
-          image shouldBe ""
+          assert(username == validUsername)
+          assert(email == validEmail)
+          assert(bio == "")
+          assert(image == "")
         }
       }
     }
@@ -51,12 +50,12 @@ class UserRouteSpec :
             setBody(UserWrapper(LoginUser(validEmail, validPw)))
           }
 
-        response.status shouldBe HttpStatusCode.OK
+        assert(response.status == HttpStatusCode.OK)
         with(response.body<UserWrapper<User>>().user) {
-          username shouldBe validUsername
-          email shouldBe validEmail
-          bio shouldBe ""
-          image shouldBe ""
+          assert(username == validUsername)
+          assert(email == validEmail)
+          assert(bio == "")
+          assert(image == "")
         }
       }
     }
@@ -70,13 +69,13 @@ class UserRouteSpec :
 
         val response = get(UserResource()) { bearerAuth(expected.value) }
 
-        response.status shouldBe HttpStatusCode.OK
+        assert(response.status == HttpStatusCode.OK)
         with(response.body<UserWrapper<User>>().user) {
-          username shouldBe validUsername
-          email shouldBe validEmail
-          token shouldBe expected.value
-          bio shouldBe ""
-          image shouldBe ""
+          assert(username == validUsername)
+          assert(email == validEmail)
+          assert(token == expected.value)
+          assert(bio == "")
+          assert(image == "")
         }
       }
     }
@@ -96,13 +95,13 @@ class UserRouteSpec :
             setBody(UserWrapper(UpdateUser(username = newUsername)))
           }
 
-        response.status shouldBe HttpStatusCode.OK
+        assert(response.status == HttpStatusCode.OK)
         with(response.body<UserWrapper<User>>().user) {
-          username shouldBe newUsername
-          email shouldBe validEmail
-          token shouldBe expected.value
-          bio shouldBe ""
-          image shouldBe ""
+          assert(username == newUsername)
+          assert(email == validEmail)
+          assert(token == expected.value)
+          assert(bio == "")
+          assert(image == "")
         }
       }
     }
@@ -113,18 +112,20 @@ class UserRouteSpec :
           dependencies.userService
             .register(RegisterUser(validUsername, validEmail, validPw))
             .shouldBeRight()
-        val inalidEmail = "invalidEmail"
+        val invalidEmail = "invalidEmail"
 
         val response =
           put(UserResource()) {
             bearerAuth(token.value)
             contentType(ContentType.Application.Json)
-            setBody(UserWrapper(UpdateUser(email = inalidEmail)))
+            setBody(UserWrapper(UpdateUser(email = invalidEmail)))
           }
 
-        response.status shouldBe HttpStatusCode.UnprocessableEntity
-        response.body<GenericErrorModel>().errors.body shouldBe
-          listOf("email: 'invalidEmail' is invalid email")
+        assert(response.status == HttpStatusCode.UnprocessableEntity)
+        assert(
+          response.body<GenericErrorModel>().errors.body ==
+            listOf("email: 'invalidEmail' is invalid email")
+        )
       }
     }
   })
