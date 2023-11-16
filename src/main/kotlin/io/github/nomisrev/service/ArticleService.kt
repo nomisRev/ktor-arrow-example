@@ -1,7 +1,8 @@
+@file:Suppress("MatchingDeclarationName")
+
 package io.github.nomisrev.service
 
-import arrow.core.Either
-import arrow.core.raise.either
+import arrow.core.raise.Raise
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.repo.ArticlePersistence
 import io.github.nomisrev.repo.FavouritePersistence
@@ -29,92 +30,76 @@ data class GetFeed(
   val offset: Int,
 )
 
-interface ArticleService {
-  /** Creates a new article and returns the resulting Article */
-  suspend fun createArticle(input: CreateArticle): Either<DomainError, Article>
-
-  /** Get the user's feed which contains articles of the authors the user followed */
-  suspend fun getUserFeed(input: GetFeed): MultipleArticlesResponse
-
-  /** Get article by Slug */
-  suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article>
+/** Creates a new article and returns the resulting Article */
+context(Raise<DomainError>, SlugGenerator, ArticlePersistence, UserPersistence)
+suspend fun createArticle(input: CreateArticle): Article {
+  val slug = generateSlug(input.title) { slug -> !exists(slug) }
+  val createdAt = OffsetDateTime.now()
+  val articleId = create(
+    input.userId,
+    slug,
+    input.title,
+    input.description,
+    input.body,
+    createdAt,
+    createdAt,
+    input.tags
+  ).serial
+  val user = select(input.userId)
+  return Article(
+    articleId,
+    slug.value,
+    input.title,
+    input.description,
+    input.body,
+    Profile(user.username, user.bio, user.image, false),
+    false,
+    0,
+    createdAt,
+    createdAt,
+    input.tags.toList()
+  )
 }
 
-fun articleService(
-  slugGenerator: SlugGenerator,
-  articlePersistence: ArticlePersistence,
-  userPersistence: UserPersistence,
-  tagPersistence: TagPersistence,
-  favouritePersistence: FavouritePersistence
-): ArticleService =
-  object : ArticleService {
-    override suspend fun createArticle(input: CreateArticle): Either<DomainError, Article> =
-      either {
-        val slug =
-          slugGenerator
-            .generateSlug(input.title) { slug -> articlePersistence.exists(slug).not() }
-            .bind()
-        val createdAt = OffsetDateTime.now()
-        val articleId =
-          articlePersistence
-            .create(
-              input.userId,
-              slug,
-              input.title,
-              input.description,
-              input.body,
-              createdAt,
-              createdAt,
-              input.tags
-            )
-            .serial
-        val user = userPersistence.select(input.userId).bind()
-        Article(
-          articleId,
-          slug.value,
-          input.title,
-          input.description,
-          input.body,
-          Profile(user.username, user.bio, user.image, false),
-          false,
-          0,
-          createdAt,
-          createdAt,
-          input.tags.toList()
-        )
-      }
+context(ArticlePersistence)
+suspend fun getUserFeed(input: GetFeed): MultipleArticlesResponse {
+  val articles =
+    selectFeed(
+      userId = input.userId,
+      limit = FeedLimit(input.limit),
+      offset = FeedOffset(input.offset)
+    )
 
-    override suspend fun getUserFeed(input: GetFeed): MultipleArticlesResponse {
-      val articles =
-        articlePersistence.getFeed(
-          userId = input.userId,
-          limit = FeedLimit(input.limit),
-          offset = FeedOffset(input.offset)
-        )
+  return MultipleArticlesResponse(
+    articles = articles,
+    articlesCount = articles.size,
+  )
+}
 
-      return MultipleArticlesResponse(
-        articles = articles,
-        articlesCount = articles.size,
-      )
-    }
-
-    override suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article> = either {
-      val article = articlePersistence.getArticleBySlug(slug).bind()
-      val user = userPersistence.select(article.author_id).bind()
-      val articleTags = tagPersistence.selectTagsOfArticle(article.id)
-      val favouriteCount = favouritePersistence.favoriteCount(article.id)
-      Article(
-        article.id.serial,
-        slug.value,
-        article.title,
-        article.description,
-        article.body,
-        Profile(user.username, user.bio, user.image, false),
-        false,
-        favouriteCount,
-        article.createdAt,
-        article.createdAt,
-        articleTags
-      )
-    }
-  }
+context(
+  Raise<DomainError>,
+  SlugGenerator,
+  ArticlePersistence,
+  TagPersistence,
+  FavouritePersistence,
+  UserPersistence
+)
+suspend fun articleBySlug(slug: Slug): Article {
+  val article = selectArticleBySlug(slug).bind()
+  val user = select(article.author_id)
+  val articleTags = selectTagsOfArticle(article.id)
+  val favouriteCount = favoriteCount(article.id)
+  return Article(
+    article.id.serial,
+    slug.value,
+    article.title,
+    article.description,
+    article.body,
+    Profile(user.username, user.bio, user.image, false),
+    false,
+    favouriteCount,
+    article.createdAt,
+    article.createdAt,
+    articleTags
+  )
+}

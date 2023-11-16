@@ -1,14 +1,13 @@
 package io.github.nomisrev.service
 
-import arrow.core.Either
 import arrow.core.raise.Raise
-import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.github.slugify.Slugify
 import io.github.nomisrev.CannotGenerateSlug
 import kotlin.random.Random
 
-@JvmInline value class Slug(val value: String)
+@JvmInline
+value class Slug(val value: String)
 
 fun interface SlugGenerator {
   /**
@@ -18,10 +17,11 @@ fun interface SlugGenerator {
    * @param verifyUnique Allows checking uniqueness with some business rules. i.e. check database
    *   that slug is actually unique for domain.
    */
+  context(Raise<CannotGenerateSlug>)
   suspend fun generateSlug(
     title: String,
     verifyUnique: suspend (Slug) -> Boolean
-  ): Either<CannotGenerateSlug, Slug>
+  ): Slug
 }
 
 fun slugifyGenerator(
@@ -50,10 +50,9 @@ fun slugifyGenerator(
       return if (isUnique) slug else recursiveGen(title, verifyUnique, maxAttempts - 1, false)
     }
 
+    context(Raise<CannotGenerateSlug>)
     override suspend fun generateSlug(
       title: String,
       verifyUnique: suspend (Slug) -> Boolean
-    ): Either<CannotGenerateSlug, Slug> = either {
-      recursiveGen(title, verifyUnique, defaultMaxAttempts, true)
-    }
+    ): Slug = recursiveGen(title, verifyUnique, defaultMaxAttempts, true)
   }

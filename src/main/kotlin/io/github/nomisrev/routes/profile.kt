@@ -2,12 +2,11 @@
 
 package io.github.nomisrev.routes
 
-import arrow.core.raise.either
 import arrow.core.raise.ensure
 import io.github.nomisrev.MissingParameter
 import io.github.nomisrev.auth.jwtAuth
+import io.github.nomisrev.env.Env
 import io.github.nomisrev.repo.UserPersistence
-import io.github.nomisrev.service.JwtService
 import io.ktor.http.HttpStatusCode
 import io.ktor.resources.Resource
 import io.ktor.server.resources.delete
@@ -34,25 +33,24 @@ data class ProfilesResource(val parent: RootResource = RootResource) {
   data class Follow(val parent: ProfilesResource = ProfilesResource(), val username: String)
 }
 
-fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtService) {
+context(Env.Auth, UserPersistence)
+fun Route.profileRoutes() {
   get<ProfilesResource.Username> { route ->
-    either {
+    conduit(HttpStatusCode.OK) {
         ensure(!route.username.isNullOrBlank()) { MissingParameter("username") }
-        userPersistence.selectProfile(route.username).bind()
+        selectProfile(route.username)
       }
-      .respond(HttpStatusCode.OK)
   }
 
   delete<ProfilesResource.Follow> { follow ->
-    jwtAuth(jwtService) { (_, userId) ->
-      either {
-          userPersistence.unfollowProfile(follow.username, userId)
-          val userUnfollowed = userPersistence.select(follow.username).bind()
+    jwtAuth { _, userId ->
+      conduit(HttpStatusCode.OK) {
+          unfollowProfile(follow.username, userId)
+          val userUnfollowed = select(follow.username)
           ProfileWrapper(
             Profile(userUnfollowed.username, userUnfollowed.bio, userUnfollowed.image, false)
           )
         }
-        .respond(HttpStatusCode.OK)
     }
   }
 }

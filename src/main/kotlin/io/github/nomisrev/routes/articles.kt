@@ -1,11 +1,17 @@
 package io.github.nomisrev.routes
 
-import arrow.core.raise.either
 import io.github.nomisrev.auth.jwtAuth
-import io.github.nomisrev.service.ArticleService
+import io.github.nomisrev.env.Env
+import io.github.nomisrev.repo.ArticlePersistence
+import io.github.nomisrev.repo.FavouritePersistence
+import io.github.nomisrev.repo.TagPersistence
+import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.service.CreateArticle
-import io.github.nomisrev.service.JwtService
 import io.github.nomisrev.service.Slug
+import io.github.nomisrev.service.SlugGenerator
+import io.github.nomisrev.service.articleBySlug
+import io.github.nomisrev.service.createArticle
+import io.github.nomisrev.service.getUserFeed
 import io.github.nomisrev.validate
 import io.ktor.http.HttpStatusCode
 import io.ktor.resources.Resource
@@ -23,7 +29,8 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
-@Serializable data class ArticleWrapper<T : Any>(val article: T)
+@Serializable
+data class ArticleWrapper<T : Any>(val article: T)
 
 @Serializable
 data class Article(
@@ -40,7 +47,8 @@ data class Article(
   val tagList: List<String>
 )
 
-@Serializable data class SingleArticleResponse(val article: Article)
+@Serializable
+data class SingleArticleResponse(val article: Article)
 
 @Serializable
 data class MultipleArticlesResponse(
@@ -48,9 +56,13 @@ data class MultipleArticlesResponse(
   val articlesCount: Int,
 )
 
-@JvmInline @Serializable value class FeedOffset(val offset: Int)
+@JvmInline
+@Serializable
+value class FeedOffset(val offset: Int)
 
-@JvmInline @Serializable value class FeedLimit(val limit: Int)
+@JvmInline
+@Serializable
+value class FeedLimit(val limit: Int)
 
 @Serializable
 data class Comment(
@@ -99,62 +111,61 @@ data class ArticlesResource(val parent: RootResource = RootResource) {
   data class Slug(val parent: ArticlesResource = ArticlesResource(), val slug: String)
 }
 
-fun Route.articleRoutes(
-  articleService: ArticleService,
-  jwtService: JwtService,
-) {
+context (
+  Env.Auth,
+  SlugGenerator,
+  ArticlePersistence,
+  UserPersistence,
+  TagPersistence,
+  FavouritePersistence
+)
+fun Route.articleRoutes() {
 
   get<ArticleResource.Feed> { feed ->
-    jwtAuth(jwtService) { (_, userId) ->
-      either {
-          val getFeed = feed.validate(userId).also(::println).bind()
+    jwtAuth { _, userId ->
+      conduit(HttpStatusCode.OK) {
+        val getFeed = feed.validate(userId).also(::println).bind()
 
-          val articlesFeed = articleService.getUserFeed(input = getFeed)
-          ArticleWrapper(articlesFeed)
-        }
-        .also(::println)
-        .respond(HttpStatusCode.OK)
+        val articlesFeed = getUserFeed(input = getFeed)
+        ArticleWrapper(articlesFeed)
+      }
     }
   }
 
   get<ArticlesResource.Slug> { slug ->
-    articleService
-      .getArticleBySlug(Slug(slug.slug))
-      .map { SingleArticleResponse(it) }
-      .respond(HttpStatusCode.OK)
+    conduit(HttpStatusCode.OK) {
+      SingleArticleResponse(articleBySlug(Slug(slug.slug)))
+    }
   }
 
   post<ArticlesResource> {
-    jwtAuth(jwtService) { (_, userId) ->
-      either {
-          val article = call.receive<ArticleWrapper<NewArticle>>().article.validate().bind()
-          articleService
-            .createArticle(
-              CreateArticle(
-                userId,
-                article.title,
-                article.description,
-                article.body,
-                article.tagList.toSet()
-              )
-            )
-            .map {
-              ArticleResponse(
-                it.slug,
-                it.title,
-                it.description,
-                it.body,
-                it.author,
-                it.favorited,
-                it.favoritesCount,
-                it.createdAt,
-                it.updatedAt,
-                it.tagList
-              )
-            }
-            .bind()
+    jwtAuth { _, userId ->
+      conduit(HttpStatusCode.Created) {
+        val newArticle = call.receive<ArticleWrapper<NewArticle>>().article.validate().bind()
+        val article = createArticle(
+          CreateArticle(
+            userId,
+            newArticle.title,
+            newArticle.description,
+            newArticle.body,
+            newArticle.tagList.toSet()
+          )
+        )
+        with(article) {
+          ArticleResponse(
+            slug,
+            title,
+            description,
+            body,
+            author,
+            favorited,
+            favoritesCount,
+            createdAt,
+            updatedAt,
+            tagList
+          )
         }
-        .respond(HttpStatusCode.Created)
+      }
     }
   }
 }

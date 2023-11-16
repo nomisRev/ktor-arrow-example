@@ -1,33 +1,27 @@
 package io.github.nomisrev.service
 
 import arrow.core.Either
-import arrow.core.flatMap
+import arrow.core.raise.Raise
+import arrow.core.raise.either
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
 import io.github.nomisrev.*
 import io.github.nomisrev.auth.JwtToken
+import io.github.nomisrev.repo.ArticlePersistence
+import io.github.nomisrev.repo.FavouritePersistence
+import io.github.nomisrev.repo.TagPersistence
 import io.github.nomisrev.repo.UserId
+import io.github.nomisrev.repo.UserPersistence
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.arrow.core.shouldBeSome
 import io.kotest.matchers.ints.shouldBeExactly
 
 class ArticleServiceSpec :
   SuspendFun({
-    val articleService: ArticleService = KotestProject.dependencies.get().articleService
-    val userService: UserService = KotestProject.dependencies.get().userService
-
-    // User
     val kaavehUsername = "kaaveh"
-    val kaavehEmail = "kaaveh@domain.com"
-    val kaavehPw = "123456789"
     val simonUsername = "simon"
-    val simonEmail = "simon@domain.com"
-    val simonPw = "123456789"
     val johnUsername = "john"
-    val johnEmail = "john@domain.com"
-    val johnPw = "123456789"
 
-    // Article
     val validTags = setOf("arrow", "ktor", "kotlin", "sqldelight")
     val validTitle = "Fake Article Arrow "
     val validDescription = "This is a fake article description."
@@ -36,75 +30,61 @@ class ArticleServiceSpec :
     "getUserFeed" -
       {
         "get empty kaaveh's feed when he followed nobody" {
-          // Create users
-          val kaavehId =
-            userService
-              .register(RegisterUser(kaavehUsername, kaavehEmail, kaavehPw))
-              .shouldHaveUserId()
-          val simonId =
-            userService
-              .register(RegisterUser(simonUsername, simonEmail, simonPw))
-              .shouldHaveUserId()
-          val johnId =
-            userService.register(RegisterUser(johnUsername, johnEmail, johnPw)).shouldHaveUserId()
+          val kaavehId = registerUser(kaavehUsername).shouldHaveUserId()
+          val simonId = registerUser(simonUsername).shouldHaveUserId()
+          val johnId = registerUser(johnUsername).shouldHaveUserId()
 
-          // Create some articles
-          articleService
-            .createArticle(
+          userService {
+            createArticle(
               CreateArticle(UserId(simonId), validTitle, validDescription, validBody, validTags)
             )
-            .shouldBeRight()
-          articleService
-            .createArticle(
+            createArticle(
               CreateArticle(UserId(johnId), validTitle, validDescription, validBody, validTags)
             )
-            .shouldBeRight()
 
-          // Get Kaaveh's feed
-          val feed =
-            articleService.getUserFeed(
+            getUserFeed(
               input = GetFeed(userId = UserId(kaavehId), limit = 20, offset = 0)
-            )
+            ).articlesCount shouldBeExactly 0
+          }
 
-          feed.articlesCount shouldBeExactly 0
         }
         "get kaaveh's feed when he followed simon" {
-          // Create users
-          val kaavehId =
-            userService
-              .register(RegisterUser(kaavehUsername, kaavehEmail, kaavehPw))
-              .flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
-              .map { it.claimValueAsLong("id").shouldBeSome() }
-              .shouldBeRight()
-          val simonId =
-            userService
-              .register(RegisterUser(simonUsername, simonEmail, simonPw))
-              .flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
-              .map { it.claimValueAsLong("id").shouldBeSome() }
-              .shouldBeRight()
-          val johnId =
-            userService
-              .register(RegisterUser(johnUsername, johnEmail, johnPw))
-              .flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
-              .map { it.claimValueAsLong("id").shouldBeSome() }
-              .shouldBeRight()
+          val simonId = registerUser(simonUsername).shouldHaveUserId()
+          val johnId = registerUser(johnUsername).shouldHaveUserId()
 
-          // Create some articles
-          articleService
-            .createArticle(
+          userService {
+            createArticle(
               CreateArticle(UserId(simonId), validTitle, validDescription, validBody, validTags)
             )
-            .shouldBeRight()
-          articleService
-            .createArticle(
+            createArticle(
               CreateArticle(UserId(johnId), validTitle, validDescription, validBody, validTags)
             )
-            .shouldBeRight()
+          }.shouldBeRight()
         }
       }
   })
 
-fun Either<DomainError, JwtToken>.shouldHaveUserId() =
-  flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
+private suspend fun <A> userService(
+  block: suspend context(
+  Raise<DomainError>,
+  SlugGenerator,
+  ArticlePersistence,
+  TagPersistence,
+  FavouritePersistence,
+  UserPersistence
+  ) () -> A
+): Either<DomainError, A> = either {
+  block(
+    this,
+    slugifyGenerator(),
+    KotestProject.dependencies.get().articlePersistence,
+    KotestProject.dependencies.get().tagPersistence,
+    KotestProject.dependencies.get().favouritePersistence,
+    KotestProject.dependencies.get().userPersistence,
+  )
+}
+
+fun JwtToken.shouldHaveUserId(): Long =
+  JWT.decodeT(value, JWSHMAC512Algorithm)
     .map { it.claimValueAsLong("id").shouldBeSome() }
     .shouldBeRight()

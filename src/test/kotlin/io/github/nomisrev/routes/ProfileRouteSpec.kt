@@ -1,9 +1,7 @@
 package io.github.nomisrev.routes
 
-import io.github.nomisrev.env.Dependencies
-import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.withServer
-import io.kotest.assertions.arrow.core.shouldBeRight
+import io.github.nomisrev.registerUser
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.call.body
@@ -17,20 +15,12 @@ import io.ktor.http.contentType
 class ProfileRouteSpec :
   StringSpec({
     val validUsername = "username"
-    val validEmail = "valid@domain.com"
-    val validPw = "123456789"
     val validUsernameFollowed = "username2"
-    val validEmailFollowed = "valid2@domain.com"
 
     "Can unfollow profile" {
-      withServer { dependencies ->
-        val token =
-          dependencies.userService
-            .register(RegisterUser(validUsername, validEmail, validPw))
-            .shouldBeRight()
-        dependencies.userService
-          .register(RegisterUser(validUsernameFollowed, validEmailFollowed, validPw))
-          .shouldBeRight()
+      withServer {
+        val token = registerUser(validUsername)
+        registerUser(validUsernameFollowed)
 
         val response =
           delete(ProfilesResource.Follow(username = validUsernameFollowed)) {
@@ -56,11 +46,8 @@ class ProfileRouteSpec :
     }
 
     "Username invalid to unfollow" {
-      withServer { dependencies ->
-        val token =
-          dependencies.userService
-            .register(RegisterUser(validUsername, validEmail, validPw))
-            .shouldBeRight()
+      withServer {
+        val token = registerUser(validUsername)
 
         val response =
           delete(ProfilesResource.Follow(username = validUsernameFollowed)) {
@@ -72,10 +59,8 @@ class ProfileRouteSpec :
     }
 
     "Get profile with no following" {
-      withServer { dependencies: Dependencies ->
-        dependencies.userService
-          .register(RegisterUser(validUsername, validEmail, validPw))
-          .shouldBeRight()
+      withServer {
+        registerUser(validUsername)
         val response =
           get(ProfilesResource.Username(username = validUsername)) {
             contentType(ContentType.Application.Json)

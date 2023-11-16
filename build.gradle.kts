@@ -10,7 +10,6 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
   alias(libs.plugins.kotlinx.serialization)
   alias(libs.plugins.sqldelight)
   alias(libs.plugins.ktor)
-  alias(libs.plugins.spotless)
 }
 
 application {
@@ -35,9 +34,15 @@ repositories {
   mavenCentral()
 }
 
+java {
+  sourceCompatibility = JavaVersion.VERSION_19
+  targetCompatibility = JavaVersion.VERSION_11
+}
+
 tasks {
   withType<KotlinCompile>().configureEach {
     kotlinOptions {
+      jvmTarget = JavaVersion.VERSION_11.toString()
       freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
     }
   }
@@ -52,13 +57,6 @@ ktor {
     jreVersion = JavaVersion.VERSION_19
     localImageName = "ktor-arrow-example"
     imageTag = "latest"
-  }
-}
-
-spotless {
-  kotlin {
-    targetExclude("**/build/**")
-    ktfmt().googleStyle()
   }
 }
 

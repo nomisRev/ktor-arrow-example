@@ -1,11 +1,13 @@
 package io.github.nomisrev.routes
 
-import arrow.core.flatMap
+import arrow.core.raise.either
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.service.CreateArticle
 import io.github.nomisrev.service.RegisterUser
+import io.github.nomisrev.service.createArticle
+import io.github.nomisrev.service.register
 import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.arrow.core.shouldBeSome
@@ -40,24 +42,25 @@ class TagRouteSpec :
     }
 
     "Can get all tags" {
-      withServer { dependencies ->
-        val userId =
-          dependencies.userService
-            .register(RegisterUser(validUsername, validEmail, validPw))
-            .flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
-            .map { it.claimValueAsLong("id").shouldBeSome() }
-            .shouldBeRight()
+      withServer {
+        either {
+          val token =
+            register(RegisterUser(validUsername, validEmail, validPw))
 
-        dependencies.articleService
-          .createArticle(
+          val userId = JWT.decodeT(token.value, JWSHMAC512Algorithm)
+            .shouldBeRight()
+            .claimValueAsLong("id")
+            .shouldBeSome()
+
+          createArticle(
             CreateArticle(UserId(userId), validTitle, validDescription, validBody, validTags)
           )
-          .shouldBeRight()
 
-        val response = get(TagsResource()) { contentType(ContentType.Application.Json) }
+          val response = get(TagsResource()) { contentType(ContentType.Application.Json) }
 
-        response.status shouldBe HttpStatusCode.OK
-        response.body<TagsResponse>().tags shouldHaveSize 4
+          response.status shouldBe HttpStatusCode.OK
+          response.body<TagsResponse>().tags shouldHaveSize 4
+        }
       }
     }
   })

@@ -18,7 +18,9 @@ import kotlinx.serialization.modules.polymorphic
 
 val kotlinXSerializersModule = SerializersModule {
   contextual(UserWrapper::class) { UserWrapper.serializer(LoginUser.serializer()) }
-  polymorphic(Any::class) { subclass(LoginUser::class, LoginUser.serializer()) }
+  polymorphic(Any::class) {
+    subclass(LoginUser::class, LoginUser.serializer())
+  }
 }
 
 fun Application.configure() {

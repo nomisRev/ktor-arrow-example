@@ -1,15 +1,29 @@
 package io.github.nomisrev.routes
 
-import io.github.nomisrev.env.Dependencies
+import io.github.nomisrev.env.Env
+import io.github.nomisrev.repo.ArticlePersistence
+import io.github.nomisrev.repo.FavouritePersistence
+import io.github.nomisrev.repo.TagPersistence
+import io.github.nomisrev.repo.UserPersistence
+import io.github.nomisrev.service.SlugGenerator
 import io.ktor.resources.Resource
 import io.ktor.server.application.Application
 import io.ktor.server.routing.routing
 
-fun Application.routes(deps: Dependencies) = routing {
-  userRoutes(deps.userService, deps.jwtService)
-  tagRoutes(deps.tagPersistence)
-  articleRoutes(deps.articleService, deps.jwtService)
-  profileRoutes(deps.userPersistence, deps.jwtService)
+context(
+  Env.Auth,
+  SlugGenerator,
+  ArticlePersistence,
+  UserPersistence,
+  TagPersistence,
+  FavouritePersistence
+)
+fun Application.routes() = routing {
+  userRoutes()
+  tagRoutes()
+  articleRoutes()
+  profileRoutes()
 }
 
-@Resource("/api") data object RootResource
+@Resource("/api")
+data object RootResource

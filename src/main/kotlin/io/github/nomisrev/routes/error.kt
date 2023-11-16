@@ -1,6 +1,7 @@
 package io.github.nomisrev.routes
 
-import arrow.core.Either
+import arrow.core.raise.Raise
+import arrow.core.raise.either
 import io.github.nomisrev.ArticleBySlugNotFound
 import io.github.nomisrev.CannotGenerateSlug
 import io.github.nomisrev.DomainError
@@ -14,6 +15,7 @@ import io.github.nomisrev.MissingParameter
 import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.UsernameAlreadyExists
+import io.github.nomisrev.KtorCtx
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
@@ -22,27 +24,31 @@ import io.ktor.util.pipeline.PipelineContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
-@Serializable data class GenericErrorModel(val errors: GenericErrorModelErrors)
+@Serializable
+data class GenericErrorModel(val errors: GenericErrorModelErrors)
 
-@Serializable data class GenericErrorModelErrors(val body: List<String>)
+@Serializable
+data class GenericErrorModelErrors(val body: List<String>)
 
-context(PipelineContext<Unit, ApplicationCall>)
-
-suspend inline fun <reified A : Any> Either<DomainError, A>.respond(status: HttpStatusCode): Unit =
-  when (this) {
-    is Either.Left -> respond(value)
-    is Either.Right -> call.respond(status, value)
-  }
+context(KtorCtx)
+suspend inline fun <reified A : Any> conduit(
+  status: HttpStatusCode,
+  crossinline block: suspend context(Raise<DomainError>) () -> A
+): Unit = either {
+  block(this)
+}.fold({ respond(it) }, { call.respond<A>(status, it) })
 
 @OptIn(ExperimentalSerializationApi::class)
 @Suppress("ComplexMethod")
-suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: DomainError): Unit =
+suspend fun KtorCtx.respond(error: DomainError): Unit =
   when (error) {
     PasswordNotMatched -> call.respond(HttpStatusCode.Unauthorized)
     is IncorrectInput ->
       unprocessable(error.errors.map { field -> "${field.field}: ${field.errors.joinToString()}" })
+
     is IncorrectJson ->
       unprocessable("Json is missing fields: ${error.exception.missingFields.joinToString()}")
+
     is EmptyUpdate -> unprocessable(error.description)
     is EmailAlreadyExists -> unprocessable("${error.email} is already registered")
     is JwtGeneration -> unprocessable(error.description)
@@ -54,7 +60,7 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: DomainError): 
     is MissingParameter -> unprocessable("Missing ${error.name} parameter in request")
   }
 
-private suspend inline fun PipelineContext<Unit, ApplicationCall>.unprocessable(
+private suspend inline fun KtorCtx.unprocessable(
   error: String
 ): Unit =
   call.respond(

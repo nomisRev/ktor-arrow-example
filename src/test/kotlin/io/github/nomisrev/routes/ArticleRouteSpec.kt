@@ -1,13 +1,11 @@
 package io.github.nomisrev.routes
 
-import io.github.nomisrev.KotestProject
 import io.github.nomisrev.MIN_FEED_LIMIT
 import io.github.nomisrev.MIN_FEED_OFFSET
 import io.github.nomisrev.SuspendFun
 import io.github.nomisrev.auth.JwtToken
-import io.github.nomisrev.service.RegisterUser
+import io.github.nomisrev.registerUser
 import io.github.nomisrev.withServer
-import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.matchers.shouldBe
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
@@ -22,8 +20,6 @@ import kotlin.properties.Delegates
 class ArticleRouteSpec :
   SuspendFun({
     val username = "username3"
-    val email = "valid1@domain.com"
-    val password = "123456789"
     val tags = setOf("arrow", "ktor", "kotlin", "sqldelight")
     val title = "Fake Article Arrow"
     val description = "This is a fake article description."
@@ -32,12 +28,7 @@ class ArticleRouteSpec :
     var token: JwtToken by Delegates.notNull()
 
     beforeTest {
-      token =
-        KotestProject.dependencies
-          .get()
-          .userService
-          .register(RegisterUser(username, email, password))
-          .shouldBeRight()
+      token = registerUser(username)
     }
 
     "Check for empty feed" {
@@ -124,7 +115,6 @@ class ArticleRouteSpec :
             setBody(ArticleWrapper(NewArticle(title, description, body, tags.toList())))
           }
 
-        response.status shouldBe HttpStatusCode.Created
         with(response.body<ArticleResponse>()) {
           title shouldBe title
           description shouldBe description
@@ -134,6 +124,7 @@ class ArticleRouteSpec :
           author.username shouldBe username
           tagList.toSet() shouldBe tags
         }
+        response.status shouldBe HttpStatusCode.Created
       }
     }
 
@@ -146,7 +137,6 @@ class ArticleRouteSpec :
             setBody(ArticleWrapper(NewArticle(title, description, body, emptyList())))
           }
 
-        response.status shouldBe HttpStatusCode.Created
         with(response.body<ArticleResponse>()) {
           title shouldBe title
           description shouldBe description
@@ -156,6 +146,7 @@ class ArticleRouteSpec :
           author.username shouldBe username
           tagList.size shouldBe 0
         }
+        response.status shouldBe HttpStatusCode.Created
       }
     }
 

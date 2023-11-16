@@ -31,7 +31,7 @@ object KotestProject : AbstractProjectConfig() {
     Env.DataSource(postgres.jdbcUrl, postgres.username, postgres.password, postgres.driverClassName)
   }
 
-  private val env: Env by lazy { Env().copy(dataSource = dataSource) }
+  val env: Env by lazy { Env().copy(dataSource = dataSource) }
 
   val dependencies = ProjectResource(resource { dependencies(env) })
   private val hikari = ProjectResource(resource { hikari(env.dataSource) })

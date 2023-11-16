@@ -34,12 +34,12 @@ interface ArticlePersistence {
   suspend fun exists(slug: Slug): Boolean
 
   /** Get recent articles from users you follow * */
-  suspend fun getFeed(userId: UserId, limit: FeedLimit, offset: FeedOffset): List<Article>
+  suspend fun selectFeed(userId: UserId, limit: FeedLimit, offset: FeedOffset): List<Article>
 
-  suspend fun getArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles>
+  suspend fun selectArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles>
 }
 
-fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
+fun articlePersistence(articles: ArticlesQueries, tagsQueries: TagsQueries) =
   object : ArticlePersistence {
     override suspend fun create(
       authorId: UserId,
@@ -65,7 +65,7 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
     override suspend fun exists(slug: Slug): Boolean =
       articles.slugExists(slug.value).executeAsOne()
 
-    override suspend fun getFeed(
+    override suspend fun selectFeed(
       userId: UserId,
       limit: FeedLimit,
       offset: FeedOffset,
@@ -81,10 +81,10 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
           articleTitle,
           articleDescription,
           articleBody,
-          articleAuthorId,
+          _,
           articleCreatedAt,
           articleUpdatedAt,
-          usersId,
+          _,
           usersUsername,
           usersImage ->
           Article(
@@ -103,7 +103,7 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
         }
         .executeAsList()
 
-    override suspend fun getArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles> =
+    override suspend fun selectArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles> =
       either {
         val article = articles.selectBySlug(slug.value).executeAsOneOrNull()
         ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
