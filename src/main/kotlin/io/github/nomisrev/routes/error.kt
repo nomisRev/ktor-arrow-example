@@ -27,7 +27,6 @@ import kotlinx.serialization.Serializable
 @Serializable data class GenericErrorModelErrors(val body: List<String>)
 
 context(PipelineContext<Unit, ApplicationCall>)
-
 suspend inline fun <reified A : Any> Either<DomainError, A>.respond(status: HttpStatusCode): Unit =
   when (this) {
     is Either.Left -> respond(value)

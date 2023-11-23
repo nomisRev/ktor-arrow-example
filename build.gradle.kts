@@ -58,7 +58,7 @@ ktor {
 spotless {
   kotlin {
     targetExclude("**/build/**")
-    ktfmt().googleStyle()
+    ktfmt("0.46").googleStyle()
   }
 }
 

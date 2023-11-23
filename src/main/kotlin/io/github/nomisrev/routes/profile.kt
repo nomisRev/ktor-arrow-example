@@ -12,6 +12,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.resources.Resource
 import io.ktor.server.resources.delete
 import io.ktor.server.resources.get
+import io.ktor.server.resources.post
 import io.ktor.server.routing.Route
 import kotlinx.serialization.Serializable
 
@@ -51,6 +52,16 @@ fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtService
           ProfileWrapper(
             Profile(userUnfollowed.username, userUnfollowed.bio, userUnfollowed.image, false)
           )
+        }
+        .respond(HttpStatusCode.OK)
+    }
+  }
+  post<ProfilesResource.Follow> { follow ->
+    jwtAuth(jwtService) { (_, userId) ->
+      either {
+          userPersistence.followProfile(follow.username, userId)
+          val userFollowed = userPersistence.select(follow.username).bind()
+          ProfileWrapper(Profile(userFollowed.username, userFollowed.bio, userFollowed.image, true))
         }
         .respond(HttpStatusCode.OK)
     }
