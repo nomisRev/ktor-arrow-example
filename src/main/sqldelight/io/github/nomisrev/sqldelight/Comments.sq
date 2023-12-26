@@ -9,9 +9,10 @@ CREATE TABLE IF NOT EXISTS comments(
     updatedAt VARCHAR(50) AS OffsetDateTime NOT NULL
 );
 
-insert:
+insertAndGetComment:
 INSERT INTO comments(article_id, body, author, createdAt, updatedAt)
-VALUES (:article_id, :body, :author, :createdAt, :updatedAt);
+VALUES (:article_id, :body, :author, :createdAt, :updatedAt)
+RETURNING id, article_id, body, author, createdAt, updatedAt;
 
 selectByArticleId:
 SELECT id, article_id, body, author, createdAt, updatedAt

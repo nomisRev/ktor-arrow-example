@@ -15,6 +15,7 @@ import io.github.nomisrev.routes.ArticleResource
 import io.github.nomisrev.routes.FeedLimit
 import io.github.nomisrev.routes.FeedOffset
 import io.github.nomisrev.routes.NewArticle
+import io.github.nomisrev.routes.NewComment
 import io.github.nomisrev.service.GetFeed
 import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
@@ -162,6 +163,9 @@ fun NewArticle.validate(): Either<IncorrectInput, NewArticle> =
       ::NewArticle
     )
     .mapLeft(::IncorrectInput)
+
+fun NewComment.validate(): Either<IncorrectInput, NewComment> =
+  body.validBody().map { NewComment(it) }.mapLeft(::IncorrectInput)
 
 const val MIN_FEED_LIMIT = 1
 const val MIN_FEED_OFFSET = 0

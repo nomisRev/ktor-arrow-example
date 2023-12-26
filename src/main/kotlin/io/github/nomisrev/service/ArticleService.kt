@@ -3,6 +3,7 @@ package io.github.nomisrev.service
 import arrow.core.Either
 import arrow.core.raise.either
 import io.github.nomisrev.DomainError
+import io.github.nomisrev.repo.ArticleId
 import io.github.nomisrev.repo.ArticlePersistence
 import io.github.nomisrev.repo.FavouritePersistence
 import io.github.nomisrev.repo.TagPersistence
@@ -13,6 +14,7 @@ import io.github.nomisrev.routes.FeedLimit
 import io.github.nomisrev.routes.FeedOffset
 import io.github.nomisrev.routes.MultipleArticlesResponse
 import io.github.nomisrev.routes.Profile
+import io.github.nomisrev.sqldelight.Comments
 import java.time.OffsetDateTime
 
 data class CreateArticle(
@@ -38,6 +40,8 @@ interface ArticleService {
 
   /** Get article by Slug */
   suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article>
+
+  suspend fun insertCommentForArticleSlug(slug: Slug, userId: UserId, comment: String): Either<DomainError, Comments>
 }
 
 fun articleService(
@@ -115,6 +119,22 @@ fun articleService(
         article.createdAt,
         article.createdAt,
         articleTags
+      )
+    }
+
+    override suspend fun insertCommentForArticleSlug(
+      slug: Slug,
+      userId: UserId,
+      comment: String
+    ) = either {
+      val article = getArticleBySlug(slug).bind()
+      articlePersistence.insertCommentForArticleSlug(
+        slug,
+        userId,
+        comment,
+        ArticleId(article.articleId),
+        OffsetDateTime.now(),
+        OffsetDateTime.now()
       )
     }
   }
