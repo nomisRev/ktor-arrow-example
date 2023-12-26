@@ -46,7 +46,6 @@ interface ArticlePersistence {
     comment: String,
     articleId: ArticleId,
     createdAt: OffsetDateTime,
-    updatedAt: OffsetDateTime
   ): Comments
 }
 
@@ -126,7 +125,6 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
       comment: String,
       articleId: ArticleId,
       createdAt: OffsetDateTime,
-      updatedAt: OffsetDateTime
     ) =
       comments.transactionWithResult {
         comments
@@ -135,7 +133,7 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
             body = comment,
             author = userId.serial,
             createdAt = createdAt,
-            updatedAt = updatedAt
+            updatedAt = createdAt
           ) { id, article_id, body, author, createdAt, updatedAt ->
             Comments(
               id = id,

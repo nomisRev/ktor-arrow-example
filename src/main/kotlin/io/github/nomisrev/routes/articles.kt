@@ -109,7 +109,6 @@ data class ArticlesResource(val parent: RootResource = RootResource) {
 }
 
 fun Route.articleRoutes(
-  userService: UserService,
   articleService: ArticleService,
   jwtService: JwtService,
 ) {
@@ -167,7 +166,13 @@ fun Route.articleRoutes(
         .respond(HttpStatusCode.Created)
     }
   }
+}
 
+fun Route.commentRoutes(
+  userService: UserService,
+  articleService: ArticleService,
+  jwtService: JwtService
+) {
   post<ArticlesResource.Comments> { slug ->
     jwtAuth(jwtService) { (_, userId) ->
       either {

@@ -41,7 +41,11 @@ interface ArticleService {
   /** Get article by Slug */
   suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article>
 
-  suspend fun insertCommentForArticleSlug(slug: Slug, userId: UserId, comment: String): Either<DomainError, Comments>
+  suspend fun insertCommentForArticleSlug(
+    slug: Slug,
+    userId: UserId,
+    comment: String
+  ): Either<DomainError, Comments>
 }
 
 fun articleService(
@@ -122,19 +126,15 @@ fun articleService(
       )
     }
 
-    override suspend fun insertCommentForArticleSlug(
-      slug: Slug,
-      userId: UserId,
-      comment: String
-    ) = either {
-      val article = getArticleBySlug(slug).bind()
-      articlePersistence.insertCommentForArticleSlug(
-        slug,
-        userId,
-        comment,
-        ArticleId(article.articleId),
-        OffsetDateTime.now(),
-        OffsetDateTime.now()
-      )
-    }
+    override suspend fun insertCommentForArticleSlug(slug: Slug, userId: UserId, comment: String) =
+      either {
+        val article = getArticleBySlug(slug).bind()
+        articlePersistence.insertCommentForArticleSlug(
+          slug,
+          userId,
+          comment,
+          ArticleId(article.articleId),
+          OffsetDateTime.now()
+        )
+      }
   }
