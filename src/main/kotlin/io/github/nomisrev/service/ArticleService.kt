@@ -9,6 +9,7 @@ import io.github.nomisrev.repo.TagPersistence
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.routes.Article
+import io.github.nomisrev.routes.Comment
 import io.github.nomisrev.routes.FeedLimit
 import io.github.nomisrev.routes.FeedOffset
 import io.github.nomisrev.routes.MultipleArticlesResponse
@@ -38,6 +39,8 @@ interface ArticleService {
 
   /** Get article by Slug */
   suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article>
+
+  suspend fun getCommentsForSlug(slug: Slug): List<Comment>
 }
 
 fun articleService(
@@ -117,4 +120,15 @@ fun articleService(
         articleTags
       )
     }
+
+    override suspend fun getCommentsForSlug(slug: Slug): List<Comment> =
+      articlePersistence.getCommentsForSlug(slug).map { comment ->
+        Comment(
+          comment.comment__id,
+          comment.comment__createdAt,
+          comment.comment__updatedAt,
+          comment.comment__body,
+          Profile(comment.author__username, comment.author__bio, comment.author__image, false)
+        )
+      }
   }
