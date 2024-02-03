@@ -10,6 +10,7 @@ fun Application.routes(deps: Dependencies) = routing {
   tagRoutes(deps.tagPersistence)
   articleRoutes(deps.articleService, deps.jwtService)
   profileRoutes(deps.userPersistence, deps.jwtService)
+  commentRoutes(deps.articleService, deps.jwtService)
 }
 
 @Resource("/api") data object RootResource

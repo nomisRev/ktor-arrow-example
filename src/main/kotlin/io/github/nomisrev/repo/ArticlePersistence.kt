@@ -11,6 +11,8 @@ import io.github.nomisrev.routes.Profile
 import io.github.nomisrev.service.Slug
 import io.github.nomisrev.sqldelight.Articles
 import io.github.nomisrev.sqldelight.ArticlesQueries
+import io.github.nomisrev.sqldelight.CommentsQueries
+import io.github.nomisrev.sqldelight.SelectForSlug
 import io.github.nomisrev.sqldelight.TagsQueries
 import java.time.OffsetDateTime
 
@@ -37,9 +39,11 @@ interface ArticlePersistence {
   suspend fun getFeed(userId: UserId, limit: FeedLimit, offset: FeedOffset): List<Article>
 
   suspend fun getArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles>
+
+  suspend fun getCommentsForSlug(slug: Slug): List<SelectForSlug>
 }
 
-fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
+fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQueries: TagsQueries) =
   object : ArticlePersistence {
     override suspend fun create(
       authorId: UserId,
@@ -108,4 +112,7 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
         val article = articles.selectBySlug(slug.value).executeAsOneOrNull()
         ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
       }
+
+    override suspend fun getCommentsForSlug(slug: Slug): List<SelectForSlug> =
+      comments.selectForSlug(slug.value).executeAsList()
   }
