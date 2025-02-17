@@ -25,6 +25,7 @@ class ArticlesRouteSpec :
     val validUsername = "username2"
     val validEmail = "valid2@domain.com"
     val validPw = "123456789"
+
     // Article
     val validTags = setOf("arrow", "kotlin", "ktor", "sqldelight")
     val validTitle = "Fake Article Arrow "
@@ -77,6 +78,38 @@ class ArticlesRouteSpec :
 
         assert(response.status == HttpStatusCode.OK)
         assert(response.body<SingleArticleResponse>().article == article)
+      }
+    }
+
+    "can get comments for an article by slug when authenticated" {
+      withServer { dependencies ->
+        val article =
+          dependencies.articleService
+            .createArticle(
+              CreateArticle(userId, validTitle, validDescription, validBody, validTags)
+            )
+            .shouldBeRight()
+
+        val response =
+          get(ArticlesResource.Comments(slug = article.slug)) { bearerAuth(token.value) }
+
+        assert(response.status == HttpStatusCode.OK)
+        assert(response.body<MultipleCommentsResponse>().comments == emptyList<Comment>())
+      }
+    }
+
+    "can not get comments for an article when not authenticated" {
+      withServer { dependencies ->
+        val article =
+          dependencies.articleService
+            .createArticle(
+              CreateArticle(userId, validTitle, validDescription, validBody, validTags)
+            )
+            .shouldBeRight()
+
+        val response = get(ArticlesResource.Comments(slug = article.slug))
+
+        assert(response.status == HttpStatusCode.Unauthorized)
       }
     }
 

@@ -47,6 +47,8 @@ interface ArticlePersistence {
     articleId: ArticleId,
     createdAt: OffsetDateTime,
   ): Comments
+
+  suspend fun getCommentsForSlug(slug: Slug): List<SelectForSlug>
 }
 
 fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQueries: TagsQueries) =
@@ -118,6 +120,9 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
         val article = articles.selectBySlug(slug.value).executeAsOneOrNull()
         ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
       }
+
+    override suspend fun getCommentsForSlug(slug: Slug): List<SelectForSlug> =
+      comments.selectForSlug(slug.value).executeAsList()
 
     override suspend fun insertCommentForArticleSlug(
       slug: Slug,

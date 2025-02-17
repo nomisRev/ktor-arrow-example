@@ -15,6 +15,7 @@ import io.ktor.server.application.call
 import io.ktor.server.request.receive
 import io.ktor.server.resources.get
 import io.ktor.server.resources.post
+import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import java.time.OffsetDateTime
 import kotlinx.serialization.KSerializer
@@ -66,6 +67,8 @@ data class Comment(
   val body: String,
   val author: Profile
 )
+
+@Serializable data class MultipleCommentsResponse(val comments: List<Comment>)
 
 @Serializable
 data class NewArticle(
@@ -202,6 +205,15 @@ fun Route.commentRoutes(
           )
         }
         .respond(HttpStatusCode.OK)
+    }
+  }
+}
+
+fun Route.commentRoutes(articleService: ArticleService, jwtService: JwtService) {
+  get<ArticlesResource.Comments> { slug ->
+    jwtAuth(jwtService) { (_, _) ->
+      val comments = articleService.getCommentsForSlug(Slug(slug.slug))
+      call.respond(MultipleCommentsResponse(comments))
     }
   }
 }
