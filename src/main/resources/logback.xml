@@ -10,12 +10,12 @@
             <pattern>[%thread] %highlight(%-5level) %cyan(%logger{15}) - %msg %n</pattern>
         </encoder>
     </appender>
-    <root level="trace">
+    <root level="ERROR">
         <appender-ref ref="STDOUT"/>
     </root>
-    <logger name="org.eclipse.jetty" level="INFO"/>
-    <logger name="io.netty" level="INFO"/>
+    <logger name="org.eclipse.jetty" level="ERROR"/>
+    <logger name="io.netty" level="ERROR"/>
 
-    <logger name="org.testcontainers" level="INFO"/>
-    <logger name="com.github.dockerjava" level="WARN"/>
+    <logger name="org.testcontainers" level="ERROR"/>
+    <logger name="com.github.dockerjava" level="ERROR"/>
 </configuration>

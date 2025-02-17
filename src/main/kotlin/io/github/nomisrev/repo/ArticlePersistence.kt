@@ -81,10 +81,10 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
           articleTitle,
           articleDescription,
           articleBody,
-          articleAuthorId,
+          _,
           articleCreatedAt,
           articleUpdatedAt,
-          usersId,
+          _,
           usersUsername,
           usersImage ->
           Article(

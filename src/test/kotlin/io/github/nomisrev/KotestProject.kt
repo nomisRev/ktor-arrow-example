@@ -1,10 +1,10 @@
 package io.github.nomisrev
 
-import arrow.fx.coroutines.continuations.resource
+import arrow.fx.coroutines.ResourceScope
+import arrow.fx.coroutines.resource
 import io.github.nomisrev.env.Env
 import io.github.nomisrev.env.dependencies
 import io.github.nomisrev.env.hikari
-import io.kotest.assertions.arrow.fx.coroutines.ProjectResource
 import io.kotest.core.config.AbstractProjectConfig
 import io.kotest.core.extensions.Extension
 import io.kotest.core.listeners.TestListener
@@ -33,8 +33,8 @@ object KotestProject : AbstractProjectConfig() {
 
   private val env: Env by lazy { Env().copy(dataSource = dataSource) }
 
-  val dependencies = ProjectResource(resource { dependencies(env) })
-  private val hikari = ProjectResource(resource { hikari(env.dataSource) })
+  val dependencies = ProjectResource { dependencies(env) }
+  private val hikari = ProjectResource { hikari(env.dataSource) }
 
   override val globalAssertSoftly: Boolean = true
 
@@ -51,3 +51,6 @@ object KotestProject : AbstractProjectConfig() {
   override fun extensions(): List<Extension> =
     listOf(StartablePerProjectListener(postgres), hikari, dependencies, resetDatabaseListener)
 }
+
+fun <A> ProjectResource(block: suspend ResourceScope.() -> A) =
+  io.kotest.assertions.arrow.fx.coroutines.ProjectResource(resource(block))

@@ -5,13 +5,12 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
   alias(libs.plugins.kotest.multiplatform)
   id(libs.plugins.kotlin.jvm.pluginId)
   alias(libs.plugins.dokka)
-  id(libs.plugins.detekt.pluginId)
   alias(libs.plugins.kover)
   alias(libs.plugins.kotlinx.serialization)
   alias(libs.plugins.sqldelight)
   alias(libs.plugins.ktor)
   alias(libs.plugins.spotless)
-  alias(libs.plugins.power.assert)
+  alias(libs.plugins.kotlin.assert) version "2.0.0"
 }
 
 application {
@@ -29,7 +28,6 @@ sqldelight {
 
 allprojects {
   extra.set("dokka.outputDirectory", rootDir.resolve("docs"))
-  setupDetekt()
 }
 
 repositories {
@@ -38,9 +36,7 @@ repositories {
 
 tasks {
   withType<KotlinCompile>().configureEach {
-    kotlinOptions {
-      freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
-    }
+    kotlin.compilerOptions.freeCompilerArgs.add("-Xcontext-receivers")
   }
 
   test {

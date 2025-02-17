@@ -1,6 +1,6 @@
 package io.github.nomisrev.env
 
-import arrow.fx.coroutines.continuations.ResourceScope
+import arrow.fx.coroutines.ResourceScope
 import com.sksamuel.cohort.HealthCheckRegistry
 import com.sksamuel.cohort.hikari.HikariConnectionsHealthCheck
 import io.github.nomisrev.repo.TagPersistence
@@ -16,7 +16,6 @@ import io.github.nomisrev.service.articleService
 import io.github.nomisrev.service.jwtService
 import io.github.nomisrev.service.slugifyGenerator
 import io.github.nomisrev.service.userService
-import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.Dispatchers
 
 class Dependencies(
@@ -40,9 +39,7 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
   val userService = userService(userRepo, jwtService)
 
   val checks =
-    HealthCheckRegistry(Dispatchers.Default) {
-      register(HikariConnectionsHealthCheck(hikari, 1), 5.seconds)
-    }
+    HealthCheckRegistry(Dispatchers.Default) { register(HikariConnectionsHealthCheck(hikari, 1)) }
 
   return Dependencies(
     userService = userService,

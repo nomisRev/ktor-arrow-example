@@ -1,14 +1,14 @@
 [versions]
-arrow = "1.2.1"
+arrow = "2.0.0"
 arrowGradleConfig = "0.11.0"
 coroutines = "1.7.3"
 dokka = "1.9.10"
-kotlin = "2.0.0-Beta5"
+kotlin = "2.0.0"
 kotest = "5.8.0"
 kotest-plugin = "5.8.0"
 kover = "0.7.4"
-detekt = "1.23.3"
-ktor = "2.3.6"
+detekt = "1.23.7"
+ktor = "3.1.0"
 logback = "1.4.11"
 sqldelight="2.0.0"
 testcontainers="1.19.3"
@@ -44,7 +44,7 @@ ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
 ktor-server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktor" }
 ktor-server-defaultheaders = { module = "io.ktor:ktor-server-default-headers", version.ref = "ktor" }
 ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }
-ktor-server-tests = { module = "io.ktor:ktor-server-tests", version.ref = "ktor" }
+ktor-server-tests = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
 ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }
 ktor-server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt", version.ref = "ktor" }
 ktor-server-resources = { module = "io.ktor:ktor-server-resources", version.ref = "ktor" }
@@ -107,9 +107,9 @@ dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 kotest-multiplatform = { id = "io.kotest.multiplatform", version.ref = "kotest-plugin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-assert = { id = "org.jetbrains.kotlin.plugin.power-assert",  version.ref = "kotlin" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
-power-assert = { id = "com.bnorm.power.kotlin-power-assert",  version.ref = "power-assert" }
