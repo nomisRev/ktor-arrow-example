@@ -9,11 +9,7 @@ import io.github.nomisrev.routes.FeedLimit
 import io.github.nomisrev.routes.FeedOffset
 import io.github.nomisrev.routes.Profile
 import io.github.nomisrev.service.Slug
-import io.github.nomisrev.sqldelight.Articles
-import io.github.nomisrev.sqldelight.ArticlesQueries
-import io.github.nomisrev.sqldelight.Comments
-import io.github.nomisrev.sqldelight.CommentsQueries
-import io.github.nomisrev.sqldelight.TagsQueries
+import io.github.nomisrev.sqldelight.*
 import java.time.OffsetDateTime
 
 @JvmInline value class ArticleId(val serial: Long)
@@ -93,10 +89,10 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
           articleTitle,
           articleDescription,
           articleBody,
-          articleAuthorId,
+          _,
           articleCreatedAt,
           articleUpdatedAt,
-          usersId,
+          _,
           usersUsername,
           usersImage ->
           Article(
@@ -139,14 +135,14 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
             author = userId.serial,
             createdAt = createdAt,
             updatedAt = createdAt
-          ) { id, article_id, body, author, createdAt, updatedAt ->
+          ) { id, articleId, body, author, createdAt, updatedAt ->
             Comments(
               id = id,
               body = body,
               author = author,
               createdAt = createdAt,
               updatedAt = updatedAt,
-              article_id = article_id
+              article_id = articleId
             )
           }
           .executeAsOne()

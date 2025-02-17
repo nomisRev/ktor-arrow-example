@@ -28,7 +28,7 @@ data class EmailAlreadyExists(val email: String) : UserError
 
 data class UsernameAlreadyExists(val username: String) : UserError
 
-object PasswordNotMatched : UserError
+data object PasswordNotMatched : UserError
 
 sealed interface JwtError : DomainError
 

@@ -11,14 +11,12 @@ import io.github.nomisrev.service.Update
 import io.github.nomisrev.service.UserService
 import io.ktor.http.HttpStatusCode
 import io.ktor.resources.Resource
-import io.ktor.server.application.ApplicationCall
-import io.ktor.server.application.call
 import io.ktor.server.request.receive
 import io.ktor.server.resources.get
 import io.ktor.server.resources.post
 import io.ktor.server.resources.put
 import io.ktor.server.routing.Route
-import io.ktor.util.pipeline.PipelineContext
+import io.ktor.server.routing.RoutingContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.MissingFieldException
 import kotlinx.serialization.Serializable
@@ -103,6 +101,6 @@ fun Route.userRoutes(
 
 // TODO improve how we receive models with validation
 @OptIn(ExperimentalSerializationApi::class)
-private suspend inline fun <reified A : Any> PipelineContext<Unit, ApplicationCall>
-  .receiveCatching(): Either<IncorrectJson, A> =
+private suspend inline fun <reified A : Any> RoutingContext.receiveCatching():
+  Either<IncorrectJson, A> =
   Either.catchOrThrow<MissingFieldException, A> { call.receive() }.mapLeft { IncorrectJson(it) }

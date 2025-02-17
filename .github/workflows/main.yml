@@ -34,7 +34,7 @@ jobs:
           path: '**/build/reports/**'
 
       - name: Upload Code Scanning code analysis report
-        if: always()
+        if: ${{ hashFiles('build/reports/detekt/main.sarif') != '' }}
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'build/reports/detekt/main.sarif'

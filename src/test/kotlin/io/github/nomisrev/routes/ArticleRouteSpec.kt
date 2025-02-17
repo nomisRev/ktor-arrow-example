@@ -3,11 +3,11 @@ package io.github.nomisrev.routes
 import io.github.nomisrev.KotestProject
 import io.github.nomisrev.MIN_FEED_LIMIT
 import io.github.nomisrev.MIN_FEED_OFFSET
-import io.github.nomisrev.SuspendFun
 import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
+import io.kotest.core.spec.style.StringSpec
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import io.ktor.client.plugins.resources.post
@@ -19,7 +19,7 @@ import io.ktor.http.contentType
 import kotlin.properties.Delegates
 
 class ArticleRouteSpec :
-  SuspendFun({
+  StringSpec({
     val username = "username3"
     val email = "valid1@domain.com"
     val password = "123456789"

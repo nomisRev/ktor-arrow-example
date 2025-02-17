@@ -15,10 +15,8 @@ import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.UsernameAlreadyExists
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.ApplicationCall
-import io.ktor.server.application.call
 import io.ktor.server.response.respond
-import io.ktor.util.pipeline.PipelineContext
+import io.ktor.server.routing.RoutingContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
@@ -26,7 +24,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class GenericErrorModelErrors(val body: List<String>)
 
-context(PipelineContext<Unit, ApplicationCall>)
+context(RoutingContext)
 suspend inline fun <reified A : Any> Either<DomainError, A>.respond(status: HttpStatusCode): Unit =
   when (this) {
     is Either.Left -> respond(value)
@@ -35,7 +33,7 @@ suspend inline fun <reified A : Any> Either<DomainError, A>.respond(status: Http
 
 @OptIn(ExperimentalSerializationApi::class)
 @Suppress("ComplexMethod")
-suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: DomainError): Unit =
+suspend fun RoutingContext.respond(error: DomainError): Unit =
   when (error) {
     PasswordNotMatched -> call.respond(HttpStatusCode.Unauthorized)
     is IncorrectInput ->
@@ -53,17 +51,13 @@ suspend fun PipelineContext<Unit, ApplicationCall>.respond(error: DomainError): 
     is MissingParameter -> unprocessable("Missing ${error.name} parameter in request")
   }
 
-private suspend inline fun PipelineContext<Unit, ApplicationCall>.unprocessable(
-  error: String
-): Unit =
+private suspend inline fun RoutingContext.unprocessable(error: String): Unit =
   call.respond(
     HttpStatusCode.UnprocessableEntity,
     GenericErrorModel(GenericErrorModelErrors(listOf(error)))
   )
 
-private suspend inline fun PipelineContext<Unit, ApplicationCall>.unprocessable(
-  errors: List<String>
-): Unit =
+private suspend inline fun RoutingContext.unprocessable(errors: List<String>): Unit =
   call.respond(
     HttpStatusCode.UnprocessableEntity,
     GenericErrorModel(GenericErrorModelErrors(errors))

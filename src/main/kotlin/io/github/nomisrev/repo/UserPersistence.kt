@@ -151,9 +151,10 @@ fun userPersistence(
     ): Either<DomainError, Unit> = either {
       catch({ followingQueries.insertByUsername(followedUsername, followerId.serial) }) {
         psqlException: PSQLException ->
-        if (psqlException.sqlState == PSQLState.NOT_NULL_VIOLATION.state)
-          raise(UserNotFound("username=$followedUsername"))
-        else throw psqlException
+        ensure(psqlException.sqlState != PSQLState.NOT_NULL_VIOLATION.state) {
+          UserNotFound("username=$followedUsername")
+        }
+        throw psqlException
       }
     }
 

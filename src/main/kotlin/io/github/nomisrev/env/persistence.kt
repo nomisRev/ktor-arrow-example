@@ -2,9 +2,9 @@ package io.github.nomisrev.env
 
 import app.cash.sqldelight.ColumnAdapter
 import app.cash.sqldelight.driver.jdbc.asJdbcDriver
+import arrow.fx.coroutines.ResourceScope
 import arrow.fx.coroutines.autoCloseable
 import arrow.fx.coroutines.closeable
-import arrow.fx.coroutines.continuations.ResourceScope
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.github.nomisrev.repo.ArticleId
