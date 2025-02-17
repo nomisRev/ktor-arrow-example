@@ -11,6 +11,8 @@ import io.github.nomisrev.routes.Profile
 import io.github.nomisrev.service.Slug
 import io.github.nomisrev.sqldelight.Articles
 import io.github.nomisrev.sqldelight.ArticlesQueries
+import io.github.nomisrev.sqldelight.Comments
+import io.github.nomisrev.sqldelight.CommentsQueries
 import io.github.nomisrev.sqldelight.TagsQueries
 import java.time.OffsetDateTime
 
@@ -37,9 +39,19 @@ interface ArticlePersistence {
   suspend fun getFeed(userId: UserId, limit: FeedLimit, offset: FeedOffset): List<Article>
 
   suspend fun getArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles>
+
+  suspend fun insertCommentForArticleSlug(
+    slug: Slug,
+    userId: UserId,
+    comment: String,
+    articleId: ArticleId,
+    createdAt: OffsetDateTime,
+  ): Comments
+
+  suspend fun getCommentsForSlug(slug: Slug): List<SelectForSlug>
 }
 
-fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
+fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQueries: TagsQueries) =
   object : ArticlePersistence {
     override suspend fun create(
       authorId: UserId,
@@ -107,5 +119,36 @@ fun articleRepo(articles: ArticlesQueries, tagsQueries: TagsQueries) =
       either {
         val article = articles.selectBySlug(slug.value).executeAsOneOrNull()
         ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
+      }
+
+    override suspend fun getCommentsForSlug(slug: Slug): List<SelectForSlug> =
+      comments.selectForSlug(slug.value).executeAsList()
+
+    override suspend fun insertCommentForArticleSlug(
+      slug: Slug,
+      userId: UserId,
+      comment: String,
+      articleId: ArticleId,
+      createdAt: OffsetDateTime,
+    ) =
+      comments.transactionWithResult {
+        comments
+          .insertAndGetComment(
+            article_id = articleId.serial,
+            body = comment,
+            author = userId.serial,
+            createdAt = createdAt,
+            updatedAt = createdAt
+          ) { id, article_id, body, author, createdAt, updatedAt ->
+            Comments(
+              id = id,
+              body = body,
+              author = author,
+              createdAt = createdAt,
+              updatedAt = updatedAt,
+              article_id = article_id
+            )
+          }
+          .executeAsOne()
       }
   }

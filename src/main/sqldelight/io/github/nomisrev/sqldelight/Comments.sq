@@ -9,9 +9,10 @@ CREATE TABLE IF NOT EXISTS comments(
     updatedAt VARCHAR(50) AS OffsetDateTime NOT NULL
 );
 
-insert:
+insertAndGetComment:
 INSERT INTO comments(article_id, body, author, createdAt, updatedAt)
-VALUES (:article_id, :body, :author, :createdAt, :updatedAt);
+VALUES (:article_id, :body, :author, :createdAt, :updatedAt)
+RETURNING id, article_id, body, author, createdAt, updatedAt;
 
 selectByArticleId:
 SELECT id, article_id, body, author, createdAt, updatedAt
@@ -21,3 +22,11 @@ WHERE article_id = :articleId;
 delete:
 DELETE FROM comments
 WHERE id = :id;
+
+selectForSlug:
+SELECT comments.id AS comment__id, comments.article_id AS comment__articleId, comments.body AS comment__body, comments.author AS comment__author, comments.createdAt AS comment__createdAt, comments.updatedAt  AS comment__updatedAt,
+users.username AS author__username, users.bio AS author__bio, users.image AS author__image
+FROM comments
+INNER JOIN articles ON comments.article_id = articles.id
+INNER JOIN users ON comments.author = users.id
+WHERE articles.slug = :slug;
