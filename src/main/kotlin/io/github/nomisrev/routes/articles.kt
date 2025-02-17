@@ -2,10 +2,12 @@ package io.github.nomisrev.routes
 
 import arrow.core.raise.either
 import io.github.nomisrev.auth.jwtAuth
+import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.service.ArticleService
 import io.github.nomisrev.service.CreateArticle
 import io.github.nomisrev.service.JwtService
 import io.github.nomisrev.service.Slug
+import io.github.nomisrev.service.UserService
 import io.github.nomisrev.validate
 import io.ktor.http.HttpStatusCode
 import io.ktor.resources.Resource
@@ -52,6 +54,10 @@ data class MultipleArticlesResponse(
 @JvmInline @Serializable value class FeedOffset(val offset: Int)
 
 @JvmInline @Serializable value class FeedLimit(val limit: Int)
+
+@Serializable data class NewComment(val body: String)
+
+@Serializable data class SingleCommentResponse(val comment: Comment)
 
 @Serializable
 data class Comment(
@@ -161,6 +167,44 @@ fun Route.articleRoutes(
             .bind()
         }
         .respond(HttpStatusCode.Created)
+    }
+  }
+}
+
+fun Route.commentRoutes(
+  userService: UserService,
+  articleService: ArticleService,
+  jwtService: JwtService
+) {
+  post<ArticlesResource.Comments> { slug ->
+    jwtAuth(jwtService) { (_, userId) ->
+      either {
+          val comments =
+            articleService
+              .insertCommentForArticleSlug(
+                slug = Slug(slug.slug),
+                userId = userId,
+                comment = call.receive<NewComment>().validate().bind().body,
+              )
+              .bind()
+          val userProfile = userService.getUser(UserId(comments.author)).bind()
+          SingleCommentResponse(
+            Comment(
+              commentId = comments.id,
+              createdAt = comments.createdAt,
+              updatedAt = comments.updatedAt,
+              body = comments.body,
+              author =
+                Profile(
+                  username = userProfile.username,
+                  bio = userProfile.bio,
+                  image = userProfile.image,
+                  following = false
+                )
+            )
+          )
+        }
+        .respond(HttpStatusCode.OK)
     }
   }
 }
