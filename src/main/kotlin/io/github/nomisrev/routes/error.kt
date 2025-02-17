@@ -15,7 +15,6 @@ import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.UsernameAlreadyExists
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.call
 import io.ktor.server.response.respond
 import io.ktor.server.routing.RoutingContext
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -28,7 +27,7 @@ import kotlinx.serialization.Serializable
 context(RoutingContext)
 suspend inline fun <reified A : Any> Either<DomainError, A>.respond(status: HttpStatusCode): Unit =
   when (this) {
-    is Either.Left -> call.respond(value)
+    is Either.Left -> respond(value)
     is Either.Right -> call.respond(status, value)
   }
 

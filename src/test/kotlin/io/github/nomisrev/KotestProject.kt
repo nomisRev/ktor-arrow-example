@@ -5,12 +5,13 @@ import arrow.fx.coroutines.resource
 import io.github.nomisrev.env.Env
 import io.github.nomisrev.env.dependencies
 import io.github.nomisrev.env.hikari
+import io.kotest.common.KotestInternal
 import io.kotest.core.config.AbstractProjectConfig
 import io.kotest.core.extensions.Extension
-import io.kotest.core.listeners.TestListener
+import io.kotest.core.listeners.AfterTestListener
 import io.kotest.core.test.TestCase
 import io.kotest.core.test.TestResult
-import io.kotest.extensions.testcontainers.StartablePerProjectListener
+import io.kotest.extensions.testcontainers.perProject
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.containers.wait.strategy.Wait
 
@@ -33,13 +34,14 @@ object KotestProject : AbstractProjectConfig() {
 
   private val env: Env by lazy { Env().copy(dataSource = dataSource) }
 
-  val dependencies = ProjectResource { dependencies(env) }
-  private val hikari = ProjectResource { hikari(env.dataSource) }
+  val dependencies = projectResource { dependencies(env) }
+  private val hikari = projectResource { hikari(env.dataSource) }
 
   override val globalAssertSoftly: Boolean = true
 
+  @OptIn(KotestInternal::class)
   private val resetDatabaseListener =
-    object : TestListener {
+    object : AfterTestListener {
       override suspend fun afterTest(testCase: TestCase, result: TestResult) {
         super.afterTest(testCase, result)
         hikari.get().connection.use { conn ->
@@ -49,8 +51,8 @@ object KotestProject : AbstractProjectConfig() {
     }
 
   override fun extensions(): List<Extension> =
-    listOf(StartablePerProjectListener(postgres), hikari, dependencies, resetDatabaseListener)
+    listOf(postgres.perProject(), hikari, dependencies, resetDatabaseListener)
 }
 
-fun <A> ProjectResource(block: suspend ResourceScope.() -> A) =
+private fun <A> projectResource(block: suspend ResourceScope.() -> A) =
   io.kotest.assertions.arrow.fx.coroutines.ProjectResource(resource(block))

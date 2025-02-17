@@ -6,6 +6,10 @@ CREATE TABLE IF NOT EXISTS tags(
     PRIMARY KEY (article_id, tag)
 );
 
+selectTags:
+SELECT DISTINCT ON (tag) tag
+FROM tags;
+
 selectTagsOfArticle:
 SELECT tag
 FROM tags
@@ -15,10 +19,6 @@ selectArticleId:
 SELECT article_id
 FROM tags
 WHERE tag = :tag;
-
-selectTags:
-SELECT DISTINCT tag
-FROM tags;
 
 insert:
 INSERT INTO tags(article_id, tag)

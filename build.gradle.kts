@@ -4,13 +4,12 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
   application
   alias(libs.plugins.kotest.multiplatform)
   id(libs.plugins.kotlin.jvm.pluginId)
-  alias(libs.plugins.dokka)
   alias(libs.plugins.kover)
   alias(libs.plugins.kotlinx.serialization)
   alias(libs.plugins.sqldelight)
   alias(libs.plugins.ktor)
   alias(libs.plugins.spotless)
-  alias(libs.plugins.kotlin.assert) version "2.0.0"
+  alias(libs.plugins.kotlin.assert)
 }
 
 application {
@@ -24,10 +23,6 @@ sqldelight {
       dialect(libs.sqldelight.postgresql.get())
     }
   }
-}
-
-allprojects {
-  extra.set("dokka.outputDirectory", rootDir.resolve("docs"))
 }
 
 repositories {
