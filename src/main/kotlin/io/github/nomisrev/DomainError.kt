@@ -41,3 +41,5 @@ sealed interface ArticleError : DomainError
 data class CannotGenerateSlug(val description: String) : ArticleError
 
 data class ArticleBySlugNotFound(val slug: String) : ArticleError
+
+data class NotArticleAuthor(val userId: Long, val slug: String) : ArticleError

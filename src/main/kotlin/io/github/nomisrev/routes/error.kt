@@ -11,6 +11,7 @@ import io.github.nomisrev.IncorrectJson
 import io.github.nomisrev.JwtGeneration
 import io.github.nomisrev.JwtInvalid
 import io.github.nomisrev.MissingParameter
+import io.github.nomisrev.NotArticleAuthor
 import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.UsernameAlreadyExists
@@ -49,6 +50,7 @@ suspend fun RoutingContext.respond(error: DomainError): Unit =
     is CannotGenerateSlug -> unprocessable(error.description)
     is ArticleBySlugNotFound -> unprocessable("Article by slug ${error.slug} not found")
     is MissingParameter -> unprocessable("Missing ${error.name} parameter in request")
+    is NotArticleAuthor -> unprocessable("User is not the author of the article")
   }
 
 private suspend inline fun RoutingContext.unprocessable(error: String): Unit =
