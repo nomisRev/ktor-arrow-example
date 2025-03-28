@@ -57,7 +57,6 @@ interface ArticlePersistence {
 
   /** Delete an article by slug */
   suspend fun deleteArticle(slug: Slug): Either<ArticleBySlugNotFound, Unit>
-
   suspend fun insertCommentForArticleSlug(
     slug: Slug,
     userId: UserId,
@@ -75,35 +74,32 @@ interface ArticlePersistence {
 }
 
 fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQueries: TagsQueries) =
-    object : ArticlePersistence {
-        override suspend fun deleteArticle(slug: Slug): Either<ArticleBySlugNotFound, Unit> =
-            either {
-                val article = findArticleBySlug(slug).bind()
-                articles.delete(article.id)
-            }
+  object : ArticlePersistence {
+    override suspend fun deleteArticle(slug: Slug): Either<ArticleBySlugNotFound, Unit> = either {
+      val article = getArticleBySlug(slug).bind()
+      articles.delete(article.id)
+    }
 
-        override suspend fun create(
-            authorId: UserId,
-            slug: Slug,
-            title: String,
-            description: String,
-            body: String,
-            createdAt: OffsetDateTime,
-            updatedAt: OffsetDateTime,
-            tags: Set<String>,
-        ): ArticleId = articles.transactionWithResult {
-            val articleId =
-                articles
-                    .insertAndGetId(
-                        slug.value,
-                        title,
-                        description,
-                        body,
-                        authorId,
-                        createdAt,
-                        updatedAt,
-                    )
-                    .executeAsOne()
+    override suspend fun create(
+      authorId: UserId,
+      slug: Slug,
+      title: String,
+      description: String,
+      body: String,
+      createdAt: OffsetDateTime,
+      updatedAt: OffsetDateTime,
+      tags: Set<String>,
+    ): ArticleId =
+      articles.transactionWithResult {
+        val articleId =
+          articles
+            .insertAndGetId(slug.value, title, description, body, authorId, createdAt, updatedAt)
+            .executeAsOne()
+
+        tags.forEach { tag -> tagsQueries.insert(articleId, tag) }
+
+        articleId
+      }
 
             tags.forEach { tag -> tagsQueries.insert(articleId, tag) }
 

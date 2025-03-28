@@ -90,49 +90,52 @@ fun articleService(
     tagPersistence: TagPersistence,
     favouritePersistence: FavouritePersistence,
 ): ArticleService =
-    object : ArticleService {
-        override suspend fun deleteArticle(slug: Slug, userId: UserId): Either<DomainError, Unit> =
-            either {
-                val article = articlePersistence.findArticleBySlug(slug).bind()
-                ensure(article.author_id == userId) { NotArticleAuthor(userId.serial, slug.value) }
-                articlePersistence.deleteArticle(slug).bind()
-            }
+  object : ArticleService {
+    override suspend fun deleteArticle(slug: Slug, userId: UserId): Either<DomainError, Unit> = either {
+      val article = articlePersistence.findArticleBySlug(slug).bind()
 
-        override suspend fun createArticle(input: CreateArticle): Either<DomainError, Article> =
-            either {
-                val slug =
-                    slugGenerator
-                        .generateSlug(input.title) { slug -> articlePersistence.exists(slug).not() }
-                        .bind()
-                val createdAt = OffsetDateTime.now()
-                val articleId =
-                    articlePersistence
-                        .create(
-                            input.userId,
-                            slug,
-                            input.title,
-                            input.description,
-                            input.body,
-                            createdAt,
-                            createdAt,
-                            input.tags,
-                        )
-                        .serial
-                val user = userPersistence.select(input.userId).bind()
-                Article(
-                    articleId,
-                    slug.value,
-                    input.title,
-                    input.description,
-                    input.body,
-                    Profile(user.username, user.bio, user.image, false),
-                    false,
-                    0,
-                    createdAt,
-                    createdAt,
-                    input.tags.toList(),
-                )
-            }
+      ensure(article.author_id == userId) {
+        NotArticleAuthor(userId.serial, slug.value)
+      }
+
+      articlePersistence.deleteArticle(slug).bind()
+    }
+
+    override suspend fun createArticle(input: CreateArticle): Either<DomainError, Article> =
+      either {
+        val slug =
+          slugGenerator
+            .generateSlug(input.title) { slug -> articlePersistence.exists(slug).not() }
+            .bind()
+        val createdAt = OffsetDateTime.now()
+        val articleId =
+          articlePersistence
+            .create(
+              input.userId,
+              slug,
+              input.title,
+              input.description,
+              input.body,
+              createdAt,
+              createdAt,
+              input.tags,
+            )
+            .serial
+        val user = userPersistence.select(input.userId).bind()
+        Article(
+          articleId,
+          slug.value,
+          input.title,
+          input.description,
+          input.body,
+          Profile(user.username, user.bio, user.image, false),
+          false,
+          0,
+          createdAt,
+          createdAt,
+          input.tags.toList(),
+        )
+      }
 
     override suspend fun updateArticle(input: UpdateArticleInput): Either<DomainError, Article> =
       either {

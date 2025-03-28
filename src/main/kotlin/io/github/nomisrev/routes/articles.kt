@@ -212,6 +212,14 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
         }
     }
 
+  delete<ArticlesResource.Slug> { slugResource ->
+    jwtAuth(jwtService) { (_, userId) ->
+      articleService
+        .deleteArticle(Slug(slugResource.slug), userId)
+        .respond(HttpStatusCode.OK)
+    }
+  }
+
     post<ArticlesResource> {
         jwtAuth(jwtService) { (_, userId) ->
             either {
