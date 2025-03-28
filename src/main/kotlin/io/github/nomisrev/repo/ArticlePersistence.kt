@@ -47,17 +47,24 @@ interface ArticlePersistence {
         body: String?,
     ): Either<ArticleBySlugNotFound, Articles>
 
-    /** Delete an article by slug */
-    suspend fun deleteArticle(slug: Slug): Either<ArticleBySlugNotFound, Unit>
+  /** Update an article by slug */
+  suspend fun updateArticle(
+    slug: Slug,
+    title: String?,
+    description: String?,
+    body: String?,
+  ): Either<ArticleBySlugNotFound, Articles>
 
-    // Create proper domain for Comments
-    suspend fun createCommentForArticleSlug(
-        slug: Slug,
-        userId: UserId,
-        comment: String,
-        articleId: ArticleId,
-        createdAt: OffsetDateTime,
-    ): Comments
+  /** Delete an article by slug */
+  suspend fun deleteArticle(slug: Slug): Either<ArticleBySlugNotFound, Unit>
+
+  suspend fun insertCommentForArticleSlug(
+    slug: Slug,
+    userId: UserId,
+    comment: String,
+    articleId: ArticleId,
+    createdAt: OffsetDateTime,
+  ): Comments
 
     suspend fun findCommentsForSlug(slug: Slug): List<Comment>
 
@@ -147,6 +154,38 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
             val article = articles.selectBySlug(slug.value).executeAsOneOrNull()
             ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
         }
+
+    override suspend fun updateArticle(
+      slug: Slug,
+      title: String?,
+      description: String?,
+      body: String?,
+    ): Either<ArticleBySlugNotFound, Articles> = either {
+      val article =
+        articles
+          .update(title, description, body, OffsetDateTime.now(), slug.value) {
+            articleId,
+            slug,
+            title,
+            description,
+            body,
+            authorId,
+            createdAt,
+            updatedAt ->
+            Articles(
+              id = articleId,
+              slug = slug,
+              title = title,
+              description = description,
+              body = body,
+              author_id = authorId,
+              createdAt = createdAt,
+              updatedAt = updatedAt,
+            )
+          }
+          .executeAsOneOrNull()
+      ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
+    }
 
         override suspend fun updateArticle(
             slug: Slug,

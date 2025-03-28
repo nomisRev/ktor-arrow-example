@@ -34,13 +34,12 @@ data class CreateArticle(
 )
 
 data class UpdateArticleInput(
-    val slug: Slug,
-    val userId: UserId,
-    val title: String?,
-    val description: String?,
-    val body: String?,
+  val slug: Slug,
+  val userId: UserId,
+  val title: String?,
+  val description: String?,
+  val body: String?,
 )
-
 data class GetFeed(val userId: UserId, val limit: Int, val offset: Int)
 
 interface ArticleService {
@@ -56,17 +55,17 @@ interface ArticleService {
     /** Get article by Slug */
     suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article>
 
-    /** Update an article and return the updated Article */
-    suspend fun updateArticle(input: UpdateArticleInput): Either<DomainError, Article>
+  /** Update an article and return the updated Article */
+  suspend fun updateArticle(input: UpdateArticleInput): Either<DomainError, Article>
 
-    /** Delete an article by slug */
-    suspend fun deleteArticle(slug: Slug, userId: UserId): Either<DomainError, Unit>
+  /** Delete an article by slug */
+  suspend fun deleteArticle(slug: Slug, userId: UserId): Either<DomainError, Unit>
 
-    suspend fun insertCommentForArticleSlug(
-        slug: Slug,
-        userId: UserId,
-        comment: String,
-    ): Either<DomainError, Comments>
+  suspend fun insertCommentForArticleSlug(
+    slug: Slug,
+    userId: UserId,
+    comment: String,
+  ): Either<DomainError, Comments>
 
     suspend fun getCommentsForSlug(slug: Slug): List<Comment>
 
@@ -135,31 +134,22 @@ fun articleService(
                 )
             }
 
-        override suspend fun updateArticle(
-            input: UpdateArticleInput
-        ): Either<DomainError, Article> = either {
-            val article = articlePersistence.findArticleBySlug(input.slug).bind()
+    override suspend fun updateArticle(input: UpdateArticleInput): Either<DomainError, Article> =
+      either {
+        val article = articlePersistence.findArticleBySlug(input.slug).bind()
 
-            ensure(article.author_id != input.userId) {
-                raise(NotArticleAuthor(input.userId.serial, input.slug.value))
-            }
-
-            val updatedArticle =
-                articlePersistence
-                    .updateArticle(input.slug, input.title, input.description, input.body)
-                    .bind()
-
-            val favorite = favouritePersistence.isFavorite(input.userId, article.id)
-            article(updatedArticle, favorite)
+        ensure(article.author_id != input.userId) {
+          raise(NotArticleAuthor(input.userId.serial, input.slug.value))
         }
 
-        override suspend fun getUserFeed(input: GetFeed): MultipleArticlesResponse {
-            val articles =
-                articlePersistence.feed(
-                    userId = input.userId,
-                    limit = FeedLimit(input.limit),
-                    offset = FeedOffset(input.offset),
-                )
+        val updatedArticle =
+          articlePersistence
+            .updateArticle(input.slug, input.title, input.description, input.body)
+            .bind()
+
+        val favorite = favouritePersistence.isFavorite(input.userId, article.id)
+        article(updatedArticle, favorite)
+      }
 
             return MultipleArticlesResponse(articles = articles, articlesCount = articles.size)
         }

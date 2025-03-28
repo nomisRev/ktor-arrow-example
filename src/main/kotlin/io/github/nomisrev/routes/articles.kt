@@ -91,7 +91,6 @@ data class UpdateArticle(
 )
 
 fun UpdateArticle.validate(): Either<IncorrectInput, UpdateArticle> = Either.Right(this)
-
 @Serializable
 data class ArticleResponse(
     val slug: String,
