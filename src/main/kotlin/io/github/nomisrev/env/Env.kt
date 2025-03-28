@@ -33,6 +33,6 @@ data class Env(
   data class Auth(
     val secret: String = getenv("JWT_SECRET") ?: AUTH_SECRET,
     val issuer: String = getenv("JWT_ISSUER") ?: AUTH_ISSUER,
-    val duration: Duration = (getenv("JWT_DURATION")?.toIntOrNull() ?: AUTH_DURATION).days
+    val duration: Duration = (getenv("JWT_DURATION")?.toIntOrNull() ?: AUTH_DURATION).days,
   )
 }

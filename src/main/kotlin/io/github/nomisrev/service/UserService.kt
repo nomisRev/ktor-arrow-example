@@ -18,7 +18,7 @@ data class Update(
   val email: String?,
   val password: String?,
   val bio: String?,
-  val image: String?
+  val image: String?,
 )
 
 data class Login(val email: String, val password: String)

@@ -28,7 +28,7 @@ interface UserPersistence {
   /** Verifies is a password is correct for a given email */
   suspend fun verifyPassword(
     email: String,
-    password: String
+    password: String,
   ): Either<DomainError, Pair<UserId, UserInfo>>
 
   /** Select a User by its [UserId] */
@@ -46,7 +46,7 @@ interface UserPersistence {
     username: String?,
     password: String?,
     bio: String?,
-    image: String?
+    image: String?,
   ): Either<DomainError, UserInfo>
 
   suspend fun unfollowProfile(followedUsername: String, followerId: UserId)
@@ -60,14 +60,14 @@ fun userPersistence(
   followingQueries: FollowingQueries,
   defaultIterations: Int = 64000,
   defaultKeyLength: Int = 512,
-  secretKeysFactory: SecretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512")
+  secretKeysFactory: SecretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512"),
 ) =
   object : UserPersistence {
 
     override suspend fun insert(
       username: String,
       email: String,
-      password: String
+      password: String,
     ): Either<DomainError, UserId> {
       val salt = generateSalt()
       val key = generateKey(password, salt)
@@ -83,7 +83,7 @@ fun userPersistence(
 
     override suspend fun verifyPassword(
       email: String,
-      password: String
+      password: String,
     ): Either<DomainError, Pair<UserId, UserInfo>> = either {
       val (userId, username, salt, key, bio, image) =
         ensureNotNull(usersQueries.selectSecurityByEmail(email).executeAsOneOrNull()) {
@@ -124,7 +124,7 @@ fun userPersistence(
       username: String?,
       password: String?,
       bio: String?,
-      image: String?
+      image: String?,
     ): Either<DomainError, UserInfo> = either {
       val info =
         usersQueries.transactionWithResult {
@@ -147,7 +147,7 @@ fun userPersistence(
 
     override suspend fun followProfile(
       followedUsername: String,
-      followerId: UserId
+      followerId: UserId,
     ): Either<DomainError, Unit> = either {
       catch({ followingQueries.insertByUsername(followedUsername, followerId.serial) }) {
         psqlException: PSQLException ->
@@ -170,7 +170,7 @@ private fun UsersQueries.create(
   salt: ByteArray,
   key: ByteArray,
   username: String,
-  email: String
+  email: String,
 ): UserId =
   insertAndGetId(
       username = username,
@@ -178,6 +178,6 @@ private fun UsersQueries.create(
       salt = salt,
       hashed_password = key,
       bio = "",
-      image = ""
+      image = "",
     )
     .executeAsOne()

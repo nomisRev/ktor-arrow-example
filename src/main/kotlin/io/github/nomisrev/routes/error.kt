@@ -54,11 +54,11 @@ suspend fun RoutingContext.respond(error: DomainError): Unit =
 private suspend inline fun RoutingContext.unprocessable(error: String): Unit =
   call.respond(
     HttpStatusCode.UnprocessableEntity,
-    GenericErrorModel(GenericErrorModelErrors(listOf(error)))
+    GenericErrorModel(GenericErrorModelErrors(listOf(error))),
   )
 
 private suspend inline fun RoutingContext.unprocessable(errors: List<String>): Unit =
   call.respond(
     HttpStatusCode.UnprocessableEntity,
-    GenericErrorModel(GenericErrorModelErrors(errors))
+    GenericErrorModel(GenericErrorModelErrors(errors)),
   )

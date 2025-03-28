@@ -25,7 +25,7 @@ interface ArticlePersistence {
     body: String,
     createdAt: OffsetDateTime,
     updatedAt: OffsetDateTime,
-    tags: Set<String>
+    tags: Set<String>,
   ): ArticleId
 
   /** Verifies if a certain slug already exists or not */
@@ -57,7 +57,7 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
       body: String,
       createdAt: OffsetDateTime,
       updatedAt: OffsetDateTime,
-      tags: Set<String>
+      tags: Set<String>,
     ): ArticleId =
       articles.transactionWithResult {
         val articleId =
@@ -79,11 +79,7 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
       offset: FeedOffset,
     ): List<Article> =
       articles
-        .selectFeedArticles(
-          userId.serial,
-          limit.limit.toLong(),
-          offset.offset.toLong(),
-        ) {
+        .selectFeedArticles(userId.serial, limit.limit.toLong(), offset.offset.toLong()) {
           articleId,
           articleSlug,
           articleTitle,
@@ -134,7 +130,7 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
             body = comment,
             author = userId.serial,
             createdAt = createdAt,
-            updatedAt = createdAt
+            updatedAt = createdAt,
           ) { id, articleId, body, author, createdAt, updatedAt ->
             Comments(
               id = id,
@@ -142,7 +138,7 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
               author = author,
               createdAt = createdAt,
               updatedAt = updatedAt,
-              article_id = articleId
+              article_id = articleId,
             )
           }
           .executeAsOne()

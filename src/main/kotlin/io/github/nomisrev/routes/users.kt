@@ -31,7 +31,7 @@ data class UpdateUser(
   val username: String? = null,
   val password: String? = null,
   val bio: String? = null,
-  val image: String? = null
+  val image: String? = null,
 )
 
 @Serializable
@@ -40,7 +40,7 @@ data class User(
   val token: String,
   val username: String,
   val bio: String,
-  val image: String
+  val image: String,
 )
 
 @Serializable data class LoginUser(val email: String, val password: String)
@@ -52,10 +52,7 @@ data class UsersResource(val parent: RootResource = RootResource) {
 
 @Resource("/user") data class UserResource(val parent: RootResource = RootResource)
 
-fun Route.userRoutes(
-  userService: UserService,
-  jwtService: JwtService,
-) {
+fun Route.userRoutes(userService: UserService, jwtService: JwtService) {
   /* Registration: POST /api/users */
   post<UsersResource> {
     either {

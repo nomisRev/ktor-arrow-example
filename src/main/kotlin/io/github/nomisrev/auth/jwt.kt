@@ -18,7 +18,7 @@ data class JwtContext(val token: JwtToken, val userId: UserId)
 // Small middleware to validate JWT token without using Ktor Auth / Nullable principle
 suspend inline fun RoutingContext.jwtAuth(
   jwtService: JwtService,
-  crossinline body: suspend RoutingContext.(JwtContext) -> Unit
+  crossinline body: suspend RoutingContext.(JwtContext) -> Unit,
 ) {
   optionalJwtAuth(jwtService) { context ->
     context?.let { body(this, it) } ?: call.respond(HttpStatusCode.Unauthorized)
@@ -27,14 +27,14 @@ suspend inline fun RoutingContext.jwtAuth(
 
 suspend inline fun RoutingContext.optionalJwtAuth(
   jwtService: JwtService,
-  crossinline body: suspend RoutingContext.(JwtContext?) -> Unit
+  crossinline body: suspend RoutingContext.(JwtContext?) -> Unit,
 ) {
   jwtToken()?.let { token ->
     jwtService
       .verifyJwtToken(JwtToken(token))
       .fold(
         { error -> call.respond(error) },
-        { userId -> body(this, JwtContext(JwtToken(token), userId)) }
+        { userId -> body(this, JwtContext(JwtToken(token), userId)) },
       )
   } ?: body(this, null)
 }

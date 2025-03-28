@@ -20,7 +20,7 @@ fun interface SlugGenerator {
    */
   suspend fun generateSlug(
     title: String,
-    verifyUnique: suspend (Slug) -> Boolean
+    verifyUnique: suspend (Slug) -> Boolean,
   ): Either<CannotGenerateSlug, Slug>
 }
 
@@ -28,7 +28,7 @@ fun slugifyGenerator(
   random: Random = Random.Default,
   defaultMaxAttempts: Int = 5,
   minRandomSuffix: Int = 2,
-  maxRandomSuffix: Int = 255
+  maxRandomSuffix: Int = 255,
 ): SlugGenerator =
   object : SlugGenerator {
     private val slg = Slugify.builder().lowerCase(true).underscoreSeparator(true).build()
@@ -40,7 +40,7 @@ fun slugifyGenerator(
       title: String,
       verifyUnique: suspend (Slug) -> Boolean,
       maxAttempts: Int,
-      isFirst: Boolean
+      isFirst: Boolean,
     ): Slug {
       ensure(maxAttempts != 0) { CannotGenerateSlug("Failed to generate unique slug from $title") }
 
@@ -52,7 +52,7 @@ fun slugifyGenerator(
 
     override suspend fun generateSlug(
       title: String,
-      verifyUnique: suspend (Slug) -> Boolean
+      verifyUnique: suspend (Slug) -> Boolean,
     ): Either<CannotGenerateSlug, Slug> = either {
       recursiveGen(title, verifyUnique, defaultMaxAttempts, true)
     }
