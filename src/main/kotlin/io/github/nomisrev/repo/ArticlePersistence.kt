@@ -44,6 +44,9 @@ interface ArticlePersistence {
     body: String?,
   ): Either<ArticleBySlugNotFound, Articles>
 
+  /** Delete an article by slug */
+  suspend fun deleteArticle(slug: Slug): Either<ArticleBySlugNotFound, Unit>
+
   suspend fun insertCommentForArticleSlug(
     slug: Slug,
     userId: UserId,
@@ -57,6 +60,11 @@ interface ArticlePersistence {
 
 fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQueries: TagsQueries) =
   object : ArticlePersistence {
+    override suspend fun deleteArticle(slug: Slug): Either<ArticleBySlugNotFound, Unit> = either {
+      val article = getArticleBySlug(slug).bind()
+      articles.delete(article.id)
+    }
+
     override suspend fun create(
       authorId: UserId,
       slug: Slug,

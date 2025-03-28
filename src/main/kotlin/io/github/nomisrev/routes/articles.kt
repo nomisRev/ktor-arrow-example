@@ -15,6 +15,7 @@ import io.github.nomisrev.validate
 import io.ktor.http.HttpStatusCode
 import io.ktor.resources.Resource
 import io.ktor.server.request.receive
+import io.ktor.server.resources.delete
 import io.ktor.server.resources.get
 import io.ktor.server.resources.post
 import io.ktor.server.resources.put
@@ -174,6 +175,14 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
             tagList = updatedArticle.tagList,
           )
         }
+        .respond(HttpStatusCode.OK)
+    }
+  }
+
+  delete<ArticlesResource.Slug> { slugResource ->
+    jwtAuth(jwtService) { (_, userId) ->
+      articleService
+        .deleteArticle(Slug(slugResource.slug), userId)
         .respond(HttpStatusCode.OK)
     }
   }

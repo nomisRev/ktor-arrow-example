@@ -51,6 +51,9 @@ interface ArticleService {
   /** Update an article and return the updated Article */
   suspend fun updateArticle(input: UpdateArticleInput): Either<DomainError, Article>
 
+  /** Delete an article by slug */
+  suspend fun deleteArticle(slug: Slug, userId: UserId): Either<DomainError, Unit>
+
   suspend fun insertCommentForArticleSlug(
     slug: Slug,
     userId: UserId,
@@ -68,6 +71,16 @@ fun articleService(
   favouritePersistence: FavouritePersistence,
 ): ArticleService =
   object : ArticleService {
+    override suspend fun deleteArticle(slug: Slug, userId: UserId): Either<DomainError, Unit> = either {
+      val article = articlePersistence.getArticleBySlug(slug).bind()
+
+      ensure(article.author_id == userId) {
+        NotArticleAuthor(userId.serial, slug.value)
+      }
+
+      articlePersistence.deleteArticle(slug).bind()
+    }
+
     override suspend fun createArticle(input: CreateArticle): Either<DomainError, Article> =
       either {
         val slug =
