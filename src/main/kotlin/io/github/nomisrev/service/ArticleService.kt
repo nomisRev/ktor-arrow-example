@@ -34,11 +34,11 @@ data class CreateArticle(
 )
 
 data class UpdateArticleInput(
-  val slug: Slug,
-  val userId: UserId,
-  val title: String?,
-  val description: String?,
-  val body: String?,
+    val slug: Slug,
+    val userId: UserId,
+    val title: String?,
+    val description: String?,
+    val body: String?,
 )
 data class GetFeed(val userId: UserId, val limit: Int, val offset: Int)
 
@@ -55,17 +55,17 @@ interface ArticleService {
     /** Get article by Slug */
     suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article>
 
-  /** Update an article and return the updated Article */
-  suspend fun updateArticle(input: UpdateArticleInput): Either<DomainError, Article>
+    /** Update an article and return the updated Article */
+    suspend fun updateArticle(input: UpdateArticleInput): Either<DomainError, Article>
 
-  /** Delete an article by slug */
-  suspend fun deleteArticle(slug: Slug, userId: UserId): Either<DomainError, Unit>
+    /** Delete an article by slug */
+    suspend fun deleteArticle(slug: Slug, userId: UserId): Either<DomainError, Unit>
 
-  suspend fun insertCommentForArticleSlug(
-    slug: Slug,
-    userId: UserId,
-    comment: String,
-  ): Either<DomainError, Comments>
+    suspend fun insertCommentForArticleSlug(
+        slug: Slug,
+        userId: UserId,
+        comment: String,
+    ): Either<DomainError, Comments>
 
     suspend fun getCommentsForSlug(slug: Slug): List<Comment>
 
@@ -90,69 +90,68 @@ fun articleService(
     tagPersistence: TagPersistence,
     favouritePersistence: FavouritePersistence,
 ): ArticleService =
-  object : ArticleService {
-    override suspend fun deleteArticle(slug: Slug, userId: UserId): Either<DomainError, Unit> = either {
-      val article = articlePersistence.findArticleBySlug(slug).bind()
+    object : ArticleService {
+        override suspend fun deleteArticle(slug: Slug, userId: UserId): Either<DomainError, Unit> =
+            either {
+                val article = articlePersistence.findArticleBySlug(slug).bind()
+                ensure(article.author_id == userId) { NotArticleAuthor(userId.serial, slug.value) }
+                articlePersistence.deleteArticle(slug).bind()
+            }
 
-      ensure(article.author_id == userId) {
-        NotArticleAuthor(userId.serial, slug.value)
-      }
+        override suspend fun createArticle(input: CreateArticle): Either<DomainError, Article> =
+            either {
+                val slug =
+                    slugGenerator
+                        .generateSlug(input.title) { slug -> articlePersistence.exists(slug).not() }
+                        .bind()
+                val createdAt = OffsetDateTime.now()
+                val articleId =
+                    articlePersistence
+                        .create(
+                            input.userId,
+                            slug,
+                            input.title,
+                            input.description,
+                            input.body,
+                            createdAt,
+                            createdAt,
+                            input.tags,
+                        )
+                        .serial
+                val user = userPersistence.select(input.userId).bind()
+                Article(
+                    articleId,
+                    slug.value,
+                    input.title,
+                    input.description,
+                    input.body,
+                    Profile(user.username, user.bio, user.image, false),
+                    false,
+                    0,
+                    createdAt,
+                    createdAt,
+                    input.tags.toList(),
+                )
+            }
 
-      articlePersistence.deleteArticle(slug).bind()
-    }
+        override suspend fun updateArticle(input: UpdateArticleInput): Either<DomainError, Article> =
+            either {
+                val article = articlePersistence.findArticleBySlug(input.slug).bind()
 
-    override suspend fun createArticle(input: CreateArticle): Either<DomainError, Article> =
-      either {
-        val slug =
-          slugGenerator
-            .generateSlug(input.title) { slug -> articlePersistence.exists(slug).not() }
-            .bind()
-        val createdAt = OffsetDateTime.now()
-        val articleId =
-          articlePersistence
-            .create(
-              input.userId,
-              slug,
-              input.title,
-              input.description,
-              input.body,
-              createdAt,
-              createdAt,
-              input.tags,
-            )
-            .serial
-        val user = userPersistence.select(input.userId).bind()
-        Article(
-          articleId,
-          slug.value,
-          input.title,
-          input.description,
-          input.body,
-          Profile(user.username, user.bio, user.image, false),
-          false,
-          0,
-          createdAt,
-          createdAt,
-          input.tags.toList(),
-        )
-      }
+                ensure(article.author_id != input.userId) {
+                    raise(NotArticleAuthor(input.userId.serial, input.slug.value))
+                }
 
-    override suspend fun updateArticle(input: UpdateArticleInput): Either<DomainError, Article> =
-      either {
-        val article = articlePersistence.findArticleBySlug(input.slug).bind()
+                val updatedArticle =
+                    articlePersistence
+                        .updateArticle(input.slug, input.title, input.description, input.body)
+                        .bind()
 
-        ensure(article.author_id != input.userId) {
-          raise(NotArticleAuthor(input.userId.serial, input.slug.value))
-        }
-
-        val updatedArticle =
-          articlePersistence
-            .updateArticle(input.slug, input.title, input.description, input.body)
-            .bind()
-
+        val articleTags = tagPersistence.selectTagsOfArticle(updatedArticle.id)
+        val favouriteCount = favouritePersistence.favoriteCount(updatedArticle.id)
         val favorite = favouritePersistence.isFavorite(input.userId, article.id)
+
         article(updatedArticle, favorite)
-      }
 
             return MultipleArticlesResponse(articles = articles, articlesCount = articles.size)
         }
@@ -186,7 +185,15 @@ fun articleService(
         }
 
         override suspend fun getCommentsForSlug(slug: Slug): List<Comment> =
-            articlePersistence.findCommentsForSlug(slug)
+            articlePersistence.findCommentsForSlug(slug).map { comment ->
+                Comment(
+                    comment.comment__id,
+                    comment.comment__createdAt,
+                    comment.comment__updatedAt,
+                    comment.comment__body,
+                    Profile(comment.author__username, comment.author__bio, comment.author__image, false),
+                )
+            }
 
         override suspend fun deleteComment(
             slug: Slug,
@@ -241,4 +248,3 @@ fun articleService(
                 articleTags,
             )
         }
-    }

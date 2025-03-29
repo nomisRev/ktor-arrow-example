@@ -19,11 +19,15 @@ SELECT id, article_id, body, author, createdAt, updatedAt
 FROM comments
 WHERE article_id = :articleId;
 
+select:
+SELECT id, article_id, body, author, createdAt, updatedAt
+FROM comments
+WHERE id = :id;
+
 selectAuthorId:
 SELECT author
 FROM comments
 WHERE id = :id;
-
 delete:
 DELETE FROM comments
 WHERE id = :id AND author = :author_id

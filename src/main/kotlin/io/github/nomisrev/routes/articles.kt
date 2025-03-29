@@ -117,15 +117,15 @@ data class ArticleResource(val parent: RootResource = RootResource) {
 
 @Resource("/articles")
 data class ArticlesResource(val parent: RootResource = RootResource) {
-    @Resource("{slug}")
-    data class Slug(val parent: ArticlesResource = ArticlesResource(), val slug: String) {
-        @Resource("favorite") data class Favorite(val parent: Slug)
-    }
+  @Resource("{slug}")
+  data class Slug(val parent: ArticlesResource = ArticlesResource(), val slug: String) {
+    @Resource("favorite") data class Favorite(val parent: Slug)
+  }
 
-    @Resource("{slug}/comments")
-    data class Comments(val parent: ArticlesResource = ArticlesResource(), val slug: String) {
-        @Resource("{id}") data class Id(val parent: Comments, val id: Long)
-    }
+  @Resource("{slug}/comments")
+  data class Comments(val parent: ArticlesResource = ArticlesResource(), val slug: String) {
+    @Resource("{id}") data class Id(val parent: Comments, val id: Long)
+  }
 }
 
 fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) {
@@ -214,8 +214,24 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
 
   delete<ArticlesResource.Slug> { slugResource ->
     jwtAuth(jwtService) { (_, userId) ->
+      articleService.deleteArticle(Slug(slugResource.slug), userId).respond(HttpStatusCode.OK)
+    }
+  }
+
+  post<ArticlesResource.Slug.Favorite> { favoriteResource ->
+    jwtAuth(jwtService) { (_, userId) ->
       articleService
-        .deleteArticle(Slug(slugResource.slug), userId)
+        .favoriteArticle(Slug(favoriteResource.parent.slug), userId)
+        .map { SingleArticleResponse(it) }
+        .respond(HttpStatusCode.OK)
+    }
+  }
+
+  delete<ArticlesResource.Slug.Favorite> { favoriteResource ->
+    jwtAuth(jwtService) { (_, userId) ->
+      articleService
+        .unfavoriteArticle(Slug(favoriteResource.parent.slug), userId)
+        .map { SingleArticleResponse(it) }
         .respond(HttpStatusCode.OK)
     }
   }
@@ -306,6 +322,18 @@ fun Route.commentRoutes(articleService: ArticleService, jwtService: JwtService) 
                 .respond(HttpStatusCode.OK)
         }
     }
+
+  delete<ArticlesResource.Comments.Id> { commentResource ->
+    jwtAuth(jwtService) { (_, userId) ->
+      articleService
+        .deleteComment(
+          slug = Slug(commentResource.parent.slug),
+          commentId = commentResource.id,
+          userId = userId,
+        )
+        .respond(HttpStatusCode.OK)
+    }
+  }
 }
 
 private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
