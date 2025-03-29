@@ -143,12 +143,12 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
 
     get<ArticlesResource.Slug> { slug ->
         optionalJwtAuth(jwtService) {
-            articleService
-                .getArticleBySlug(Slug(slug.slug))
-                .map { SingleArticleResponse(it) }
-                .respond(HttpStatusCode.OK)
-        }
+      articleService
+        .getArticleBySlug(Slug(slug.slug))
+        .map { SingleArticleResponse(it) }
+        .respond(HttpStatusCode.OK)
     }
+  }
 
     put<ArticlesResource.Slug> { slugResource ->
         jwtAuth(jwtService) { (_, userId) ->

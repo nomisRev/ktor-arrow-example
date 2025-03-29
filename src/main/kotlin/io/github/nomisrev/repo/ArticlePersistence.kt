@@ -68,11 +68,9 @@ interface ArticlePersistence {
     createdAt: OffsetDateTime,
   ): Comments
 
-  // TODO create proper domain for SelectForSlug
   suspend fun findCommentsForSlug(slug: Slug): List<Comment>
 
-  // TODO create proper domain for comments
-  suspend fun findComment(commentId: Long): Comments?
+  suspend fun findCommentAuthor(commentId: Long): UserId?
 
   suspend fun findCommentAuthor(commentId: Long): UserId?
 
@@ -116,24 +114,20 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
         override suspend fun exists(slug: Slug): Boolean =
             articles.slugExists(slug.value).executeAsOne()
 
-        override suspend fun feed(
-            userId: UserId,
-            limit: FeedLimit,
-            offset: FeedOffset,
-        ): List<Article> =
-            articles
-                .selectFeedArticles(userId.serial, limit.limit.toLong(), offset.offset.toLong()) {
-                    articleId,
-                    articleSlug,
-                    articleTitle,
-                    articleDescription,
-                    articleBody,
-                    _,
-                    articleCreatedAt,
-                    articleUpdatedAt,
-                    _,
-                    usersUsername,
-                    usersBio,
+    override suspend fun feed(userId: UserId, limit: FeedLimit, offset: FeedOffset): List<Article> =
+      articles
+        .selectFeedArticles(userId.serial, limit.limit.toLong(), offset.offset.toLong()) {
+          articleId,
+          articleSlug,
+          articleTitle,
+          articleDescription,
+          articleBody,
+          _,
+          articleCreatedAt,
+          articleUpdatedAt,
+          _,
+          usersUsername,
+          usersBio,
                     usersImage ->
                     Article(
                         articleId = articleId.serial,
@@ -190,30 +184,30 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
       ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
     }
 
-    override suspend fun findCommentsForSlug(slug: Slug): List<Comment> =
-      comments
-        .selectForSlug(slug.value) {
-          commentId,
-          articleId,
-          body,
-          author,
-          createdAt,
-          updatedAt,
-          username,
-          bio,
-          image ->
-          Comment(
-            commentId,
-            createdAt,
-            updatedAt,
-            body,
-            Profile(username, bio, image, false),
-          )
-        }
-        .executeAsList()
+override suspend fun findCommentsForSlug(slug: Slug): List<Comment> =
+  comments
+    .selectForSlug(slug.value) {
+      commentId,
+      articleId,
+      body,
+      author,
+      createdAt,
+      updatedAt,
+      username,
+      bio,
+      image ->
+      Comment(
+        commentId,
+        createdAt,
+        updatedAt,
+        body,
+        Profile(username, bio, image, false),
+      )
+    }
+    .executeAsList()
 
-    override suspend fun findComment(commentId: Long): Comments? =
-      comments.select(commentId).executeAsOneOrNull()
+    override suspend fun findCommentAuthor(commentId: Long): UserId? =
+      comments.selectAuthorId(commentId).executeAsOneOrNull()?.let { UserId(it) }
 
     override suspend fun findCommentAuthor(commentId: Long): UserId? =
       comments.selectAuthorId(commentId).executeAsOneOrNull()?.let { UserId(it) }

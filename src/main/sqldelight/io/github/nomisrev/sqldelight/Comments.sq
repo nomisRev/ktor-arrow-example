@@ -19,8 +19,8 @@ SELECT id, article_id, body, author, createdAt, updatedAt
 FROM comments
 WHERE article_id = :articleId;
 
-select:
-SELECT id, article_id, body, author, createdAt, updatedAt
+selectAuthorId:
+SELECT author
 FROM comments
 WHERE id = :id;
 
