@@ -43,3 +43,7 @@ data class CannotGenerateSlug(val description: String) : ArticleError
 data class ArticleBySlugNotFound(val slug: String) : ArticleError
 
 data class NotArticleAuthor(val userId: Long, val slug: String) : ArticleError
+
+data class CommentNotFound(val commentId: Long) : ArticleError
+
+data class NotCommentAuthor(val userId: Long, val commentId: Long) : ArticleError

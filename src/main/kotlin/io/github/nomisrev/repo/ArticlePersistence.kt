@@ -32,10 +32,12 @@ interface ArticlePersistence {
   suspend fun exists(slug: Slug): Boolean
 
   /** Get recent articles from users you follow * */
-  suspend fun getFeed(userId: UserId, limit: FeedLimit, offset: FeedOffset): List<Article>
+  suspend fun feed(userId: UserId, limit: FeedLimit, offset: FeedOffset): List<Article>
 
-  suspend fun getArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles>
+  // TODO create proper domain for Articles
+  suspend fun findArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles>
 
+  // TODO create proper domain for Articles
   /** Update an article by slug */
   suspend fun updateArticle(
     slug: Slug,
@@ -47,7 +49,8 @@ interface ArticlePersistence {
   /** Delete an article by slug */
   suspend fun deleteArticle(slug: Slug): Either<ArticleBySlugNotFound, Unit>
 
-  suspend fun insertCommentForArticleSlug(
+  // Create proper domain for Comments
+  suspend fun createCommentForArticleSlug(
     slug: Slug,
     userId: UserId,
     comment: String,
@@ -55,13 +58,20 @@ interface ArticlePersistence {
     createdAt: OffsetDateTime,
   ): Comments
 
-  suspend fun getCommentsForSlug(slug: Slug): List<SelectForSlug>
+  // TODO create proper domain for SelectForSlug
+  suspend fun findCommentsForSlug(slug: Slug): List<SelectForSlug>
+
+  // TODO create proper domain for comments
+  suspend fun findComment(commentId: Long): Comments?
+
+  /** Delete a comment by ID */
+  suspend fun deleteComment(commentId: Long, authorId: UserId): Boolean
 }
 
 fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQueries: TagsQueries) =
   object : ArticlePersistence {
     override suspend fun deleteArticle(slug: Slug): Either<ArticleBySlugNotFound, Unit> = either {
-      val article = getArticleBySlug(slug).bind()
+      val article = findArticleBySlug(slug).bind()
       articles.delete(article.id)
     }
 
@@ -89,7 +99,7 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
     override suspend fun exists(slug: Slug): Boolean =
       articles.slugExists(slug.value).executeAsOne()
 
-    override suspend fun getFeed(
+    override suspend fun feed(
       userId: UserId,
       limit: FeedLimit,
       offset: FeedOffset,
@@ -123,7 +133,7 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
         }
         .executeAsList()
 
-    override suspend fun getArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles> =
+    override suspend fun findArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles> =
       either {
         val article = articles.selectBySlug(slug.value).executeAsOneOrNull()
         ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
@@ -161,10 +171,13 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
       ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
     }
 
-    override suspend fun getCommentsForSlug(slug: Slug): List<SelectForSlug> =
+    override suspend fun findCommentsForSlug(slug: Slug): List<SelectForSlug> =
       comments.selectForSlug(slug.value).executeAsList()
 
-    override suspend fun insertCommentForArticleSlug(
+    override suspend fun findComment(commentId: Long): Comments? =
+      comments.select(commentId).executeAsOneOrNull()
+
+    override suspend fun createCommentForArticleSlug(
       slug: Slug,
       userId: UserId,
       comment: String,
@@ -191,4 +204,7 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
           }
           .executeAsOne()
       }
+
+    override suspend fun deleteComment(commentId: Long, authorId: UserId): Boolean =
+      comments.delete(commentId, authorId.serial).executeAsList().size == 1
   }
