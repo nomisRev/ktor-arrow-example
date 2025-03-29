@@ -5,6 +5,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensureNotNull
 import io.github.nomisrev.ArticleBySlugNotFound
 import io.github.nomisrev.routes.Article
+import io.github.nomisrev.routes.Comment
 import io.github.nomisrev.routes.FeedLimit
 import io.github.nomisrev.routes.FeedOffset
 import io.github.nomisrev.routes.Profile
@@ -58,11 +59,9 @@ interface ArticlePersistence {
     createdAt: OffsetDateTime,
   ): Comments
 
-  // TODO create proper domain for SelectForSlug
-  suspend fun findCommentsForSlug(slug: Slug): List<SelectForSlug>
+  suspend fun findCommentsForSlug(slug: Slug): List<Comment>
 
-  // TODO create proper domain for comments
-  suspend fun findComment(commentId: Long): Comments?
+  suspend fun findCommentAuthor(commentId: Long): UserId?
 
   /** Delete a comment by ID */
   suspend fun deleteComment(commentId: Long, authorId: UserId): Boolean
@@ -99,11 +98,7 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
     override suspend fun exists(slug: Slug): Boolean =
       articles.slugExists(slug.value).executeAsOne()
 
-    override suspend fun feed(
-      userId: UserId,
-      limit: FeedLimit,
-      offset: FeedOffset,
-    ): List<Article> =
+    override suspend fun feed(userId: UserId, limit: FeedLimit, offset: FeedOffset): List<Article> =
       articles
         .selectFeedArticles(userId.serial, limit.limit.toLong(), offset.offset.toLong()) {
           articleId,
@@ -171,11 +166,24 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
       ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
     }
 
-    override suspend fun findCommentsForSlug(slug: Slug): List<SelectForSlug> =
-      comments.selectForSlug(slug.value).executeAsList()
+    override suspend fun findCommentsForSlug(slug: Slug): List<Comment> =
+      comments
+        .selectForSlug(slug.value) {
+          commentId,
+          articleId,
+          body,
+          author,
+          createdAt,
+          updatedAt,
+          username,
+          bio,
+          image ->
+          Comment(commentId, createdAt, updatedAt, body, Profile(username, bio, image, false))
+        }
+        .executeAsList()
 
-    override suspend fun findComment(commentId: Long): Comments? =
-      comments.select(commentId).executeAsOneOrNull()
+    override suspend fun findCommentAuthor(commentId: Long): UserId? =
+      comments.selectAuthorId(commentId).executeAsOneOrNull()?.let { UserId(it) }
 
     override suspend fun createCommentForArticleSlug(
       slug: Slug,
