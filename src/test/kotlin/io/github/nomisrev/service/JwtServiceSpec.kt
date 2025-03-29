@@ -3,6 +3,7 @@ package io.github.nomisrev.service
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
 import io.github.nomisrev.JwtInvalid
+import io.github.nomisrev.KotestProject
 import io.github.nomisrev.SuspendFun
 import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.repo.UserId
@@ -14,12 +15,21 @@ import io.kotest.assertions.arrow.core.shouldBeSome
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldNotBeBlank
 import io.kotest.matchers.types.shouldBeInstanceOf
+import kotlin.random.Random
 
 class JwtServiceSpec :
     SuspendFun({
-        "generateJwtToken" -
-            {
-                "should generate a valid JWT token for a user ID" {
+        val jwtService: JwtService = KotestProject.dependencies.get().jwtService
+    val userService: UserService = KotestProject.dependencies.get().userService
+
+    "generateJwtToken" -
+      {
+        "should generate a valid JWT token for a user ID" {
+          val username = "user_${Random.nextInt(1000, 9999)}"
+          val email = "$username@example.com"
+          val password = "password_${Random.nextInt(1000, 9999)}"
+
+          val token = userService.register(RegisterUser(username, email, password)).shouldBeRight()
                     withTestDependencies { dependencies ->
                         val user = userFixture()
                         val token =
@@ -45,7 +55,12 @@ class JwtServiceSpec :
                             dependencies.userService
                                 .register(RegisterUser(user.username, user.email, user.password))
                                 .shouldBeRight()
-                        val userId =
+                        val username = "user_${Random.nextInt(1000, 9999)}"
+          val email = "$username@example.com"
+          val password = "password_${Random.nextInt(1000, 9999)}"
+
+          val token = userService.register(RegisterUser(username, email, password)).shouldBeRight()
+          val userId =
                             JWT.decodeT(token.value, JWSHMAC512Algorithm)
                                 .map { it.claimValueAsLong("id").shouldBeSome() }
                                 .shouldBeRight()
