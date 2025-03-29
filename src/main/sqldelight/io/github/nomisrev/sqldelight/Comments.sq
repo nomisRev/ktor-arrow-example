@@ -19,9 +19,15 @@ SELECT id, article_id, body, author, createdAt, updatedAt
 FROM comments
 WHERE article_id = :articleId;
 
+selectAuthorId:
+SELECT author
+FROM comments
+WHERE id = :id;
+
 delete:
 DELETE FROM comments
-WHERE id = :id;
+WHERE id = :id AND author = :author_id
+RETURNING id;
 
 selectForSlug:
 SELECT comments.id AS comment__id, comments.article_id AS comment__articleId, comments.body AS comment__body, comments.author AS comment__author, comments.createdAt AS comment__createdAt, comments.updatedAt  AS comment__updatedAt,
@@ -30,3 +36,8 @@ FROM comments
 INNER JOIN articles ON comments.article_id = articles.id
 INNER JOIN users ON comments.author = users.id
 WHERE articles.slug = :slug;
+
+selectById:
+SELECT comments.id, comments.article_id, comments.body, comments.author, comments.createdAt, comments.updatedAt
+FROM comments
+WHERE comments.id = :id;

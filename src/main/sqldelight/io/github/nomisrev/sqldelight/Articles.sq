@@ -41,7 +41,12 @@ LIMIT :limit OFFSET :offset;
 
 update:
 UPDATE articles
-SET title = :title, description = :description, body = :body;
+SET title = COALESCE(:title, title), 
+    description = COALESCE(:description, description), 
+    body = COALESCE(:body, body),
+    updatedAt = :updatedAt
+WHERE slug = :slug
+RETURNING id, slug, title, description, body, author_id, createdAt, updatedAt;
 
 insertAndGetId:
 INSERT INTO articles(slug, title, description, body, author_id, createdAt, updatedAt)
