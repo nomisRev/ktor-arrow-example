@@ -23,14 +23,10 @@ data class CreateArticle(
   val title: String,
   val description: String,
   val body: String,
-  val tags: Set<String>
+  val tags: Set<String>,
 )
 
-data class GetFeed(
-  val userId: UserId,
-  val limit: Int,
-  val offset: Int,
-)
+data class GetFeed(val userId: UserId, val limit: Int, val offset: Int)
 
 interface ArticleService {
   /** Creates a new article and returns the resulting Article */
@@ -45,7 +41,7 @@ interface ArticleService {
   suspend fun insertCommentForArticleSlug(
     slug: Slug,
     userId: UserId,
-    comment: String
+    comment: String,
   ): Either<DomainError, Comments>
 
   suspend fun getCommentsForSlug(slug: Slug): List<Comment>
@@ -56,7 +52,7 @@ fun articleService(
   articlePersistence: ArticlePersistence,
   userPersistence: UserPersistence,
   tagPersistence: TagPersistence,
-  favouritePersistence: FavouritePersistence
+  favouritePersistence: FavouritePersistence,
 ): ArticleService =
   object : ArticleService {
     override suspend fun createArticle(input: CreateArticle): Either<DomainError, Article> =
@@ -76,7 +72,7 @@ fun articleService(
               input.body,
               createdAt,
               createdAt,
-              input.tags
+              input.tags,
             )
             .serial
         val user = userPersistence.select(input.userId).bind()
@@ -91,7 +87,7 @@ fun articleService(
           0,
           createdAt,
           createdAt,
-          input.tags.toList()
+          input.tags.toList(),
         )
       }
 
@@ -100,13 +96,10 @@ fun articleService(
         articlePersistence.getFeed(
           userId = input.userId,
           limit = FeedLimit(input.limit),
-          offset = FeedOffset(input.offset)
+          offset = FeedOffset(input.offset),
         )
 
-      return MultipleArticlesResponse(
-        articles = articles,
-        articlesCount = articles.size,
-      )
+      return MultipleArticlesResponse(articles = articles, articlesCount = articles.size)
     }
 
     override suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article> = either {
@@ -125,7 +118,7 @@ fun articleService(
         favouriteCount,
         article.createdAt,
         article.createdAt,
-        articleTags
+        articleTags,
       )
     }
 
@@ -137,7 +130,7 @@ fun articleService(
           userId,
           comment,
           ArticleId(article.articleId),
-          OffsetDateTime.now()
+          OffsetDateTime.now(),
         )
       }
 
@@ -148,7 +141,7 @@ fun articleService(
           comment.comment__createdAt,
           comment.comment__updatedAt,
           comment.comment__body,
-          Profile(comment.author__username, comment.author__bio, comment.author__image, false)
+          Profile(comment.author__username, comment.author__bio, comment.author__image, false),
         )
       }
   }

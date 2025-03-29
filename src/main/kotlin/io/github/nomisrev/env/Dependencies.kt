@@ -24,7 +24,7 @@ class Dependencies(
   val articleService: ArticleService,
   val healthCheck: HealthCheckRegistry,
   val tagPersistence: TagPersistence,
-  val userPersistence: UserPersistence
+  val userPersistence: UserPersistence,
 )
 
 suspend fun ResourceScope.dependencies(env: Env): Dependencies {

@@ -2,14 +2,15 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 @Suppress("DSL_SCOPE_VIOLATION") plugins {
   application
-  alias(libs.plugins.kotest.multiplatform)
-  id(libs.plugins.kotlin.jvm.pluginId)
+  alias(libs.plugins.kotlin.jvm)
+  alias(libs.plugins.kotlin.assert)
   alias(libs.plugins.kover)
   alias(libs.plugins.kotlinx.serialization)
+  alias(libs.plugins.kotest.multiplatform)
   alias(libs.plugins.sqldelight)
   alias(libs.plugins.ktor)
   alias(libs.plugins.spotless)
-  alias(libs.plugins.kotlin.assert)
+  alias(libs.plugins.version.catalog.update)
 }
 
 application {
@@ -25,10 +26,6 @@ sqldelight {
   }
 }
 
-repositories {
-  mavenCentral()
-}
-
 tasks {
   withType<KotlinCompile>().configureEach {
     kotlin.compilerOptions.freeCompilerArgs.add("-Xcontext-receivers")
@@ -41,16 +38,18 @@ tasks {
 
 ktor {
   docker {
-    jreVersion = JavaVersion.VERSION_19
+    jreVersion = JavaVersion.VERSION_21
     localImageName = "ktor-arrow-example"
-    imageTag = "latest"
   }
 }
 
 spotless {
   kotlin {
     targetExclude("**/build/**")
-    ktfmt("0.46").googleStyle()
+    ktfmt().googleStyle().configure {
+      it.setRemoveUnusedImports(true)
+      it.setManageTrailingCommas(true)
+    }
   }
 }
 

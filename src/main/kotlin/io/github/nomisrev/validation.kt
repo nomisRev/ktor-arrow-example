@@ -66,7 +66,7 @@ fun RegisterUser.validate(): Either<IncorrectInput, RegisterUser> =
       username.validUsername(),
       email.validEmail(),
       password.validPassword(),
-      ::RegisterUser
+      ::RegisterUser,
     )
     .mapLeft(::IncorrectInput)
 
@@ -74,7 +74,7 @@ fun Update.validate(): Either<IncorrectInput, Update> =
   zipOrAccumulate(
       username.mapOrAccumulate(String::validUsername),
       email.mapOrAccumulate(String::validEmail),
-      password.mapOrAccumulate(String::validPassword)
+      password.mapOrAccumulate(String::validPassword),
     ) { username, email, password ->
       Update(userId, username, email, password, bio, image)
     }
@@ -101,7 +101,7 @@ private fun String.validEmail(): EitherNel<InvalidEmail, String> {
   return zipOrAccumulate(
       trimmed.notBlank(),
       trimmed.maxSize(MAX_EMAIL_LENGTH),
-      trimmed.looksLikeEmail()
+      trimmed.looksLikeEmail(),
     ) { a, _, _ ->
       a
     }
@@ -113,7 +113,7 @@ private fun String.validUsername(): EitherNel<InvalidUsername, String> {
   return zipOrAccumulate(
       trimmed.notBlank(),
       trimmed.minSize(MIN_USERNAME_LENGTH),
-      trimmed.maxSize(MAX_USERNAME_LENGTH)
+      trimmed.maxSize(MAX_USERNAME_LENGTH),
     ) { a, _, _ ->
       a
     }
@@ -160,7 +160,7 @@ fun NewArticle.validate(): Either<IncorrectInput, NewArticle> =
       description.validDescription(),
       body.validBody(),
       validTags(tagList).map { it.toList() },
-      ::NewArticle
+      ::NewArticle,
     )
     .mapLeft(::IncorrectInput)
 

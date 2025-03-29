@@ -39,16 +39,13 @@ data class Article(
   val favoritesCount: Long,
   @Serializable(with = OffsetDateTimeIso8601Serializer::class) val createdAt: OffsetDateTime,
   @Serializable(with = OffsetDateTimeIso8601Serializer::class) val updatedAt: OffsetDateTime,
-  val tagList: List<String>
+  val tagList: List<String>,
 )
 
 @Serializable data class SingleArticleResponse(val article: Article)
 
 @Serializable
-data class MultipleArticlesResponse(
-  val articles: List<Article>,
-  val articlesCount: Int,
-)
+data class MultipleArticlesResponse(val articles: List<Article>, val articlesCount: Int)
 
 @JvmInline @Serializable value class FeedOffset(val offset: Int)
 
@@ -64,7 +61,7 @@ data class Comment(
   @Serializable(with = OffsetDateTimeIso8601Serializer::class) val createdAt: OffsetDateTime,
   @Serializable(with = OffsetDateTimeIso8601Serializer::class) val updatedAt: OffsetDateTime,
   val body: String,
-  val author: Profile
+  val author: Profile,
 )
 
 @Serializable data class MultipleCommentsResponse(val comments: List<Comment>)
@@ -74,7 +71,7 @@ data class NewArticle(
   val title: String,
   val description: String,
   val body: String,
-  val tagList: List<String> = emptyList()
+  val tagList: List<String> = emptyList(),
 )
 
 @Serializable
@@ -88,7 +85,7 @@ data class ArticleResponse(
   val favoritesCount: Long,
   @Serializable(with = OffsetDateTimeIso8601Serializer::class) val createdAt: OffsetDateTime,
   @Serializable(with = OffsetDateTimeIso8601Serializer::class) val updatedAt: OffsetDateTime,
-  val tagList: List<String>
+  val tagList: List<String>,
 )
 
 @Resource("/article")
@@ -97,7 +94,7 @@ data class ArticleResource(val parent: RootResource = RootResource) {
   data class Feed(
     val offsetParam: Int,
     val limitParam: Int = 20,
-    val parent: ArticleResource = ArticleResource()
+    val parent: ArticleResource = ArticleResource(),
   )
 }
 
@@ -110,19 +107,15 @@ data class ArticlesResource(val parent: RootResource = RootResource) {
   data class Comments(val parent: ArticlesResource = ArticlesResource(), val slug: String)
 }
 
-fun Route.articleRoutes(
-  articleService: ArticleService,
-  jwtService: JwtService,
-) {
+fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) {
   get<ArticleResource.Feed> { feed ->
     jwtAuth(jwtService) { (_, userId) ->
       either {
-          val getFeed = feed.validate(userId).also(::println).bind()
+          val getFeed = feed.validate(userId).bind()
 
           val articlesFeed = articleService.getUserFeed(input = getFeed)
           ArticleWrapper(articlesFeed)
         }
-        .also(::println)
         .respond(HttpStatusCode.OK)
     }
   }
@@ -145,7 +138,7 @@ fun Route.articleRoutes(
                 article.title,
                 article.description,
                 article.body,
-                article.tagList.toSet()
+                article.tagList.toSet(),
               )
             )
             .map {
@@ -159,7 +152,7 @@ fun Route.articleRoutes(
                 it.favoritesCount,
                 it.createdAt,
                 it.updatedAt,
-                it.tagList
+                it.tagList,
               )
             }
             .bind()
@@ -172,7 +165,7 @@ fun Route.articleRoutes(
 fun Route.commentRoutes(
   userService: UserService,
   articleService: ArticleService,
-  jwtService: JwtService
+  jwtService: JwtService,
 ) {
   post<ArticlesResource.Comments> { slug ->
     jwtAuth(jwtService) { (_, userId) ->
@@ -197,8 +190,8 @@ fun Route.commentRoutes(
                   username = userProfile.username,
                   bio = userProfile.bio,
                   image = userProfile.image,
-                  following = false
-                )
+                  following = false,
+                ),
             )
           )
         }

@@ -36,7 +36,7 @@ suspend fun ResourceScope.sqlDelight(dataSource: DataSource): SqlDelight {
     Articles.Adapter(articleIdAdapter, userIdAdapter, offsetDateTimeAdapter, offsetDateTimeAdapter),
     Comments.Adapter(offsetDateTimeAdapter, offsetDateTimeAdapter),
     Tags.Adapter(articleIdAdapter),
-    Users.Adapter(userIdAdapter)
+    Users.Adapter(userIdAdapter),
   )
 }
 
@@ -46,7 +46,7 @@ private val offsetDateTimeAdapter = columnAdapter(OffsetDateTime::parse, OffsetD
 
 private inline fun <A : Any, B> columnAdapter(
   crossinline decode: (databaseValue: B) -> A,
-  crossinline encode: (value: A) -> B
+  crossinline encode: (value: A) -> B,
 ): ColumnAdapter<A, B> =
   object : ColumnAdapter<A, B> {
     override fun decode(databaseValue: B): A = decode(databaseValue)

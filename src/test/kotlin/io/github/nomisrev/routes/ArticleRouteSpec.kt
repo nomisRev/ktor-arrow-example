@@ -118,7 +118,7 @@ class ArticleRouteSpec :
           response.body<GenericErrorModel>().errors.body ==
             listOf(
               "feed offset: too small, minimum is $MIN_FEED_OFFSET, and found -1",
-              "feed limit: too small, minimum is $MIN_FEED_LIMIT, and found 0"
+              "feed limit: too small, minimum is $MIN_FEED_LIMIT, and found 0",
             )
         )
       }
