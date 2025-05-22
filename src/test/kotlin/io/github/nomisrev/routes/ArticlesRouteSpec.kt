@@ -10,6 +10,7 @@ import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.StringSpec
 import io.ktor.client.call.body
+import io.ktor.client.plugins.resources.delete
 import io.ktor.client.plugins.resources.get
 import io.ktor.client.plugins.resources.post
 import io.ktor.client.request.bearerAuth
@@ -177,6 +178,75 @@ class ArticlesRouteSpec :
           }
 
         assert(response.status == HttpStatusCode.UnprocessableEntity)
+      }
+    }
+
+    "Can delete a comment from an article" {
+      withServer { dependencies ->
+        val comment = "This is a comment to be deleted"
+        val article =
+          dependencies.articleService
+            .createArticle(
+              CreateArticle(userId, validTitle, validDescription, validBody, validTags)
+            )
+            .shouldBeRight()
+
+        // Add a comment
+        val commentResponse =
+          post(ArticlesResource.Comments(slug = article.slug)) {
+            contentType(ContentType.Application.Json)
+            bearerAuth(token.value)
+            setBody(NewComment(comment))
+          }
+
+        assert(commentResponse.status == HttpStatusCode.OK)
+        val commentId = commentResponse.body<SingleCommentResponse>().comment.commentId
+
+        // Delete the comment
+        val deleteResponse =
+          delete(ArticlesResource.Comments.Id(parent = ArticlesResource.Comments(slug = article.slug), id = commentId)) {
+            bearerAuth(token.value)
+          }
+
+        assert(deleteResponse.status == HttpStatusCode.OK)
+
+        // Verify comment is deleted by getting all comments
+        val getCommentsResponse =
+          get(ArticlesResource.Comments(slug = article.slug)) { bearerAuth(token.value) }
+
+        assert(getCommentsResponse.status == HttpStatusCode.OK)
+        assert(getCommentsResponse.body<MultipleCommentsResponse>().comments.isEmpty())
+      }
+    }
+
+    "Cannot delete a comment with invalid token" {
+      withServer { dependencies ->
+        val comment = "This is a comment that should not be deleted"
+        val article =
+          dependencies.articleService
+            .createArticle(
+              CreateArticle(userId, validTitle, validDescription, validBody, validTags)
+            )
+            .shouldBeRight()
+
+        // Add a comment
+        val commentResponse =
+          post(ArticlesResource.Comments(slug = article.slug)) {
+            contentType(ContentType.Application.Json)
+            bearerAuth(token.value)
+            setBody(NewComment(comment))
+          }
+
+        assert(commentResponse.status == HttpStatusCode.OK)
+        val commentId = commentResponse.body<SingleCommentResponse>().comment.commentId
+
+        // Try to delete with invalid token
+        val deleteResponse =
+          delete(ArticlesResource.Comments.Id(parent = ArticlesResource.Comments(slug = article.slug), id = commentId)) {
+            bearerAuth("invalid-token")
+          }
+
+        assert(deleteResponse.status == HttpStatusCode.Unauthorized)
       }
     }
   })
