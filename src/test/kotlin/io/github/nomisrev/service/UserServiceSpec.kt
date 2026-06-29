@@ -134,6 +134,7 @@ class UserServiceSpec :
                     }
                 }
             }
+
         "login" -
             {
                 "email cannot be empty" {

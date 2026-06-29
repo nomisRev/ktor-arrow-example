@@ -26,24 +26,15 @@ class JwtServiceSpec :
                             dependencies.userService
                                 .register(RegisterUser(user.username, user.email, user.password))
                                 .shouldBeRight()
-                        withTestDependencies { dependencies ->
-                            val user = userFixture()
-                            val token =
-                                dependencies.userService
-                                    .register(
-                                        RegisterUser(user.username, user.email, user.password)
-                                    )
-                                    .shouldBeRight()
-                            val userId =
-                                JWT.decodeT(token.value, JWSHMAC512Algorithm)
-                                    .map { it.claimValueAsLong("id").shouldBeSome() }
-                                    .shouldBeRight()
+                        val userId =
+                            JWT.decodeT(token.value, JWSHMAC512Algorithm)
+                                .map { it.claimValueAsLong("id").shouldBeSome() }
+                                .shouldBeRight()
 
-                            val result = dependencies.jwtService.generateJwtToken(UserId(userId))
+                        val result = dependencies.jwtService.generateJwtToken(UserId(userId))
 
-                            val jwtToken = result.shouldBeRight()
-                            jwtToken.value.shouldNotBeBlank()
-                        }
+                        val jwtToken = result.shouldBeRight()
+                        jwtToken.value.shouldNotBeBlank()
                     }
                 }
 

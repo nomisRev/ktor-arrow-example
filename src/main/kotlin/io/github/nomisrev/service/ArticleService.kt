@@ -173,22 +173,8 @@ fun articleService(
 
         override suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article> = either {
             val article = articlePersistence.findArticleBySlug(slug).bind()
-            val user = userPersistence.select(article.author_id).bind()
-            val articleTags = tagPersistence.selectTagsOfArticle(article.id)
-            val favouriteCount = favouritePersistence.favoriteCount(article.id)
-            Article(
-                article.id.serial,
-                slug.value,
-                article.title,
-                article.description,
-                article.body,
-                Profile(user.username, user.bio, user.image, false),
-                false,
-                favouriteCount,
-                article.createdAt,
-                article.createdAt,
-                articleTags,
-            )
+            // TODO: optional auth route check if user favorited
+            article(article, false)
         }
 
         override suspend fun insertCommentForArticleSlug(
@@ -238,24 +224,7 @@ fun articleService(
             val article = articlePersistence.findArticleBySlug(slug).bind()
             val articleId = article.id
             favouritePersistence.unfavoriteArticle(userId, articleId)
-            val user = userPersistence.select(article.author_id).bind()
-            val articleTags = tagPersistence.selectTagsOfArticle(articleId)
-            val favouriteCount = favouritePersistence.favoriteCount(articleId)
-            val isFavorited = favouritePersistence.isFavorite(userId, articleId)
-
-            Article(
-                articleId.serial,
-                slug.value,
-                article.title,
-                article.description,
-                article.body,
-                Profile(user.username, user.bio, user.image, false),
-                isFavorited,
-                favouriteCount,
-                article.createdAt,
-                article.updatedAt,
-                articleTags,
-            )
+            article(article, false)
         }
 
         private suspend fun Raise<DomainError>.article(

@@ -5,11 +5,13 @@ import arrow.core.raise.context.bind
 import arrow.core.raise.either
 import io.github.nomisrev.IncorrectInput
 import io.github.nomisrev.auth.jwtAuth
+import io.github.nomisrev.auth.optionalJwtAuth
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.service.ArticleService
 import io.github.nomisrev.service.CreateArticle
 import io.github.nomisrev.service.JwtService
 import io.github.nomisrev.service.Slug
+import io.github.nomisrev.service.UpdateArticleInput
 import io.github.nomisrev.service.UserService
 import io.github.nomisrev.validate
 import io.ktor.http.HttpStatusCode
@@ -18,6 +20,7 @@ import io.ktor.server.request.receive
 import io.ktor.server.resources.delete
 import io.ktor.server.resources.get
 import io.ktor.server.resources.post
+import io.ktor.server.resources.put
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import java.time.OffsetDateTime
@@ -140,17 +143,48 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
     }
 
     get<ArticlesResource.Slug> { slug ->
-        articleService
-            .getArticleBySlug(Slug(slug.slug))
-            .map { SingleArticleResponse(it) }
-            .respond(HttpStatusCode.OK)
+        optionalJwtAuth(jwtService) {
+            articleService
+                .getArticleBySlug(Slug(slug.slug))
+                .map { SingleArticleResponse(it) }
+                .respond(HttpStatusCode.OK)
+        }
     }
 
-    delete<ArticlesResource.Slug.Favorite> { favoriteResource ->
+    put<ArticlesResource.Slug> { slugResource ->
         jwtAuth(jwtService) { (_, userId) ->
-            articleService
-                .unfavoriteArticle(Slug(favoriteResource.parent.slug), userId)
-                .map { SingleArticleResponse(it) }
+            either {
+                    // Receive and validate the update article request
+                    val wrapper = call.receive<ArticleWrapper<UpdateArticle>>()
+                    val updateArticleRequest = wrapper.article.validate().bind()
+
+                    // Create the update article input
+                    val input =
+                        UpdateArticleInput(
+                            slug = Slug(slugResource.slug),
+                            userId = userId,
+                            title = updateArticleRequest.title,
+                            description = updateArticleRequest.description,
+                            body = updateArticleRequest.body,
+                        )
+
+                    // Update the article
+                    val updatedArticle = articleService.updateArticle(input).bind()
+
+                    // Map to response
+                    ArticleResponse(
+                        slug = updatedArticle.slug,
+                        title = updatedArticle.title,
+                        description = updatedArticle.description,
+                        body = updatedArticle.body,
+                        author = updatedArticle.author,
+                        favorited = updatedArticle.favorited,
+                        favoritesCount = updatedArticle.favoritesCount,
+                        createdAt = updatedArticle.createdAt,
+                        updatedAt = updatedArticle.updatedAt,
+                        tagList = updatedArticle.tagList,
+                    )
+                }
                 .respond(HttpStatusCode.OK)
         }
     }
@@ -165,6 +199,15 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
         jwtAuth(jwtService) { (_, userId) ->
             articleService
                 .favoriteArticle(Slug(favoriteResource.parent.slug), userId)
+                .map { SingleArticleResponse(it) }
+                .respond(HttpStatusCode.OK)
+        }
+    }
+
+    delete<ArticlesResource.Slug.Favorite> { favoriteResource ->
+        jwtAuth(jwtService) { (_, userId) ->
+            articleService
+                .unfavoriteArticle(Slug(favoriteResource.parent.slug), userId)
                 .map { SingleArticleResponse(it) }
                 .respond(HttpStatusCode.OK)
         }

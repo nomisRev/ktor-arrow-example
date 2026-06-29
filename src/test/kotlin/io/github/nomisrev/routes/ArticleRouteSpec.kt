@@ -26,6 +26,7 @@ class ArticleRouteSpec :
                     dependencies.userService
                         .register(RegisterUser(user.username, user.email, user.password))
                         .shouldBeRight()
+
                 val response =
                     get(ArticleResource.Feed(offsetParam = 0)) {
                         contentType(ContentType.Application.Json)
@@ -35,7 +36,6 @@ class ArticleRouteSpec :
                 assert(response.status == HttpStatusCode.OK)
                 val body = response.body<MultipleArticlesResponse>()
                 assert(body.articles == emptyList<Article>())
-
                 assert(body.articlesCount == 0)
             }
         }
@@ -57,7 +57,6 @@ class ArticleRouteSpec :
                 assert(response.status == HttpStatusCode.OK)
                 val body = response.body<MultipleArticlesResponse>()
                 assert(body.articles == emptyList<Article>())
-
                 assert(body.articlesCount == 0)
             }
         }
@@ -139,6 +138,7 @@ class ArticleRouteSpec :
                         .register(RegisterUser(user.username, user.email, user.password))
                         .shouldBeRight()
                 val article = articleFixture()
+
                 val response =
                     post(ArticlesResource()) {
                         bearerAuth(token.value)
@@ -176,6 +176,7 @@ class ArticleRouteSpec :
                         .register(RegisterUser(user.username, user.email, user.password))
                         .shouldBeRight()
                 val article = articleFixture()
+
                 val response =
                     post(ArticlesResource()) {
                         bearerAuth(token.value)
@@ -213,6 +214,7 @@ class ArticleRouteSpec :
                         .register(RegisterUser(user.username, user.email, user.password))
                         .shouldBeRight()
                 val article = articleFixture()
+
                 val response =
                     post(ArticlesResource()) {
                         bearerAuth(token.value)
@@ -236,6 +238,7 @@ class ArticleRouteSpec :
                         .register(RegisterUser(user.username, user.email, user.password))
                         .shouldBeRight()
                 val article = articleFixture()
+
                 val response =
                     post(ArticlesResource()) {
                         bearerAuth(token.value)
@@ -257,6 +260,7 @@ class ArticleRouteSpec :
                         .register(RegisterUser(user.username, user.email, user.password))
                         .shouldBeRight()
                 val article = articleFixture()
+
                 val response =
                     post(ArticlesResource()) {
                         bearerAuth(token.value)
