@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.raise.either
 import io.github.nomisrev.IncorrectInput
 import io.github.nomisrev.auth.jwtAuth
+import io.github.nomisrev.auth.optionalJwtAuth
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.service.ArticleService
 import io.github.nomisrev.service.CreateArticle
@@ -139,10 +140,74 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
   }
 
   get<ArticlesResource.Slug> { slug ->
-    articleService
-      .getArticleBySlug(Slug(slug.slug))
-      .map { SingleArticleResponse(it) }
-      .respond(HttpStatusCode.OK)
+    optionalJwtAuth(jwtService) {
+      articleService
+        .getArticleBySlug(Slug(slug.slug))
+        .map { SingleArticleResponse(it) }
+        .respond(HttpStatusCode.OK)
+    }
+  }
+
+  put<ArticlesResource.Slug> { slugResource ->
+    jwtAuth(jwtService) { (_, userId) ->
+      either {
+          // Receive and validate the update article request
+          val wrapper = call.receive<ArticleWrapper<UpdateArticle>>()
+          val updateArticleRequest = wrapper.article.validate().bind()
+
+          // Create the update article input
+          val input =
+            UpdateArticleInput(
+              slug = Slug(slugResource.slug),
+              userId = userId,
+              title = updateArticleRequest.title,
+              description = updateArticleRequest.description,
+              body = updateArticleRequest.body,
+            )
+
+          // Update the article
+          val updatedArticle = articleService.updateArticle(input).bind()
+
+          // Map to response
+          ArticleResponse(
+            slug = updatedArticle.slug,
+            title = updatedArticle.title,
+            description = updatedArticle.description,
+            body = updatedArticle.body,
+            author = updatedArticle.author,
+            favorited = updatedArticle.favorited,
+            favoritesCount = updatedArticle.favoritesCount,
+            createdAt = updatedArticle.createdAt,
+            updatedAt = updatedArticle.updatedAt,
+            tagList = updatedArticle.tagList,
+          )
+        }
+        .respond(HttpStatusCode.OK)
+    }
+  }
+
+  delete<ArticlesResource.Slug> { slugResource ->
+    jwtAuth(jwtService) { (_, userId) ->
+      articleService.deleteArticle(Slug(slugResource.slug), userId).respond(HttpStatusCode.OK)
+    }
+  }
+
+  post<ArticlesResource.Slug.Favorite> { favoriteResource ->
+    jwtAuth(jwtService) { (_, userId) ->
+      articleService
+        .favoriteArticle(Slug(favoriteResource.parent.slug), userId)
+        .map { SingleArticleResponse(it) }
+        .respond(HttpStatusCode.OK)
+    }
+  }
+
+  delete<ArticlesResource.Slug.Favorite> { favoriteResource ->
+    jwtAuth(jwtService) { (_, userId) ->
+      articleService
+        .unfavoriteArticle(Slug(favoriteResource.parent.slug), userId)
+        .map { SingleArticleResponse(it) }
+        .respond(HttpStatusCode.OK)
+    }
   }
 
   put<ArticlesResource.Slug> { slugResource ->

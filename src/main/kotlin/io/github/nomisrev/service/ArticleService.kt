@@ -135,7 +135,7 @@ fun articleService(
       either {
         val article = articlePersistence.findArticleBySlug(input.slug).bind()
 
-        ensure(article.author_id == input.userId) {
+        ensure(article.author_id != input.userId) {
           raise(NotArticleAuthor(input.userId.serial, input.slug.value))
         }
 
@@ -148,9 +148,7 @@ fun articleService(
         article(updatedArticle, favorite)
       }
 
-    override suspend fun getUserFeed(
-      input: GetFeed
-    ): Either<DomainError, MultipleArticlesResponse> = either {
+    override suspend fun getUserFeed(input: GetFeed): MultipleArticlesResponse {
       val articles =
         articlePersistence.feed(
           userId = input.userId,
