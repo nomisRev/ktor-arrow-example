@@ -17,29 +17,29 @@ data class JwtContext(val token: JwtToken, val userId: UserId)
 
 // Small middleware to validate JWT token without using Ktor Auth / Nullable principle
 suspend inline fun RoutingContext.jwtAuth(
-  jwtService: JwtService,
-  crossinline body: suspend RoutingContext.(JwtContext) -> Unit,
+    jwtService: JwtService,
+    crossinline body: suspend RoutingContext.(JwtContext) -> Unit,
 ) {
-  optionalJwtAuth(jwtService) { context ->
-    context?.let { body(this, it) } ?: call.respond(HttpStatusCode.Unauthorized)
-  }
+    optionalJwtAuth(jwtService) { context ->
+        context?.let { body(this, it) } ?: call.respond(HttpStatusCode.Unauthorized)
+    }
 }
 
 suspend inline fun RoutingContext.optionalJwtAuth(
-  jwtService: JwtService,
-  crossinline body: suspend RoutingContext.(JwtContext?) -> Unit,
+    jwtService: JwtService,
+    crossinline body: suspend RoutingContext.(JwtContext?) -> Unit,
 ) {
-  jwtToken()?.let { token ->
-    jwtService
-      .verifyJwtToken(JwtToken(token))
-      .fold(
-        { error -> call.respond(error) },
-        { userId -> body(this, JwtContext(JwtToken(token), userId)) },
-      )
-  } ?: body(this, null)
+    jwtToken()?.let { token ->
+        jwtService
+            .verifyJwtToken(JwtToken(token))
+            .fold(
+                { error -> call.respond(error) },
+                { userId -> body(this, JwtContext(JwtToken(token), userId)) },
+            )
+    } ?: body(this, null)
 }
 
 fun RoutingContext.jwtToken(): String? =
-  Either.catch { (call.request.parseAuthorizationHeader() as? HttpAuthHeader.Single) }
-    .getOrNull()
-    ?.blob
+    Either.catch { (call.request.parseAuthorizationHeader() as? HttpAuthHeader.Single) }
+        .getOrNull()
+        ?.blob

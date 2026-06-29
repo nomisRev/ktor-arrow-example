@@ -20,50 +20,57 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Profile(
-  val username: String,
-  val bio: String,
-  val image: String,
-  val following: Boolean,
+    val username: String,
+    val bio: String,
+    val image: String,
+    val following: Boolean,
 )
 
 @Resource("/profiles")
 data class ProfilesResource(val parent: RootResource = RootResource) {
-  @Resource("/{username?}")
-  data class Username(val parent: ProfilesResource = ProfilesResource(), val username: String?)
+    @Resource("/{username?}")
+    data class Username(val parent: ProfilesResource = ProfilesResource(), val username: String?)
 
-  @Resource("/{username}/follow")
-  data class Follow(val parent: ProfilesResource = ProfilesResource(), val username: String)
+    @Resource("/{username}/follow")
+    data class Follow(val parent: ProfilesResource = ProfilesResource(), val username: String)
 }
 
 fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtService) {
-  get<ProfilesResource.Username> { route ->
-    either {
-        ensure(!route.username.isNullOrBlank()) { MissingParameter("username") }
-        userPersistence.selectProfile(route.username).bind()
-      }
-      .respond(HttpStatusCode.OK)
-  }
+    get<ProfilesResource.Username> { route ->
+        either {
+                ensure(!route.username.isNullOrBlank()) { MissingParameter("username") }
+                userPersistence.selectProfile(route.username).bind()
+            }
+            .respond(HttpStatusCode.OK)
+    }
 
-  delete<ProfilesResource.Follow> { follow ->
-    jwtAuth(jwtService) { (_, userId) ->
-      either {
-          userPersistence.unfollowProfile(follow.username, userId)
-          val userUnfollowed = userPersistence.select(follow.username).bind()
-          ProfileWrapper(
-            Profile(userUnfollowed.username, userUnfollowed.bio, userUnfollowed.image, false)
-          )
+    delete<ProfilesResource.Follow> { follow ->
+        jwtAuth(jwtService) { (_, userId) ->
+            either {
+                    userPersistence.unfollowProfile(follow.username, userId)
+                    val userUnfollowed = userPersistence.select(follow.username).bind()
+                    ProfileWrapper(
+                        Profile(
+                            userUnfollowed.username,
+                            userUnfollowed.bio,
+                            userUnfollowed.image,
+                            false,
+                        )
+                    )
+                }
+                .respond(HttpStatusCode.OK)
         }
-        .respond(HttpStatusCode.OK)
     }
-  }
-  post<ProfilesResource.Follow> { follow ->
-    jwtAuth(jwtService) { (_, userId) ->
-      either {
-          userPersistence.followProfile(follow.username, userId)
-          val userFollowed = userPersistence.select(follow.username).bind()
-          ProfileWrapper(Profile(userFollowed.username, userFollowed.bio, userFollowed.image, true))
+    post<ProfilesResource.Follow> { follow ->
+        jwtAuth(jwtService) { (_, userId) ->
+            either {
+                    userPersistence.followProfile(follow.username, userId)
+                    val userFollowed = userPersistence.select(follow.username).bind()
+                    ProfileWrapper(
+                        Profile(userFollowed.username, userFollowed.bio, userFollowed.image, true)
+                    )
+                }
+                .respond(HttpStatusCode.OK)
         }
-        .respond(HttpStatusCode.OK)
     }
-  }
 }

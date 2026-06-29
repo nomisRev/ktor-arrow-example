@@ -28,7 +28,7 @@ LIMIT :limit OFFSET :offset;
 selectFeedArticles:
 SELECT
 articles.id AS article__id, articles.slug AS article__slug, articles.title AS article__title, articles.description AS article__description, articles.body AS article__body, articles.author_id AS article__author_id, articles.createdAt AS article__createdAt, articles.updatedAt AS article__updatedAt,
-users.id AS users__id, users.username AS users__username, users.image AS users__image
+users.id AS users__id, users.username AS users__username, users.bio AS users__bio, users.image AS users__image
 FROM articles
 INNER JOIN users ON articles.author_id = users.id
 WHERE articles.author_id IN (
@@ -69,3 +69,12 @@ SELECT EXISTS(
 delete:
 DELETE FROM articles
 WHERE id = :articleId;
+
+selectAllArticles:
+SELECT
+articles.id AS article__id, articles.slug AS article__slug, articles.title AS article__title, articles.description AS article__description, articles.body AS article__body, articles.author_id AS article__author_id, articles.createdAt AS article__createdAt, articles.updatedAt AS article__updatedAt,
+users.id AS users__id, users.username AS users__username, users.bio AS users__bio, users.image AS users__image
+FROM articles
+INNER JOIN users ON articles.author_id = users.id
+ORDER BY createdAt DESC
+LIMIT :limit OFFSET :offset;

@@ -15,8 +15,8 @@ import kotlinx.serialization.Serializable
 @Resource("/tags") data class TagsResource(val parent: RootResource = RootResource)
 
 fun Route.tagRoutes(tagPersistence: TagPersistence) {
-  get<TagsResource> {
-    val tags = tagPersistence.selectTags()
-    call.respond(TagsResponse(tags))
-  }
+    get<TagsResource> {
+        val tags = tagPersistence.selectTags()
+        call.respond(TagsResponse(tags))
+    }
 }

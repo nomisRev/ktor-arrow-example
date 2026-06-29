@@ -1,6 +1,7 @@
 package io.github.nomisrev
 
 import arrow.continuations.SuspendApp
+import arrow.continuations.ktor.server
 import arrow.fx.coroutines.resourceScope
 import com.sksamuel.cohort.Cohort
 import io.github.nomisrev.env.Dependencies
@@ -14,16 +15,16 @@ import io.ktor.server.netty.Netty
 import kotlinx.coroutines.*
 
 fun main() = SuspendApp {
-  val env = Env()
-  resourceScope {
-    val dependencies = dependencies(env)
-    embeddedServer(Netty, host = env.http.host, port = env.http.port) { app(dependencies) }
-    awaitCancellation()
-  }
+    val env = Env()
+    resourceScope {
+        val dependencies = dependencies(env)
+        server(Netty, host = env.http.host, port = env.http.port) { app(dependencies) }
+        awaitCancellation()
+    }
 }
 
 fun Application.app(module: Dependencies) {
-  configure()
-  routes(module)
-  install(Cohort) { healthcheck("/readiness", module.healthCheck) }
+    configure()
+    routes(module)
+    install(Cohort) { healthcheck("/readiness", module.healthCheck) }
 }
