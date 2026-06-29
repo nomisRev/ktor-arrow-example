@@ -52,8 +52,13 @@ spotless {
 
 dependencies {
   implementation(libs.bundles.arrow)
-  implementation(libs.bundles.ktor.server)
-  implementation(libs.bundles.suspendapp)
+  implementation(ktorLibs.serialization.kotlinx.json)
+  implementation(ktorLibs.server.netty)
+  implementation(ktorLibs.server.defaultHeaders)
+  implementation(ktorLibs.server.resources)
+  implementation(ktorLibs.server.cors)
+  implementation(ktorLibs.server.contentNegotiation)
+  implementation(ktorLibs.server.auth)
   implementation(libs.kjwt.core)
   implementation(libs.logback.classic)
   implementation(libs.sqldelight.jdbc)
@@ -62,7 +67,8 @@ dependencies {
   implementation(libs.slugify)
   implementation(libs.bundles.cohort)
 
-  testImplementation(libs.bundles.ktor.client)
+  implementation(ktorLibs.client.contentNegotiation)
+  implementation(ktorLibs.client.resources)
   testImplementation(libs.testcontainers.postgresql)
   testImplementation(libs.ktor.server.tests)
   testImplementation(libs.bundles.kotest)
