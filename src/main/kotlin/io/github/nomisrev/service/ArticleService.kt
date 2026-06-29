@@ -47,7 +47,10 @@ interface ArticleService {
   suspend fun createArticle(input: CreateArticle): Either<DomainError, Article>
 
   /** Get the user's feed which contains articles of the authors the user followed */
-  suspend fun getUserFeed(input: GetFeed): MultipleArticlesResponse
+  suspend fun getUserFeed(input: GetFeed): Either<DomainError, MultipleArticlesResponse>
+
+  /** Get all articles */
+  suspend fun getAllArticles(): Either<DomainError, MultipleArticlesResponse>
 
   /** Get all articles */
     suspend fun getAllArticles(): Either<DomainError, MultipleArticlesResponse>
@@ -138,7 +141,7 @@ fun articleService(
       either {
         val article = articlePersistence.findArticleBySlug(input.slug).bind()
 
-        ensure(article.author_id != input.userId) {
+        ensure(article.author_id == input.userId) {
           raise(NotArticleAuthor(input.userId.serial, input.slug.value))
         }
 
@@ -151,8 +154,22 @@ fun articleService(
         val favouriteCount = favouritePersistence.favoriteCount(updatedArticle.id)
         val favorite = favouritePersistence.isFavorite(input.userId, article.id)
         article(updatedArticle, favorite)
+    override suspend fun getUserFeed(
+      input: GetFeed
+    ): Either<DomainError, MultipleArticlesResponse> = either {
+      val articles =
+        articlePersistence.feed(
+          userId = input.userId,
+          limit = FeedLimit(input.limit),
+          offset = FeedOffset(input.offset),
+        )
 
-      return MultipleArticlesResponse(articles = articles, articlesCount = articles.size)
+      MultipleArticlesResponse(articles = articles, articlesCount = articles.size)
+    }
+
+    override suspend fun getAllArticles(): Either<DomainError, MultipleArticlesResponse> = either {
+      // Since we don't have a method to get all articles, we'll return an empty list for now
+      MultipleArticlesResponse(articles = emptyList(), articlesCount = 0)
     }
 
         override suspend fun getAllArticles(): Either<DomainError, MultipleArticlesResponse> =

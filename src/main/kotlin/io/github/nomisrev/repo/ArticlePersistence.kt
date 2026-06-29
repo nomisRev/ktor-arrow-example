@@ -128,14 +128,14 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
           _,
           usersUsername,
           usersBio,
-                    usersImage ->
-                    Article(
-                        articleId = articleId.serial,
-                        slug = articleSlug,
-                        title = articleTitle,
-                        description = articleDescription,
-                        body = articleBody,
-                        author = Profile(usersUsername, usersBio, usersImage, true),
+          usersImage ->
+          Article(
+            articleId = articleId.serial,
+            slug = articleSlug,
+            title = articleTitle,
+            description = articleDescription,
+            body = articleBody,
+            author = Profile(usersUsername, usersBio, usersImage, true),
                         favorited = false,
                         favoritesCount = 0,
                         createdAt = articleCreatedAt,

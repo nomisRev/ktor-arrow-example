@@ -52,9 +52,9 @@ class ArticleServiceSpec :
                             .shouldBeRight()
 
                         val feed =
-                            dependencies.articleService.getUserFeed(
-                                input = GetFeed(userId = UserId(userId), limit = 20, offset = 0)
-                            )
+                            dependencies.articleService
+                                .getUserFeed(input = GetFeed(userId = UserId(userId), limit = 20, offset = 0))
+              .shouldBeRight()
 
                         assert(feed.articlesCount == 0)
                     }

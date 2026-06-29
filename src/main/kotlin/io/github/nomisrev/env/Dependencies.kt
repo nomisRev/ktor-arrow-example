@@ -38,9 +38,9 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
     val slugGenerator = slugifyGenerator()
     val userService = userService(userRepo, jwtService)
 
-    val checks = HealthCheckRegistry {
-        register(HikariConnectionsHealthCheck(hikari, minConnections = 1))
-    }
+  val checks = HealthCheckRegistry {
+      register(HikariConnectionsHealthCheck(hikari, minConnections = 1))
+  }
 
     return Dependencies(
         userService = userService,

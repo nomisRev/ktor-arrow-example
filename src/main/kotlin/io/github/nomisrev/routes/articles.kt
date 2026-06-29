@@ -5,7 +5,6 @@ import arrow.core.raise.context.bind
 import arrow.core.raise.either
 import io.github.nomisrev.IncorrectInput
 import io.github.nomisrev.auth.jwtAuth
-import io.github.nomisrev.auth.optionalJwtAuth
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.service.ArticleService
 import io.github.nomisrev.service.CreateArticle
@@ -142,12 +141,10 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
     }
 
     get<ArticlesResource.Slug> { slug ->
-        optionalJwtAuth(jwtService) {
-      articleService
-        .getArticleBySlug(Slug(slug.slug))
-        .map { SingleArticleResponse(it) }
-        .respond(HttpStatusCode.OK)
-    }
+        articleService
+      .getArticleBySlug(Slug(slug.slug))
+      .map { SingleArticleResponse(it) }
+      .respond(HttpStatusCode.OK)
   }
 
     put<ArticlesResource.Slug> { slugResource ->
