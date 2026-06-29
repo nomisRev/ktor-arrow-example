@@ -23,11 +23,6 @@ selectAuthorId:
 SELECT author
 FROM comments
 WHERE id = :id;
-
-selectAuthorId:
-SELECT author
-FROM comments
-WHERE id = :id;
 delete:
 DELETE FROM comments
 WHERE id = :id AND author = :author_id

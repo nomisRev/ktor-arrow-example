@@ -35,9 +35,8 @@ class ArticleRouteSpec :
                 assert(response.status == HttpStatusCode.OK)
                 val body = response.body<MultipleArticlesResponse>()
                 assert(body.articles == emptyList<Article>())
-                
-                assert(body
-                        .articlesCount == 0)
+
+                assert(body.articlesCount == 0)
             }
         }
 
@@ -58,9 +57,8 @@ class ArticleRouteSpec :
                 assert(response.status == HttpStatusCode.OK)
                 val body = response.body<MultipleArticlesResponse>()
                 assert(body.articles == emptyList<Article>())
-                
-                assert(body
-                        .articlesCount == 0)
+
+                assert(body.articlesCount == 0)
             }
         }
 

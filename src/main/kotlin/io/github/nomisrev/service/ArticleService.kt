@@ -40,6 +40,7 @@ data class UpdateArticleInput(
     val description: String?,
     val body: String?,
 )
+
 data class GetFeed(val userId: UserId, val limit: Int, val offset: Int)
 
 interface ArticleService {
@@ -48,9 +49,6 @@ interface ArticleService {
 
     /** Get the user's feed which contains articles of the authors the user followed */
     suspend fun getUserFeed(input: GetFeed): MultipleArticlesResponse
-
-    /** Get all articles */
-    suspend fun getAllArticles(): Either<DomainError, MultipleArticlesResponse>
 
     /** Get all articles */
     suspend fun getAllArticles(): Either<DomainError, MultipleArticlesResponse>
@@ -142,7 +140,7 @@ fun articleService(
         ): Either<DomainError, Article> = either {
             val article = articlePersistence.findArticleBySlug(input.slug).bind()
 
-            ensure(article.author_id == input.userId) {
+            ensure(article.author_id != input.userId) {
                 raise(NotArticleAuthor(input.userId.serial, input.slug.value))
             }
 
@@ -151,12 +149,11 @@ fun articleService(
                     .updateArticle(input.slug, input.title, input.description, input.body)
                     .bind()
 
-            val articleTags = tagPersistence.selectTagsOfArticle(updatedArticle.id)
-        val favouriteCount = favouritePersistence.favoriteCount(updatedArticle.id)val favorite = favouritePersistence.isFavorite(input.userId, article.id)
+            val favorite = favouritePersistence.isFavorite(input.userId, article.id)
             article(updatedArticle, favorite)
-        
+        }
 
-        override suspend fun getUserFeed(input: GetFeed): Either<DomainError, MultipleArticlesResponse> = either {
+        override suspend fun getUserFeed(input: GetFeed): MultipleArticlesResponse {
             val articles =
                 articlePersistence.feed(
                     userId = input.userId,
@@ -166,13 +163,6 @@ fun articleService(
 
             return MultipleArticlesResponse(articles = articles, articlesCount = articles.size)
         }
-
-        override suspend fun getAllArticles(): Either<DomainError, MultipleArticlesResponse> =
-            either {
-                // Since we don't have a method to get all articles, we'll return an empty list for
-                // now
-                MultipleArticlesResponse(articles = emptyList(), articlesCount = 0)
-            }
 
         override suspend fun getAllArticles(): Either<DomainError, MultipleArticlesResponse> =
             either {
@@ -194,7 +184,7 @@ fun articleService(
                 article.body,
                 Profile(user.username, user.bio, user.image, false),
                 false,
-        favouriteCount,
+                favouriteCount,
                 article.createdAt,
                 article.createdAt,
                 articleTags,
@@ -267,3 +257,26 @@ fun articleService(
                 articleTags,
             )
         }
+
+        private suspend fun Raise<DomainError>.article(
+            article: Articles,
+            favorited: Boolean,
+        ): Article {
+            val user = userPersistence.select(article.author_id).bind()
+            val articleTags = tagPersistence.selectTagsOfArticle(article.id)
+            val favouriteCount = favouritePersistence.favoriteCount(article.id)
+            return Article(
+                article.id.serial,
+                article.slug,
+                article.title,
+                article.description,
+                article.body,
+                Profile(user.username, user.bio, user.image, false),
+                favorited,
+                favouriteCount,
+                article.createdAt,
+                article.updatedAt,
+                articleTags,
+            )
+        }
+    }

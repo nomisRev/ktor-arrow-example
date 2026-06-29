@@ -47,16 +47,7 @@ interface ArticlePersistence {
         body: String?,
     ): Either<ArticleBySlugNotFound, Articles>
 
-    // TODO create proper domain for Articles
-  /** Update an article by slug */
-  suspend fun updateArticle(
-    slug: Slug,
-    title: String?,
-    description: String?,
-    body: String?,
-  ): Either<ArticleBySlugNotFound, Articles>
-
-  /** Delete an article by slug */
+    /** Delete an article by slug */
     suspend fun deleteArticle(slug: Slug): Either<ArticleBySlugNotFound, Unit>
 
     // Create proper domain for Comments
@@ -72,7 +63,7 @@ interface ArticlePersistence {
 
     suspend fun findCommentAuthor(commentId: Long): UserId?
 
-    suspend fun findCommentAuthor(commentId: Long): UserId?/** Delete a comment by ID */
+    /** Delete a comment by ID */
     suspend fun deleteComment(commentId: Long, authorId: UserId): Boolean
 }
 
@@ -106,11 +97,6 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
                         updatedAt,
                     )
                     .executeAsOne()
-
-            tags.forEach { tag -> tagsQueries.insert(articleId, tag) }
-
-        articleId
-      }
 
             tags.forEach { tag -> tagsQueries.insert(articleId, tag) }
 
@@ -219,9 +205,6 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
         override suspend fun findCommentAuthor(commentId: Long): UserId? =
             comments.selectAuthorId(commentId).executeAsOneOrNull()?.let { UserId(it) }
 
-    override suspend fun findCommentAuthor(commentId: Long): UserId? =
-      comments.selectAuthorId(commentId).executeAsOneOrNull()?.let { UserId(it) }
-
         override suspend fun createCommentForArticleSlug(
             slug: Slug,
             userId: UserId,
@@ -251,4 +234,4 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
 
         override suspend fun deleteComment(commentId: Long, authorId: UserId): Boolean =
             comments.delete(commentId, authorId.serial).executeAsList().size == 1
-    
+    }

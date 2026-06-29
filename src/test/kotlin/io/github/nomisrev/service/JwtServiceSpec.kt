@@ -27,19 +27,23 @@ class JwtServiceSpec :
                                 .register(RegisterUser(user.username, user.email, user.password))
                                 .shouldBeRight()
                         withTestDependencies { dependencies ->
-                        val user = userFixture()
-                        val token =
-                            dependencies.userService
-                                .register(RegisterUser(user.username, user.email, user.password))
-                                .shouldBeRight()val userId =
-                            JWT.decodeT(token.value, JWSHMAC512Algorithm)
-                                .map { it.claimValueAsLong("id").shouldBeSome() }
-                                .shouldBeRight()
+                            val user = userFixture()
+                            val token =
+                                dependencies.userService
+                                    .register(
+                                        RegisterUser(user.username, user.email, user.password)
+                                    )
+                                    .shouldBeRight()
+                            val userId =
+                                JWT.decodeT(token.value, JWSHMAC512Algorithm)
+                                    .map { it.claimValueAsLong("id").shouldBeSome() }
+                                    .shouldBeRight()
 
-                        val result = dependencies.jwtService.generateJwtToken(UserId(userId))
+                            val result = dependencies.jwtService.generateJwtToken(UserId(userId))
 
-                        val jwtToken = result.shouldBeRight()
-                        jwtToken.value.shouldNotBeBlank()
+                            val jwtToken = result.shouldBeRight()
+                            jwtToken.value.shouldNotBeBlank()
+                        }
                     }
                 }
 
@@ -49,18 +53,11 @@ class JwtServiceSpec :
                         val token =
                             dependencies.userService
                                 .register(RegisterUser(user.username, user.email, user.password))
-                                .shouldBeRight()val username = "user_${Random.nextInt(1000, 9999)}"
-                    val email = "$username@example.com"
-                    val password = "password_${Random.nextInt(1000, 9999)}"
-
-                    val token =
-                        userService
-                            .register(RegisterUser(username, email, password))
-                            .shouldBeRight()
-                    val userId =
-                        JWT.decodeT(token.value, JWSHMAC512Algorithm)
-                            .map { it.claimValueAsLong("id").shouldBeSome() }
-                            .shouldBeRight()
+                                .shouldBeRight()
+                        val userId =
+                            JWT.decodeT(token.value, JWSHMAC512Algorithm)
+                                .map { it.claimValueAsLong("id").shouldBeSome() }
+                                .shouldBeRight()
 
                         val generatedToken =
                             dependencies.jwtService.generateJwtToken(UserId(userId)).shouldBeRight()
@@ -71,7 +68,7 @@ class JwtServiceSpec :
                         resultUserId shouldBe UserId(userId)
                     }
                 }
-            }}
+            }
 
         "verifyJwtToken" -
             {
@@ -99,4 +96,4 @@ class JwtServiceSpec :
                     }
                 }
             }
-    }})
+    })

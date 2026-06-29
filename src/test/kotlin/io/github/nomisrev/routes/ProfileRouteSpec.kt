@@ -17,8 +17,6 @@ import io.ktor.http.contentType
 
 class ProfileRouteSpec :
     StringSpec({
-
-
         "Can follow profile" {
             withServer { dependencies ->
                 val follower = userFixture()

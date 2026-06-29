@@ -17,8 +17,6 @@ import io.ktor.http.contentType
 
 class UserRouteSpec :
     StringSpec({
-
-
         "Can register user" {
             withServer { _ ->
                 val user = userFixture()

@@ -10,7 +10,6 @@ import io.github.nomisrev.service.ArticleService
 import io.github.nomisrev.service.CreateArticle
 import io.github.nomisrev.service.JwtService
 import io.github.nomisrev.service.Slug
-import io.github.nomisrev.service.UpdateArticleInput
 import io.github.nomisrev.service.UserService
 import io.github.nomisrev.validate
 import io.ktor.http.HttpStatusCode
@@ -19,7 +18,6 @@ import io.ktor.server.request.receive
 import io.ktor.server.resources.delete
 import io.ktor.server.resources.get
 import io.ktor.server.resources.post
-import io.ktor.server.resources.put
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import java.time.OffsetDateTime
@@ -90,6 +88,7 @@ data class UpdateArticle(
 )
 
 fun UpdateArticle.validate(): Either<IncorrectInput, UpdateArticle> = Either.Right(this)
+
 @Serializable
 data class ArticleResponse(
     val slug: String,
@@ -141,12 +140,10 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
     }
 
     get<ArticlesResource.Slug> { slug ->
-
-            articleService
-                .getArticleBySlug(Slug(slug.slug))
-                .map { SingleArticleResponse(it) }
-                .respond(HttpStatusCode.OK)
-
+        articleService
+            .getArticleBySlug(Slug(slug.slug))
+            .map { SingleArticleResponse(it) }
+            .respond(HttpStatusCode.OK)
     }
 
     delete<ArticlesResource.Slug.Favorite> { favoriteResource ->
@@ -168,15 +165,6 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
         jwtAuth(jwtService) { (_, userId) ->
             articleService
                 .favoriteArticle(Slug(favoriteResource.parent.slug), userId)
-                .map { SingleArticleResponse(it) }
-                .respond(HttpStatusCode.OK)
-        }
-    }
-
-    delete<ArticlesResource.Slug.Favorite> { favoriteResource ->
-        jwtAuth(jwtService) { (_, userId) ->
-            articleService
-                .unfavoriteArticle(Slug(favoriteResource.parent.slug), userId)
                 .map { SingleArticleResponse(it) }
                 .respond(HttpStatusCode.OK)
         }
@@ -268,18 +256,6 @@ fun Route.commentRoutes(articleService: ArticleService, jwtService: JwtService) 
                 .respond(HttpStatusCode.OK)
         }
     }
-
-  delete<ArticlesResource.Comments.Id> { commentResource ->
-    jwtAuth(jwtService) { (_, userId) ->
-      articleService
-        .deleteComment(
-          slug = Slug(commentResource.parent.slug),
-          commentId = commentResource.id,
-          userId = userId,
-        )
-        .respond(HttpStatusCode.OK)
-    }
-  }
 }
 
 private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
