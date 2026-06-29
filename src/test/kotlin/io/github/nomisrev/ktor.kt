@@ -12,14 +12,16 @@ import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
 
 suspend fun withServer(test: suspend HttpClient.(dep: Dependencies) -> Unit): Unit {
-  val dependencies = KotestProject.dependencies.get()
-  testApplication {
-    application { app(dependencies) }
-    createClient {
-        expectSuccess = false
-        install(ContentNegotiation) { json(Json { serializersModule = kotlinXSerializersModule }) }
-        install(Resources) { serializersModule = kotlinXSerializersModule }
-      }
-      .use { client -> test(client, dependencies) }
-  }
+    val dependencies = KotestProject.dependencies.get()
+    testApplication {
+        application { app(dependencies) }
+        createClient {
+                expectSuccess = false
+                install(ContentNegotiation) {
+                    json(Json { serializersModule = kotlinXSerializersModule })
+                }
+                install(Resources) { serializersModule = kotlinXSerializersModule }
+            }
+            .use { client -> test(client, dependencies) }
+    }
 }

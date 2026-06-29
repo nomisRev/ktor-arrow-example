@@ -9,7 +9,7 @@ import kotlinx.coroutines.runBlocking
  */
 @Suppress("UnnecessaryAbstractClass")
 abstract class SuspendFun(body: suspend FreeSpec.() -> Unit) : FreeSpec() {
-  init {
-    runBlocking { body() }
-  }
+    init {
+        runBlocking { body() }
+    }
 }

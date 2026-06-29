@@ -1,3 +1,4 @@
+import com.diffplug.spotless.kotlin.KtfmtStep
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 @Suppress("DSL_SCOPE_VIOLATION") plugins {
@@ -27,10 +28,6 @@ sqldelight {
 }
 
 tasks {
-  withType<KotlinCompile>().configureEach {
-    kotlin.compilerOptions.freeCompilerArgs.add("-Xcontext-parameters")
-  }
-
   test {
     useJUnitPlatform()
   }
@@ -48,7 +45,7 @@ spotless {
     targetExclude("**/build/**")
     ktfmt().kotlinlangStyle().configure {
       it.setRemoveUnusedImports(true)
-      it.setManageTrailingCommas(true)
+      it.setTrailingCommaManagementStrategy(KtfmtStep.TrailingCommaManagementStrategy.ONLY_ADD)
     }
   }
 }
@@ -72,5 +69,5 @@ dependencies {
 }
 
 kotlin {
-  compilerOptions.freeCompilerArgs.add("-Xcontext-parameters")
+  jvmToolchain(21)
 }

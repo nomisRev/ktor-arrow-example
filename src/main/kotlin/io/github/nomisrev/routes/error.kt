@@ -27,44 +27,46 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class GenericErrorModelErrors(val body: List<String>)
 
-context(RoutingContext)
+context(ctx: RoutingContext)
 suspend inline fun <reified A : Any> Either<DomainError, A>.respond(status: HttpStatusCode): Unit =
-  when (this) {
-    is Either.Left -> respond(value)
-    is Either.Right -> call.respond(status, value)
-  }
+    when (this) {
+        is Either.Left -> ctx.respond(value)
+        is Either.Right -> ctx.call.respond(status, value)
+    }
 
 @OptIn(ExperimentalSerializationApi::class)
 @Suppress("ComplexMethod")
 suspend fun RoutingContext.respond(error: DomainError): Unit =
-  when (error) {
-    PasswordNotMatched -> call.respond(HttpStatusCode.Unauthorized)
-    is IncorrectInput ->
-      unprocessable(error.errors.map { field -> "${field.field}: ${field.errors.joinToString()}" })
-    is IncorrectJson ->
-      unprocessable("Json is missing fields: ${error.exception.missingFields.joinToString()}")
-    is EmptyUpdate -> unprocessable(error.description)
-    is EmailAlreadyExists -> unprocessable("${error.email} is already registered")
-    is JwtGeneration -> unprocessable(error.description)
-    is UserNotFound -> unprocessable("User with ${error.property} not found")
-    is UsernameAlreadyExists -> unprocessable("Username ${error.username} already exists")
-    is JwtInvalid -> unprocessable(error.description)
-    is CannotGenerateSlug -> unprocessable(error.description)
-    is ArticleBySlugNotFound -> unprocessable("Article by slug ${error.slug} not found")
-    is MissingParameter -> unprocessable("Missing ${error.name} parameter in request")
-    is NotArticleAuthor -> unprocessable("User is not the author of the article")
-    is CommentNotFound -> unprocessable("Comment with ID ${error.commentId} not found")
-    is NotCommentAuthor -> unprocessable("User is not the author of the comment")
-  }
+    when (error) {
+        PasswordNotMatched -> call.respond(HttpStatusCode.Unauthorized)
+        is IncorrectInput ->
+            unprocessable(
+                error.errors.map { field -> "${field.field}: ${field.errors.joinToString()}" }
+            )
+        is IncorrectJson ->
+            unprocessable("Json is missing fields: ${error.exception.missingFields.joinToString()}")
+        is EmptyUpdate -> unprocessable(error.description)
+        is EmailAlreadyExists -> unprocessable("${error.email} is already registered")
+        is JwtGeneration -> unprocessable(error.description)
+        is UserNotFound -> unprocessable("User with ${error.property} not found")
+        is UsernameAlreadyExists -> unprocessable("Username ${error.username} already exists")
+        is JwtInvalid -> unprocessable(error.description)
+        is CannotGenerateSlug -> unprocessable(error.description)
+        is ArticleBySlugNotFound -> unprocessable("Article by slug ${error.slug} not found")
+        is MissingParameter -> unprocessable("Missing ${error.name} parameter in request")
+        is NotArticleAuthor -> unprocessable("User is not the author of the article")
+        is CommentNotFound -> unprocessable("Comment with ID ${error.commentId} not found")
+        is NotCommentAuthor -> unprocessable("User is not the author of the comment")
+    }
 
 private suspend inline fun RoutingContext.unprocessable(error: String): Unit =
-  call.respond(
-    HttpStatusCode.UnprocessableEntity,
-    GenericErrorModel(GenericErrorModelErrors(listOf(error))),
-  )
+    call.respond(
+        HttpStatusCode.UnprocessableEntity,
+        GenericErrorModel(GenericErrorModelErrors(listOf(error))),
+    )
 
 private suspend inline fun RoutingContext.unprocessable(errors: List<String>): Unit =
-  call.respond(
-    HttpStatusCode.UnprocessableEntity,
-    GenericErrorModel(GenericErrorModelErrors(errors)),
-  )
+    call.respond(
+        HttpStatusCode.UnprocessableEntity,
+        GenericErrorModel(GenericErrorModelErrors(errors)),
+    )

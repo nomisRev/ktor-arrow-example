@@ -22,162 +22,178 @@ import org.postgresql.util.PSQLState
 @JvmInline value class UserId(val serial: Long)
 
 interface UserPersistence {
-  /** Creates a new user in the database, and returns the [UserId] of the newly created user */
-  suspend fun insert(username: String, email: String, password: String): Either<DomainError, UserId>
+    /** Creates a new user in the database, and returns the [UserId] of the newly created user */
+    suspend fun insert(
+        username: String,
+        email: String,
+        password: String,
+    ): Either<DomainError, UserId>
 
-  /** Verifies is a password is correct for a given email */
-  suspend fun verifyPassword(
-    email: String,
-    password: String,
-  ): Either<DomainError, Pair<UserId, UserInfo>>
+    /** Verifies is a password is correct for a given email */
+    suspend fun verifyPassword(
+        email: String,
+        password: String,
+    ): Either<DomainError, Pair<UserId, UserInfo>>
 
-  /** Select a User by its [UserId] */
-  suspend fun select(userId: UserId): Either<DomainError, UserInfo>
+    /** Select a User by its [UserId] */
+    suspend fun select(userId: UserId): Either<DomainError, UserInfo>
 
-  /** Select a User by its username */
-  suspend fun select(username: String): Either<DomainError, UserInfo>
+    /** Select a User by its username */
+    suspend fun select(username: String): Either<DomainError, UserInfo>
 
-  suspend fun selectProfile(username: String): Either<DomainError, Profile>
+    suspend fun selectProfile(username: String): Either<DomainError, Profile>
 
-  @Suppress("LongParameterList")
-  suspend fun update(
-    userId: UserId,
-    email: String?,
-    username: String?,
-    password: String?,
-    bio: String?,
-    image: String?,
-  ): Either<DomainError, UserInfo>
+    @Suppress("LongParameterList")
+    suspend fun update(
+        userId: UserId,
+        email: String?,
+        username: String?,
+        password: String?,
+        bio: String?,
+        image: String?,
+    ): Either<DomainError, UserInfo>
 
-  suspend fun unfollowProfile(followedUsername: String, followerId: UserId)
+    suspend fun unfollowProfile(followedUsername: String, followerId: UserId)
 
-  suspend fun followProfile(followedUsername: String, followerId: UserId): Either<DomainError, Unit>
+    suspend fun followProfile(
+        followedUsername: String,
+        followerId: UserId,
+    ): Either<DomainError, Unit>
 }
 
 /** UserPersistence implementation based on SqlDelight and JavaX Crypto */
 fun userPersistence(
-  usersQueries: UsersQueries,
-  followingQueries: FollowingQueries,
-  defaultIterations: Int = 64000,
-  defaultKeyLength: Int = 512,
-  secretKeysFactory: SecretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512"),
+    usersQueries: UsersQueries,
+    followingQueries: FollowingQueries,
+    defaultIterations: Int = 64000,
+    defaultKeyLength: Int = 512,
+    secretKeysFactory: SecretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512"),
 ) =
-  object : UserPersistence {
+    object : UserPersistence {
 
-    override suspend fun insert(
-      username: String,
-      email: String,
-      password: String,
-    ): Either<DomainError, UserId> {
-      val salt = generateSalt()
-      val key = generateKey(password, salt)
-      return Either.catchOrThrow<PSQLException, UserId> {
-          usersQueries.create(salt, key, username, email)
-        }
-        .mapLeft { psqlException ->
-          if (psqlException.sqlState == PSQLState.UNIQUE_VIOLATION.state)
-            UsernameAlreadyExists(username)
-          else throw psqlException
-        }
-    }
-
-    override suspend fun verifyPassword(
-      email: String,
-      password: String,
-    ): Either<DomainError, Pair<UserId, UserInfo>> = either {
-      val (userId, username, salt, key, bio, image) =
-        ensureNotNull(usersQueries.selectSecurityByEmail(email).executeAsOneOrNull()) {
-          UserNotFound("email=$email")
+        override suspend fun insert(
+            username: String,
+            email: String,
+            password: String,
+        ): Either<DomainError, UserId> {
+            val salt = generateSalt()
+            val key = generateKey(password, salt)
+            return Either.catchOrThrow<PSQLException, UserId> {
+                    usersQueries.create(salt, key, username, email)
+                }
+                .mapLeft { psqlException ->
+                    if (psqlException.sqlState == PSQLState.UNIQUE_VIOLATION.state)
+                        UsernameAlreadyExists(username)
+                    else throw psqlException
+                }
         }
 
-      val hash = generateKey(password, salt)
-      ensure(hash contentEquals key) { PasswordNotMatched }
-      Pair(userId, UserInfo(email, username, bio, image))
-    }
+        override suspend fun verifyPassword(
+            email: String,
+            password: String,
+        ): Either<DomainError, Pair<UserId, UserInfo>> = either {
+            val (userId, username, salt, key, bio, image) =
+                ensureNotNull(usersQueries.selectSecurityByEmail(email).executeAsOneOrNull()) {
+                    UserNotFound("email=$email")
+                }
 
-    override suspend fun select(userId: UserId): Either<DomainError, UserInfo> = either {
-      val userInfo =
-        usersQueries
-          .selectById(userId) { email, username, _, _, bio, image ->
-            UserInfo(email, username, bio, image)
-          }
-          .executeAsOneOrNull()
-      ensureNotNull(userInfo) { UserNotFound("userId=$userId") }
-    }
-
-    override suspend fun select(username: String): Either<DomainError, UserInfo> = either {
-      val userInfo = usersQueries.selectByUsername(username, ::UserInfo).executeAsOneOrNull()
-      ensureNotNull(userInfo) { UserNotFound("username=$username") }
-    }
-
-    override suspend fun selectProfile(username: String): Either<DomainError, Profile> = either {
-      val profileInfo = usersQueries.selectProfile(username, ::toProfile).executeAsOneOrNull()
-      ensureNotNull(profileInfo) { UserNotFound("username=$username") }
-    }
-
-    fun toProfile(username: String, bio: String, image: String, following: Long): Profile =
-      Profile(username, bio, image, following > 0)
-
-    override suspend fun update(
-      userId: UserId,
-      email: String?,
-      username: String?,
-      password: String?,
-      bio: String?,
-      image: String?,
-    ): Either<DomainError, UserInfo> = either {
-      val info =
-        usersQueries.transactionWithResult {
-          usersQueries.selectById(userId).executeAsOneOrNull()?.let {
-            (oldEmail, oldUsername, salt, oldPassword, oldBio, oldImage) ->
-            val newPassword = password?.let { generateKey(it, salt) } ?: oldPassword
-            val newEmail = email ?: oldEmail
-            val newUsername = username ?: oldUsername
-            val newBio = bio ?: oldBio
-            val newImage = image ?: oldImage
-            usersQueries.update(newEmail, newUsername, newPassword, newBio, newImage, userId)
-            UserInfo(newEmail, newUsername, newBio, newImage)
-          }
+            val hash = generateKey(password, salt)
+            ensure(hash contentEquals key) { PasswordNotMatched }
+            Pair(userId, UserInfo(email, username, bio, image))
         }
-      ensureNotNull(info) { UserNotFound("userId=$userId") }
-    }
 
-    override suspend fun unfollowProfile(followedUsername: String, followerId: UserId): Unit =
-      followingQueries.delete(followedUsername, followerId.serial)
-
-    override suspend fun followProfile(
-      followedUsername: String,
-      followerId: UserId,
-    ): Either<DomainError, Unit> = either {
-      catch({ followingQueries.insertByUsername(followedUsername, followerId.serial) }) {
-        psqlException: PSQLException ->
-        ensure(psqlException.sqlState != PSQLState.NOT_NULL_VIOLATION.state) {
-          UserNotFound("username=$followedUsername")
+        override suspend fun select(userId: UserId): Either<DomainError, UserInfo> = either {
+            val userInfo =
+                usersQueries
+                    .selectById(userId) { email, username, _, _, bio, image ->
+                        UserInfo(email, username, bio, image)
+                    }
+                    .executeAsOneOrNull()
+            ensureNotNull(userInfo) { UserNotFound("userId=$userId") }
         }
-        throw psqlException
-      }
-    }
 
-    private fun generateSalt(): ByteArray = UUID.randomUUID().toString().toByteArray()
+        override suspend fun select(username: String): Either<DomainError, UserInfo> = either {
+            val userInfo = usersQueries.selectByUsername(username, ::UserInfo).executeAsOneOrNull()
+            ensureNotNull(userInfo) { UserNotFound("username=$username") }
+        }
 
-    private fun generateKey(password: String, salt: ByteArray): ByteArray {
-      val spec = PBEKeySpec(password.toCharArray(), salt, defaultIterations, defaultKeyLength)
-      return secretKeysFactory.generateSecret(spec).encoded
+        override suspend fun selectProfile(username: String): Either<DomainError, Profile> =
+            either {
+                val profileInfo =
+                    usersQueries.selectProfile(username, ::toProfile).executeAsOneOrNull()
+                ensureNotNull(profileInfo) { UserNotFound("username=$username") }
+            }
+
+        fun toProfile(username: String, bio: String, image: String, following: Int): Profile =
+            Profile(username, bio, image, following > 0)
+
+        override suspend fun update(
+            userId: UserId,
+            email: String?,
+            username: String?,
+            password: String?,
+            bio: String?,
+            image: String?,
+        ): Either<DomainError, UserInfo> = either {
+            val info = usersQueries.transactionWithResult {
+                usersQueries.selectById(userId).executeAsOneOrNull()?.let {
+                    (oldEmail, oldUsername, salt, oldPassword, oldBio, oldImage) ->
+                    val newPassword = password?.let { generateKey(it, salt) } ?: oldPassword
+                    val newEmail = email ?: oldEmail
+                    val newUsername = username ?: oldUsername
+                    val newBio = bio ?: oldBio
+                    val newImage = image ?: oldImage
+                    usersQueries.update(
+                        newEmail,
+                        newUsername,
+                        newPassword,
+                        newBio,
+                        newImage,
+                        userId,
+                    )
+                    UserInfo(newEmail, newUsername, newBio, newImage)
+                }
+            }
+            ensureNotNull(info) { UserNotFound("userId=$userId") }
+        }
+
+        override suspend fun unfollowProfile(followedUsername: String, followerId: UserId): Unit {
+            followingQueries.delete(followedUsername, followerId.serial).await()
+        }
+
+        override suspend fun followProfile(
+            followedUsername: String,
+            followerId: UserId,
+        ): Either<DomainError, Unit> = either {
+            catch({ followingQueries.insertByUsername(followedUsername, followerId.serial) }) {
+                psqlException: PSQLException ->
+                ensure(psqlException.sqlState != PSQLState.NOT_NULL_VIOLATION.state) {
+                    UserNotFound("username=$followedUsername")
+                }
+                throw psqlException
+            }
+        }
+
+        private fun generateSalt(): ByteArray = UUID.randomUUID().toString().toByteArray()
+
+        private fun generateKey(password: String, salt: ByteArray): ByteArray {
+            val spec = PBEKeySpec(password.toCharArray(), salt, defaultIterations, defaultKeyLength)
+            return secretKeysFactory.generateSecret(spec).encoded
+        }
     }
-  }
 
 private fun UsersQueries.create(
-  salt: ByteArray,
-  key: ByteArray,
-  username: String,
-  email: String,
+    salt: ByteArray,
+    key: ByteArray,
+    username: String,
+    email: String,
 ): UserId =
-  insertAndGetId(
-      username = username,
-      email = email,
-      salt = salt,
-      hashed_password = key,
-      bio = "",
-      image = "",
-    )
-    .executeAsOne()
+    insertAndGetId(
+            username = username,
+            email = email,
+            salt = salt,
+            hashed_password = key,
+            bio = "",
+            image = "",
+        )
+        .executeAsOne()

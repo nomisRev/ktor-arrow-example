@@ -15,17 +15,16 @@ import io.ktor.server.netty.Netty
 import kotlinx.coroutines.*
 
 fun main() = SuspendApp {
-  val env = Env()
-  resourceScope {
-    val dependencies = dependencies(env)
-    server(Netty, host = env.http.host, port = env.http.port) { app(dependencies) }
-    awaitCancellation()
-  }
+    val env = Env()
+    resourceScope {
+        val dependencies = dependencies(env)
+        server(Netty, host = env.http.host, port = env.http.port) { app(dependencies) }
+        awaitCancellation()
+    }
 }
 
 fun Application.app(module: Dependencies) {
-  configure()
-  routes(module)
-  cohort(module.dataSource)
-  install(Cohort) { healthcheck("/readiness", module.healthCheck) }
+    configure()
+    routes(module)
+    install(Cohort) { healthcheck("/readiness", module.healthCheck) }
 }

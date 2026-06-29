@@ -16,204 +16,222 @@ import java.time.OffsetDateTime
 @JvmInline value class ArticleId(val serial: Long)
 
 interface ArticlePersistence {
-  @Suppress("LongParameterList")
-  /** Creates a new Article with the specified tags */
-  suspend fun create(
-    authorId: UserId,
-    slug: Slug,
-    title: String,
-    description: String,
-    body: String,
-    createdAt: OffsetDateTime,
-    updatedAt: OffsetDateTime,
-    tags: Set<String>,
-  ): ArticleId
+    @Suppress("LongParameterList")
+    /** Creates a new Article with the specified tags */
+    suspend fun create(
+        authorId: UserId,
+        slug: Slug,
+        title: String,
+        description: String,
+        body: String,
+        createdAt: OffsetDateTime,
+        updatedAt: OffsetDateTime,
+        tags: Set<String>,
+    ): ArticleId
 
-  /** Verifies if a certain slug already exists or not */
-  suspend fun exists(slug: Slug): Boolean
+    /** Verifies if a certain slug already exists or not */
+    suspend fun exists(slug: Slug): Boolean
 
-  /** Get recent articles from users you follow * */
-  suspend fun feed(userId: UserId, limit: FeedLimit, offset: FeedOffset): List<Article>
+    /** Get recent articles from users you follow * */
+    suspend fun feed(userId: UserId, limit: FeedLimit, offset: FeedOffset): List<Article>
 
-  // TODO create proper domain for Articles
-  suspend fun findArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles>
+    // TODO create proper domain for Articles
+    suspend fun findArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles>
 
-  // TODO create proper domain for Articles
-  /** Update an article by slug */
-  suspend fun updateArticle(
-    slug: Slug,
-    title: String?,
-    description: String?,
-    body: String?,
-  ): Either<ArticleBySlugNotFound, Articles>
+    // TODO create proper domain for Articles
+    /** Update an article by slug */
+    suspend fun updateArticle(
+        slug: Slug,
+        title: String?,
+        description: String?,
+        body: String?,
+    ): Either<ArticleBySlugNotFound, Articles>
 
-  /** Delete an article by slug */
-  suspend fun deleteArticle(slug: Slug): Either<ArticleBySlugNotFound, Unit>
+    /** Delete an article by slug */
+    suspend fun deleteArticle(slug: Slug): Either<ArticleBySlugNotFound, Unit>
 
-  // Create proper domain for Comments
-  suspend fun createCommentForArticleSlug(
-    slug: Slug,
-    userId: UserId,
-    comment: String,
-    articleId: ArticleId,
-    createdAt: OffsetDateTime,
-  ): Comments
+    // Create proper domain for Comments
+    suspend fun createCommentForArticleSlug(
+        slug: Slug,
+        userId: UserId,
+        comment: String,
+        articleId: ArticleId,
+        createdAt: OffsetDateTime,
+    ): Comments
 
-  suspend fun findCommentsForSlug(slug: Slug): List<Comment>
+    suspend fun findCommentsForSlug(slug: Slug): List<Comment>
 
-  suspend fun findCommentAuthor(commentId: Long): UserId?
+    suspend fun findCommentAuthor(commentId: Long): UserId?
 
-  /** Delete a comment by ID */
-  suspend fun deleteComment(commentId: Long, authorId: UserId): Boolean
+    /** Delete a comment by ID */
+    suspend fun deleteComment(commentId: Long, authorId: UserId): Boolean
 }
 
 fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQueries: TagsQueries) =
-  object : ArticlePersistence {
-    override suspend fun deleteArticle(slug: Slug): Either<ArticleBySlugNotFound, Unit> = either {
-      val article = findArticleBySlug(slug).bind()
-      articles.delete(article.id)
-    }
+    object : ArticlePersistence {
+        override suspend fun deleteArticle(slug: Slug): Either<ArticleBySlugNotFound, Unit> =
+            either {
+                val article = findArticleBySlug(slug).bind()
+                articles.delete(article.id)
+            }
 
-    override suspend fun create(
-      authorId: UserId,
-      slug: Slug,
-      title: String,
-      description: String,
-      body: String,
-      createdAt: OffsetDateTime,
-      updatedAt: OffsetDateTime,
-      tags: Set<String>,
-    ): ArticleId =
-      articles.transactionWithResult {
-        val articleId =
-          articles
-            .insertAndGetId(slug.value, title, description, body, authorId, createdAt, updatedAt)
-            .executeAsOne()
+        override suspend fun create(
+            authorId: UserId,
+            slug: Slug,
+            title: String,
+            description: String,
+            body: String,
+            createdAt: OffsetDateTime,
+            updatedAt: OffsetDateTime,
+            tags: Set<String>,
+        ): ArticleId = articles.transactionWithResult {
+            val articleId =
+                articles
+                    .insertAndGetId(
+                        slug.value,
+                        title,
+                        description,
+                        body,
+                        authorId,
+                        createdAt,
+                        updatedAt,
+                    )
+                    .executeAsOne()
 
-        tags.forEach { tag -> tagsQueries.insert(articleId, tag) }
+            tags.forEach { tag -> tagsQueries.insert(articleId, tag) }
 
-        articleId
-      }
-
-    override suspend fun exists(slug: Slug): Boolean =
-      articles.slugExists(slug.value).executeAsOne()
-
-    override suspend fun feed(userId: UserId, limit: FeedLimit, offset: FeedOffset): List<Article> =
-      articles
-        .selectFeedArticles(userId.serial, limit.limit.toLong(), offset.offset.toLong()) {
-          articleId,
-          articleSlug,
-          articleTitle,
-          articleDescription,
-          articleBody,
-          _,
-          articleCreatedAt,
-          articleUpdatedAt,
-          _,
-          usersUsername,
-          usersBio,
-          usersImage ->
-          Article(
-            articleId = articleId.serial,
-            slug = articleSlug,
-            title = articleTitle,
-            description = articleDescription,
-            body = articleBody,
-            author = Profile(usersUsername, usersBio, usersImage, true),
-            favorited = false,
-            favoritesCount = 0,
-            createdAt = articleCreatedAt,
-            updatedAt = articleUpdatedAt,
-            tagList = listOf(),
-          )
+            articleId
         }
-        .executeAsList()
 
-    override suspend fun findArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles> =
-      either {
-        val article = articles.selectBySlug(slug.value).executeAsOneOrNull()
-        ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
-      }
+        override suspend fun exists(slug: Slug): Boolean =
+            articles.slugExists(slug.value).executeAsOne()
 
-    override suspend fun updateArticle(
-      slug: Slug,
-      title: String?,
-      description: String?,
-      body: String?,
-    ): Either<ArticleBySlugNotFound, Articles> = either {
-      val article =
-        articles
-          .update(title, description, body, OffsetDateTime.now(), slug.value) {
-            articleId,
-            slug,
-            title,
-            description,
-            body,
-            authorId,
-            createdAt,
-            updatedAt ->
-            Articles(
-              id = articleId,
-              slug = slug,
-              title = title,
-              description = description,
-              body = body,
-              author_id = authorId,
-              createdAt = createdAt,
-              updatedAt = updatedAt,
-            )
-          }
-          .executeAsOneOrNull()
-      ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
-    }
+        override suspend fun feed(
+            userId: UserId,
+            limit: FeedLimit,
+            offset: FeedOffset,
+        ): List<Article> =
+            articles
+                .selectFeedArticles(userId.serial, limit.limit.toLong(), offset.offset.toLong()) {
+                    articleId,
+                    articleSlug,
+                    articleTitle,
+                    articleDescription,
+                    articleBody,
+                    _,
+                    articleCreatedAt,
+                    articleUpdatedAt,
+                    _,
+                    usersUsername,
+                    usersBio,
+                    usersImage ->
+                    Article(
+                        articleId = articleId.serial,
+                        slug = articleSlug,
+                        title = articleTitle,
+                        description = articleDescription,
+                        body = articleBody,
+                        author = Profile(usersUsername, usersBio, usersImage, true),
+                        favorited = false,
+                        favoritesCount = 0,
+                        createdAt = articleCreatedAt,
+                        updatedAt = articleUpdatedAt,
+                        tagList = listOf(),
+                    )
+                }
+                .executeAsList()
 
-    override suspend fun findCommentsForSlug(slug: Slug): List<Comment> =
-      comments
-        .selectForSlug(slug.value) {
-          commentId,
-          articleId,
-          body,
-          author,
-          createdAt,
-          updatedAt,
-          username,
-          bio,
-          image ->
-          Comment(commentId, createdAt, updatedAt, body, Profile(username, bio, image, false))
+        override suspend fun findArticleBySlug(
+            slug: Slug
+        ): Either<ArticleBySlugNotFound, Articles> = either {
+            val article = articles.selectBySlug(slug.value).executeAsOneOrNull()
+            ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
         }
-        .executeAsList()
 
-    override suspend fun findCommentAuthor(commentId: Long): UserId? =
-      comments.selectAuthorId(commentId).executeAsOneOrNull()?.let { UserId(it) }
+        override suspend fun updateArticle(
+            slug: Slug,
+            title: String?,
+            description: String?,
+            body: String?,
+        ): Either<ArticleBySlugNotFound, Articles> = either {
+            val article =
+                articles
+                    .update(title, description, body, OffsetDateTime.now(), slug.value) {
+                        articleId,
+                        slug,
+                        title,
+                        description,
+                        body,
+                        authorId,
+                        createdAt,
+                        updatedAt ->
+                        Articles(
+                            id = articleId,
+                            slug = slug,
+                            title = title,
+                            description = description,
+                            body = body,
+                            author_id = authorId,
+                            createdAt = createdAt,
+                            updatedAt = updatedAt,
+                        )
+                    }
+                    .executeAsOneOrNull()
+            ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
+        }
 
-    override suspend fun createCommentForArticleSlug(
-      slug: Slug,
-      userId: UserId,
-      comment: String,
-      articleId: ArticleId,
-      createdAt: OffsetDateTime,
-    ) =
-      comments.transactionWithResult {
-        comments
-          .insertAndGetComment(
-            article_id = articleId.serial,
-            body = comment,
-            author = userId.serial,
-            createdAt = createdAt,
-            updatedAt = createdAt,
-          ) { id, articleId, body, author, createdAt, updatedAt ->
-            Comments(
-              id = id,
-              body = body,
-              author = author,
-              createdAt = createdAt,
-              updatedAt = updatedAt,
-              article_id = articleId,
-            )
-          }
-          .executeAsOne()
-      }
+        override suspend fun findCommentsForSlug(slug: Slug): List<Comment> =
+            comments
+                .selectForSlug(slug.value) {
+                    commentId,
+                    articleId,
+                    body,
+                    author,
+                    createdAt,
+                    updatedAt,
+                    username,
+                    bio,
+                    image ->
+                    Comment(
+                        commentId,
+                        createdAt,
+                        updatedAt,
+                        body,
+                        Profile(username, bio, image, false),
+                    )
+                }
+                .executeAsList()
 
-    override suspend fun deleteComment(commentId: Long, authorId: UserId): Boolean =
-      comments.delete(commentId, authorId.serial).executeAsList().size == 1
-  }
+        override suspend fun findCommentAuthor(commentId: Long): UserId? =
+            comments.selectAuthorId(commentId).executeAsOneOrNull()?.let { UserId(it) }
+
+        override suspend fun createCommentForArticleSlug(
+            slug: Slug,
+            userId: UserId,
+            comment: String,
+            articleId: ArticleId,
+            createdAt: OffsetDateTime,
+        ) = comments.transactionWithResult {
+            comments
+                .insertAndGetComment(
+                    article_id = articleId.serial,
+                    body = comment,
+                    author = userId.serial,
+                    createdAt = createdAt,
+                    updatedAt = createdAt,
+                ) { id, articleId, body, author, createdAt, updatedAt ->
+                    Comments(
+                        id = id,
+                        body = body,
+                        author = author,
+                        createdAt = createdAt,
+                        updatedAt = updatedAt,
+                        article_id = articleId,
+                    )
+                }
+                .executeAsOne()
+        }
+
+        override suspend fun deleteComment(commentId: Long, authorId: UserId): Boolean =
+            comments.delete(commentId, authorId.serial).executeAsList().size == 1
+    }
