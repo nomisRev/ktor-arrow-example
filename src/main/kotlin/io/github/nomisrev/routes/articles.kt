@@ -141,12 +141,12 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
     }
 
     get<ArticlesResource.Slug> { slug ->
-        
+
             articleService
                 .getArticleBySlug(Slug(slug.slug))
                 .map { SingleArticleResponse(it) }
                 .respond(HttpStatusCode.OK)
-        
+
     }
 
     delete<ArticlesResource.Slug.Favorite> { favoriteResource ->
