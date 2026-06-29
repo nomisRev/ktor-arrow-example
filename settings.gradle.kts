@@ -6,7 +6,7 @@ dependencyResolutionManagement {
     }
     versionCatalogs {
         create("arrow") {
-            from("io.arrow-kt:arrow-stack:2.1.2")
+            from("io.arrow-kt:arrow-version-catalog:2.2.3")
         }
     }
 }

@@ -2,10 +2,12 @@ package io.github.nomisrev.env
 
 import io.github.nomisrev.routes.LoginUser
 import io.github.nomisrev.routes.UserWrapper
+import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.defaultheaders.DefaultHeaders
 import io.ktor.server.resources.Resources
 import kotlinx.serialization.json.Json
@@ -29,12 +31,12 @@ fun Application.configure() {
       }
     )
   }
-  //  install(CORS) {
-  //    allowHeader(HttpHeaders.Authorization)
-  //    allowHeader(HttpHeaders.ContentType)
-  //    anyHost()
-  //    anyMethod()
-  //    allowNonSimpleContentTypes = true
-  //    maxAgeDuration = 3.days
-  //  }
+    install(CORS) {
+      allowHeader(HttpHeaders.Authorization)
+      allowHeader(HttpHeaders.ContentType)
+      anyHost() // TODO fix
+      anyMethod()
+      allowNonSimpleContentTypes = true
+      maxAgeDuration = 3.days
+    }
 }
