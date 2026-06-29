@@ -20,7 +20,7 @@ import io.ktor.http.contentType
 
 class TagRouteSpec :
     StringSpec({
-        
+
 
         "Check for empty list retrieval" {
             withServer {

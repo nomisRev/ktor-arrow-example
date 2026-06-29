@@ -17,10 +17,10 @@ import io.ktor.http.contentType
 
 class UserRouteSpec :
     StringSpec({
-        
+
 
         "Can register user" {
-            withServer {_ ->
+            withServer { _ ->
                 val user = userFixture()
                 val response =
                     post(UsersResource()) {
@@ -40,7 +40,8 @@ class UserRouteSpec :
 
         "Can log in a registered user" {
             withServer { dependencies ->
-                val user = userFixture()dependencies.userService
+                val user = userFixture()
+                dependencies.userService
                     .register(RegisterUser(user.username, user.email, user.password))
                     .shouldBeRight()
 

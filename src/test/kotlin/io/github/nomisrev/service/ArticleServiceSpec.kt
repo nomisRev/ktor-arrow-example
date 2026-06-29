@@ -16,7 +16,7 @@ import io.kotest.assertions.arrow.core.shouldBeSome
 
 class ArticleServiceSpec :
     SuspendFun({
-        
+
 
         "getUserFeed" -
             {
@@ -52,11 +52,12 @@ class ArticleServiceSpec :
 
                     
                     val feed =
-                        dependencies.articleService.getUserFeed(
-                            input = GetFeed(userId = UserId(userId), limit = 20, offset = 0)
-                        )
+                            dependencies.articleService.getUserFeed(
+                                input = GetFeed(userId = UserId(userId), limit = 20, offset = 0)
+                            )
 
-                    assert(feed.articlesCount == 0)
+                        assert(feed.articlesCount == 0)
+                    }
                 }
                 }
 

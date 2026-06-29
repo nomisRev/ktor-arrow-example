@@ -18,7 +18,7 @@ import io.ktor.http.contentType
 
 class ArticlesRouteSpec :
     StringSpec({
-        
+
 
         "Article by slug not found" {
             withServer {

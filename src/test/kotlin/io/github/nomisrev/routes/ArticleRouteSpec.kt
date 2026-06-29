@@ -20,16 +20,12 @@ import io.ktor.http.contentType
 class ArticleRouteSpec :
     StringSpec({
         "Check for empty feed" {
-        withServer { dependencies ->
-        val user = userFixture()
-        val 
-            token =
-                dependencies
-                    
-                    .userService
-                    .register(RegisterUser(user.username, user.email, user.password))
-                    .shouldBeRight()
-        
+            withServer { dependencies ->
+                val user = userFixture()
+                val token =
+                    dependencies.userService
+                        .register(RegisterUser(user.username, user.email, user.password))
+                        .shouldBeRight()
                 val response =
                     get(ArticleResource.Feed(offsetParam = 0)) {
                         contentType(ContentType.Application.Json)
@@ -37,14 +33,11 @@ class ArticleRouteSpec :
                     }
 
                 assert(response.status == HttpStatusCode.OK)
-                val body =
-                    response.body<MultipleArticlesResponse>()
-                        assert(body.articles == emptyList<Article>())
+                val body = response.body<MultipleArticlesResponse>()
+                assert(body.articles == emptyList<Article>())
                 
-                assert(
-                    body
-                        .articlesCount == 0
-                )
+                assert(body
+                        .articlesCount == 0)
             }
         }
 
@@ -63,14 +56,11 @@ class ArticleRouteSpec :
                     }
 
                 assert(response.status == HttpStatusCode.OK)
-                val body =
-                    response.body<MultipleArticlesResponse>()
-                        assert(body.articles == emptyList<Article>())
+                val body = response.body<MultipleArticlesResponse>()
+                assert(body.articles == emptyList<Article>())
                 
-                assert(
-                    body
-                        .articlesCount == 0
-                )
+                assert(body
+                        .articlesCount == 0)
             }
         }
 
@@ -144,7 +134,7 @@ class ArticleRouteSpec :
         }
 
         "create article with tags" {
-            withServer {dependencies ->
+            withServer { dependencies ->
                 val user = userFixture()
                 val token =
                     dependencies.userService
@@ -155,11 +145,14 @@ class ArticleRouteSpec :
                     post(ArticlesResource()) {
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
-                        setBody(ArticleWrapper(NewArticle(article.title,
+                        setBody(
+                            ArticleWrapper(
+                                NewArticle(
+                                    article.title,
                                     article.description,
                                     article.body,
                                     article.tags.toList(),
-                    )
+                                )
                             )
                         )
                     }
@@ -178,7 +171,7 @@ class ArticleRouteSpec :
         }
 
         "article without tags" {
-            withServer {dependencies ->
+            withServer { dependencies ->
                 val user = userFixture()
                 val token =
                     dependencies.userService
@@ -189,11 +182,14 @@ class ArticleRouteSpec :
                     post(ArticlesResource()) {
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
-                        setBody(ArticleWrapper(NewArticle(article.title,
+                        setBody(
+                            ArticleWrapper(
+                                NewArticle(
+                                    article.title,
                                     article.description,
                                     article.body,
                                     emptyList(),
-                    )
+                                )
                             )
                         )
                     }
@@ -212,7 +208,7 @@ class ArticleRouteSpec :
         }
 
         "body cannot be empty" {
-            withServer {dependencies ->
+            withServer { dependencies ->
                 val user = userFixture()
                 val token =
                     dependencies.userService
@@ -223,8 +219,10 @@ class ArticleRouteSpec :
                     post(ArticlesResource()) {
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
-                        setBody(ArticleWrapper(NewArticle(article.title, article.description, "", emptyList())
-                    )
+                        setBody(
+                            ArticleWrapper(
+                                NewArticle(article.title, article.description, "", emptyList())
+                            )
                         )
                     }
 
@@ -233,7 +231,7 @@ class ArticleRouteSpec :
         }
 
         "description cannot be empty" {
-            withServer {dependencies ->
+            withServer { dependencies ->
                 val user = userFixture()
                 val token =
                     dependencies.userService
@@ -244,8 +242,9 @@ class ArticleRouteSpec :
                     post(ArticlesResource()) {
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
-                        setBody(ArticleWrapper(NewArticle(article.title, "", article.body, emptyList()))
-                    )
+                        setBody(
+                            ArticleWrapper(NewArticle(article.title, "", article.body, emptyList()))
+                        )
                     }
 
                 assert(response.status == HttpStatusCode.UnprocessableEntity)
@@ -253,7 +252,7 @@ class ArticleRouteSpec :
         }
 
         "title cannot be empty" {
-            withServer {dependencies ->
+            withServer { dependencies ->
                 val user = userFixture()
                 val token =
                     dependencies.userService
@@ -264,8 +263,10 @@ class ArticleRouteSpec :
                     post(ArticlesResource()) {
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
-                        setBody(ArticleWrapper(NewArticle("", article.description, article.body, emptyList())
-                    )
+                        setBody(
+                            ArticleWrapper(
+                                NewArticle("", article.description, article.body, emptyList())
+                            )
                         )
                     }
 
@@ -276,14 +277,17 @@ class ArticleRouteSpec :
         "Unauthorized user cannot create article" {
             withServer {
                 val article = articleFixture()
-                valresponse =
+                val response =
                     post(ArticlesResource()) {
                         contentType(ContentType.Application.Json)
-                        setBody(ArticleWrapper(NewArticle(article.title,
+                        setBody(
+                            ArticleWrapper(
+                                NewArticle(
+                                    article.title,
                                     article.description,
                                     article.body,
                                     emptyList(),
-                    )
+                                )
                             )
                         )
                     }
