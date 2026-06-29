@@ -139,7 +139,7 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
     get<ArticlesResource> { articles ->
         optionalJwtAuth(jwtService) { context ->
             either {
-                    val input = articles.validate(currentUserId = context?.userId).bind()
+                    val input = articles.validate(currentUserId = context?.userId)
                     articleService.getAllArticles(input).bind()
                 }
                 .respond(HttpStatusCode.OK)
@@ -149,7 +149,7 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
     get<ArticleResource.Feed> { feed ->
         jwtAuth(jwtService) { (_, userId) ->
             either {
-                    val getFeed = feed.validate(userId).bind()
+                    val getFeed = feed.validate(userId)
                     articleService.getUserFeed(input = getFeed)
                 }
                 .respond(HttpStatusCode.OK)
@@ -230,8 +230,7 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
     post<ArticlesResource> {
         jwtAuth(jwtService) { (_, userId) ->
             either {
-                    val article =
-                        call.receive<ArticleWrapper<NewArticle>>().article.validate().bind()
+                    val article = call.receive<ArticleWrapper<NewArticle>>().article.validate()
                     articleService
                         .createArticle(
                             CreateArticle(
@@ -268,7 +267,6 @@ fun Route.commentRoutes(
                                         .receive<CommentWrapper<NewComment>>()
                                         .comment
                                         .validate()
-                                        .bind()
                                         .body,
                             )
                             .bind()
