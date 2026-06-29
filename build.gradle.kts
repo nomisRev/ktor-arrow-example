@@ -28,7 +28,7 @@ sqldelight {
 
 tasks {
   withType<KotlinCompile>().configureEach {
-    kotlin.compilerOptions.freeCompilerArgs.add("-Xcontext-receivers")
+    kotlin.compilerOptions.freeCompilerArgs.add("-Xcontext-parameters")
   }
 
   test {
@@ -46,7 +46,7 @@ ktor {
 spotless {
   kotlin {
     targetExclude("**/build/**")
-    ktfmt().googleStyle().configure {
+    ktfmt().kotlinlangStyle().configure {
       it.setRemoveUnusedImports(true)
       it.setManageTrailingCommas(true)
     }
@@ -69,4 +69,8 @@ dependencies {
   testImplementation(libs.testcontainers.postgresql)
   testImplementation(libs.ktor.server.tests)
   testImplementation(libs.bundles.kotest)
+}
+
+kotlin {
+  compilerOptions.freeCompilerArgs.add("-Xcontext-parameters")
 }

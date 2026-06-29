@@ -134,7 +134,7 @@ class ArticleRouteSpec :
           }
 
         assert(response.status == HttpStatusCode.Created)
-        with(response.body<ArticleResponse>()) {
+        with(response.body<SingleArticleResponse>().article) {
           assert(this.title == title)
           assert(this.description == description)
           assert(this.body == body)
@@ -156,7 +156,7 @@ class ArticleRouteSpec :
           }
 
         assert(response.status == HttpStatusCode.Created)
-        with(response.body<ArticleResponse>()) {
+        with(response.body<SingleArticleResponse>().article) {
           assert(this.title == title)
           assert(this.description == description)
           assert(this.body == body)

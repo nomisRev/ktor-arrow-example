@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.raise.either
 import io.github.nomisrev.IncorrectInput
 import io.github.nomisrev.auth.jwtAuth
-import io.github.nomisrev.auth.optionalJwtAuth
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.service.ArticleService
 import io.github.nomisrev.service.CreateArticle
@@ -107,7 +106,7 @@ data class ArticleResponse(
 data class ArticleResource(val parent: RootResource = RootResource) {
   @Resource("/feed")
   data class Feed(
-    val offsetParam: Int,
+    val offsetParam: Int = 0,
     val limitParam: Int = 20,
     val parent: ArticleResource = ArticleResource(),
   )
@@ -127,25 +126,23 @@ data class ArticlesResource(val parent: RootResource = RootResource) {
 }
 
 fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) {
+  get<ArticlesResource> { articleService.getAllArticles().respond(HttpStatusCode.OK) }
+
   get<ArticleResource.Feed> { feed ->
     jwtAuth(jwtService) { (_, userId) ->
       either {
           val getFeed = feed.validate(userId).bind()
-
-          val articlesFeed = articleService.getUserFeed(input = getFeed)
-          ArticleWrapper(articlesFeed)
+          articleService.getUserFeed(input = getFeed).bind()
         }
         .respond(HttpStatusCode.OK)
     }
   }
 
   get<ArticlesResource.Slug> { slug ->
-    optionalJwtAuth(jwtService) {
-      articleService
-        .getArticleBySlug(Slug(slug.slug))
-        .map { SingleArticleResponse(it) }
-        .respond(HttpStatusCode.OK)
-    }
+    articleService
+      .getArticleBySlug(Slug(slug.slug))
+      .map { SingleArticleResponse(it) }
+      .respond(HttpStatusCode.OK)
   }
 
   put<ArticlesResource.Slug> { slugResource ->
@@ -224,20 +221,7 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
                 article.tagList.toSet(),
               )
             )
-            .map {
-              ArticleResponse(
-                it.slug,
-                it.title,
-                it.description,
-                it.body,
-                it.author,
-                it.favorited,
-                it.favoritesCount,
-                it.createdAt,
-                it.updatedAt,
-                it.tagList,
-              )
-            }
+            .map { SingleArticleResponse(it) }
             .bind()
         }
         .respond(HttpStatusCode.Created)

@@ -75,7 +75,7 @@ class JwtServiceSpec :
 
         "should return JwtInvalid for an invalid token" {
           val error = jwtService.verifyJwtToken(JwtToken("invalid.token.value")).shouldBeLeft()
-          error.shouldBeInstanceOf< JwtInvalid>()
+          error.shouldBeInstanceOf<JwtInvalid>()
         }
       }
   })

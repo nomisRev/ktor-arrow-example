@@ -111,6 +111,7 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
           articleUpdatedAt,
           _,
           usersUsername,
+          usersBio,
           usersImage ->
           Article(
             articleId = articleId.serial,
@@ -118,7 +119,7 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
             title = articleTitle,
             description = articleDescription,
             body = articleBody,
-            author = Profile(usersUsername, "", usersImage, true),
+            author = Profile(usersUsername, usersBio, usersImage, true),
             favorited = false,
             favoritesCount = 0,
             createdAt = articleCreatedAt,

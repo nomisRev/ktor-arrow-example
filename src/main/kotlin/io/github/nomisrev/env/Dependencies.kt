@@ -17,6 +17,7 @@ import io.github.nomisrev.service.jwtService
 import io.github.nomisrev.service.slugifyGenerator
 import io.github.nomisrev.service.userService
 import kotlinx.coroutines.Dispatchers
+import kotlin.time.Duration.Companion.seconds
 
 class Dependencies(
   val userService: UserService,
@@ -39,8 +40,9 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
   val slugGenerator = slugifyGenerator()
   val userService = userService(userRepo, jwtService)
 
-  val checks =
-    HealthCheckRegistry(Dispatchers.Default) { register(HikariConnectionsHealthCheck(hikari, 1)) }
+  val checks = HealthCheckRegistry {
+      register(HikariConnectionsHealthCheck(hikari, minConnections = 1))
+  }
 
   return Dependencies(
     userService = userService,
