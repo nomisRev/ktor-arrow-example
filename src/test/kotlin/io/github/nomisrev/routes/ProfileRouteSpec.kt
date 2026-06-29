@@ -1,7 +1,7 @@
 package io.github.nomisrev.routes
 
-import io.github.nomisrev.env.Dependencies
 import io.github.nomisrev.service.RegisterUser
+import io.github.nomisrev.userFixture
 import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.StringSpec
@@ -17,30 +17,28 @@ import io.ktor.http.contentType
 
 class ProfileRouteSpec :
     StringSpec({
-        val validUsername = "username"
-        val validEmail = "valid@domain.com"
-        val validPw = "123456789"
-        val validUsernameFollowed = "username2"
-        val validEmailFollowed = "valid2@domain.com"
-
         "Can follow profile" {
             withServer { dependencies ->
+                val follower = userFixture()
+                val followed = userFixture()
                 val token =
                     dependencies.userService
-                        .register(RegisterUser(validUsername, validEmail, validPw))
+                        .register(
+                            RegisterUser(follower.username, follower.email, follower.password)
+                        )
                         .shouldBeRight()
                 dependencies.userService
-                    .register(RegisterUser(validUsernameFollowed, validEmailFollowed, validPw))
+                    .register(RegisterUser(followed.username, followed.email, followed.password))
                     .shouldBeRight()
 
                 val response =
-                    post(ProfilesResource.Follow(username = validUsernameFollowed)) {
+                    post(ProfilesResource.Follow(username = followed.username)) {
                         bearerAuth(token.value)
                     }
 
                 response.status shouldBe HttpStatusCode.OK
                 with(response.body<ProfileWrapper<Profile>>().profile) {
-                    username shouldBe validUsernameFollowed
+                    username shouldBe followed.username
                     bio shouldBe ""
                     image shouldBe ""
                     following shouldBe true
@@ -50,22 +48,26 @@ class ProfileRouteSpec :
 
         "Can unfollow profile" {
             withServer { dependencies ->
+                val follower = userFixture()
+                val followed = userFixture()
                 val token =
                     dependencies.userService
-                        .register(RegisterUser(validUsername, validEmail, validPw))
+                        .register(
+                            RegisterUser(follower.username, follower.email, follower.password)
+                        )
                         .shouldBeRight()
                 dependencies.userService
-                    .register(RegisterUser(validUsernameFollowed, validEmailFollowed, validPw))
+                    .register(RegisterUser(followed.username, followed.email, followed.password))
                     .shouldBeRight()
 
                 val response =
-                    delete(ProfilesResource.Follow(username = validUsernameFollowed)) {
+                    delete(ProfilesResource.Follow(username = followed.username)) {
                         bearerAuth(token.value)
                     }
 
                 response.status shouldBe HttpStatusCode.OK
                 with(response.body<ProfileWrapper<Profile>>().profile) {
-                    username shouldBe validUsernameFollowed
+                    username shouldBe followed.username
                     bio shouldBe ""
                     image shouldBe ""
                     following shouldBe false
@@ -75,7 +77,7 @@ class ProfileRouteSpec :
 
         "Needs token to follow" {
             withServer {
-                val response = post(ProfilesResource.Follow(username = validUsernameFollowed))
+                val response = post(ProfilesResource.Follow(username = userFixture().username))
 
                 response.status shouldBe HttpStatusCode.Unauthorized
             }
@@ -83,7 +85,7 @@ class ProfileRouteSpec :
 
         "Needs token to unfollow" {
             withServer {
-                val response = delete(ProfilesResource.Follow(username = validUsernameFollowed))
+                val response = delete(ProfilesResource.Follow(username = userFixture().username))
 
                 response.status shouldBe HttpStatusCode.Unauthorized
             }
@@ -91,13 +93,16 @@ class ProfileRouteSpec :
 
         "Username invalid to follow" {
             withServer { dependencies ->
+                val follower = userFixture()
                 val token =
                     dependencies.userService
-                        .register(RegisterUser(validUsername, validEmail, validPw))
+                        .register(
+                            RegisterUser(follower.username, follower.email, follower.password)
+                        )
                         .shouldBeRight()
 
                 val response =
-                    post(ProfilesResource.Follow(username = validUsernameFollowed)) {
+                    post(ProfilesResource.Follow(username = userFixture().username)) {
                         bearerAuth(token.value)
                     }
 
@@ -107,13 +112,16 @@ class ProfileRouteSpec :
 
         "Username invalid to unfollow" {
             withServer { dependencies ->
+                val follower = userFixture()
                 val token =
                     dependencies.userService
-                        .register(RegisterUser(validUsername, validEmail, validPw))
+                        .register(
+                            RegisterUser(follower.username, follower.email, follower.password)
+                        )
                         .shouldBeRight()
 
                 val response =
-                    delete(ProfilesResource.Follow(username = validUsernameFollowed)) {
+                    delete(ProfilesResource.Follow(username = userFixture().username)) {
                         bearerAuth(token.value)
                     }
 
@@ -122,18 +130,19 @@ class ProfileRouteSpec :
         }
 
         "Get profile with no following" {
-            withServer { dependencies: Dependencies ->
+            withServer { dependencies ->
+                val user = userFixture()
                 dependencies.userService
-                    .register(RegisterUser(validUsername, validEmail, validPw))
+                    .register(RegisterUser(user.username, user.email, user.password))
                     .shouldBeRight()
                 val response =
-                    get(ProfilesResource.Username(username = validUsername)) {
+                    get(ProfilesResource.Username(username = user.username)) {
                         contentType(ContentType.Application.Json)
                     }
 
                 response.status shouldBe HttpStatusCode.OK
                 with(response.body<Profile>()) {
-                    username shouldBe validUsername
+                    username shouldBe user.username
                     bio shouldBe ""
                     image shouldBe ""
                     following shouldBe false
@@ -143,14 +152,15 @@ class ProfileRouteSpec :
 
         "Get profile invalid username" {
             withServer {
+                val invalidUsername = userFixture().username
                 val response =
-                    get(ProfilesResource.Username(username = validUsername)) {
+                    get(ProfilesResource.Username(username = invalidUsername)) {
                         contentType(ContentType.Application.Json)
                     }
 
                 response.status shouldBe HttpStatusCode.UnprocessableEntity
                 response.body<GenericErrorModel>().errors.body shouldBe
-                    listOf("User with username=$validUsername not found")
+                    listOf("User with username=$invalidUsername not found")
             }
         }
 

@@ -3,9 +3,11 @@ package io.github.nomisrev.routes
 import arrow.core.flatMap
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
+import io.github.nomisrev.articleFixture
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.service.CreateArticle
 import io.github.nomisrev.service.RegisterUser
+import io.github.nomisrev.userFixture
 import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.arrow.core.shouldBeSome
@@ -18,16 +20,6 @@ import io.ktor.http.contentType
 
 class TagRouteSpec :
     StringSpec({
-        // User
-        val validUsername = "username2"
-        val validEmail = "valid2@domain.com"
-        val validPw = "123456789"
-        // Article
-        val validTags = setOf("arrow", "ktor", "kotlin", "sqldelight")
-        val validTitle = "Fake Article Arrow "
-        val validDescription = "This is a fake article description."
-        val validBody = "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
-
         "Check for empty list retrieval" {
             withServer {
                 val response = get(TagsResource()) { contentType(ContentType.Application.Json) }
@@ -39,28 +31,30 @@ class TagRouteSpec :
 
         "Can get all tags" {
             withServer { dependencies ->
+                val user = userFixture()
                 val userId =
                     dependencies.userService
-                        .register(RegisterUser(validUsername, validEmail, validPw))
+                        .register(RegisterUser(user.username, user.email, user.password))
                         .flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
                         .map { it.claimValueAsLong("id").shouldBeSome() }
                         .shouldBeRight()
 
+                val article = articleFixture()
                 dependencies.articleService
                     .createArticle(
                         CreateArticle(
                             UserId(userId),
-                            validTitle,
-                            validDescription,
-                            validBody,
-                            validTags,
+                            article.title,
+                            article.description,
+                            article.body,
+                            article.tags,
                         )
                     )
                     .shouldBeRight()
                 val response = get(TagsResource()) { contentType(ContentType.Application.Json) }
 
                 assert(response.status == HttpStatusCode.OK)
-                assert(response.body<TagsResponse>().tags.size == 4)
+                assert(response.body<TagsResponse>().tags.toSet().containsAll(article.tags))
             }
         }
     })

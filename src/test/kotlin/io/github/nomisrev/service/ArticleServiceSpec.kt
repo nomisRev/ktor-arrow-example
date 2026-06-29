@@ -5,128 +5,130 @@ import arrow.core.flatMap
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
 import io.github.nomisrev.DomainError
-import io.github.nomisrev.KotestProject
 import io.github.nomisrev.SuspendFun
+import io.github.nomisrev.articleFixture
 import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.repo.UserId
+import io.github.nomisrev.userFixture
+import io.github.nomisrev.withTestDependencies
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.arrow.core.shouldBeSome
 
 class ArticleServiceSpec :
     SuspendFun({
-        val articleService: ArticleService = KotestProject.dependencies.get().articleService
-        val userService: UserService = KotestProject.dependencies.get().userService
-
-        // User
-        val kaavehUsername = "kaaveh"
-        val kaavehEmail = "kaaveh@domain.com"
-        val kaavehPw = "123456789"
-        val simonUsername = "simon"
-        val simonEmail = "simon@domain.com"
-        val simonPw = "123456789"
-        val johnUsername = "john"
-        val johnEmail = "john@domain.com"
-        val johnPw = "123456789"
-
-        // Article
-        val validTags = setOf("arrow", "ktor", "kotlin", "sqldelight")
-        val validTitle = "Fake Article Arrow "
-        val validDescription = "This is a fake article description."
-        val validBody = "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
-
         "getUserFeed" -
             {
-                "get empty kaaveh's feed when he followed nobody" {
-                    // Create users
-                    val kaavehId =
-                        userService
-                            .register(RegisterUser(kaavehUsername, kaavehEmail, kaavehPw))
-                            .shouldHaveUserId()
-                    val simonId =
-                        userService
-                            .register(RegisterUser(simonUsername, simonEmail, simonPw))
-                            .shouldHaveUserId()
-                    val johnId =
-                        userService
-                            .register(RegisterUser(johnUsername, johnEmail, johnPw))
-                            .shouldHaveUserId()
+                "get empty user feed when the user follows nobody" {
+                    withTestDependencies { dependencies ->
+                        val user = userFixture()
+                        val userId =
+                            dependencies.userService
+                                .register(RegisterUser(user.username, user.email, user.password))
+                                .shouldHaveUserId()
 
-                    // Create some articles
-                    articleService
-                        .createArticle(
-                            CreateArticle(
-                                UserId(simonId),
-                                validTitle,
-                                validDescription,
-                                validBody,
-                                validTags,
+                        val otherUser = userFixture()
+                        val otherUserId =
+                            dependencies.userService
+                                .register(
+                                    RegisterUser(
+                                        otherUser.username,
+                                        otherUser.email,
+                                        otherUser.password,
+                                    )
+                                )
+                                .shouldHaveUserId()
+
+                        val article = articleFixture()
+                        dependencies.articleService
+                            .createArticle(
+                                CreateArticle(
+                                    UserId(otherUserId),
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
                             )
-                        )
-                        .shouldBeRight()
-                    articleService
-                        .createArticle(
-                            CreateArticle(
-                                UserId(johnId),
-                                validTitle,
-                                validDescription,
-                                validBody,
-                                validTags,
+                            .shouldBeRight()
+
+                        val feed =
+                            dependencies.articleService.getUserFeed(
+                                input = GetFeed(userId = UserId(userId), limit = 20, offset = 0)
                             )
-                        )
-                        .shouldBeRight()
 
-                    // Get Kaaveh's feed
-                    val feed =
-                        articleService.getUserFeed(
-                            input = GetFeed(userId = UserId(kaavehId), limit = 20, offset = 0)
-                        )
-
-                    assert(feed.articlesCount == 0)
+                        assert(feed.articlesCount == 0)
+                    }
                 }
-                "get kaaveh's feed when he followed simon" {
-                    // Create users
-                    val kaavehId =
-                        userService
-                            .register(RegisterUser(kaavehUsername, kaavehEmail, kaavehPw))
-                            .flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
-                            .map { it.claimValueAsLong("id").shouldBeSome() }
-                            .shouldBeRight()
-                    val simonId =
-                        userService
-                            .register(RegisterUser(simonUsername, simonEmail, simonPw))
-                            .flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
-                            .map { it.claimValueAsLong("id").shouldBeSome() }
-                            .shouldBeRight()
-                    val johnId =
-                        userService
-                            .register(RegisterUser(johnUsername, johnEmail, johnPw))
-                            .flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
-                            .map { it.claimValueAsLong("id").shouldBeSome() }
+
+                "get user feed when the user follows another user" {
+                    withTestDependencies { dependencies ->
+                        val user = userFixture()
+                        val userId =
+                            dependencies.userService
+                                .register(RegisterUser(user.username, user.email, user.password))
+                                .shouldHaveUserId()
+                        val followed = userFixture()
+                        val followedId =
+                            dependencies.userService
+                                .register(
+                                    RegisterUser(
+                                        followed.username,
+                                        followed.email,
+                                        followed.password,
+                                    )
+                                )
+                                .shouldHaveUserId()
+                        val unrelated = userFixture()
+                        val unrelatedId =
+                            dependencies.userService
+                                .register(
+                                    RegisterUser(
+                                        unrelated.username,
+                                        unrelated.email,
+                                        unrelated.password,
+                                    )
+                                )
+                                .shouldHaveUserId()
+
+                        dependencies.userPersistence
+                            .followProfile(followed.username, UserId(userId))
                             .shouldBeRight()
 
-                    // Create some articles
-                    articleService
-                        .createArticle(
-                            CreateArticle(
-                                UserId(simonId),
-                                validTitle,
-                                validDescription,
-                                validBody,
-                                validTags,
+                        val followedArticle = articleFixture()
+                        val createdFollowedArticle =
+                            dependencies.articleService
+                                .createArticle(
+                                    CreateArticle(
+                                        UserId(followedId),
+                                        followedArticle.title,
+                                        followedArticle.description,
+                                        followedArticle.body,
+                                        followedArticle.tags,
+                                    )
+                                )
+                                .shouldBeRight()
+
+                        val unrelatedArticle = articleFixture()
+                        dependencies.articleService
+                            .createArticle(
+                                CreateArticle(
+                                    UserId(unrelatedId),
+                                    unrelatedArticle.title,
+                                    unrelatedArticle.description,
+                                    unrelatedArticle.body,
+                                    unrelatedArticle.tags,
+                                )
                             )
-                        )
-                        .shouldBeRight()
-                    articleService
-                        .createArticle(
-                            CreateArticle(
-                                UserId(johnId),
-                                validTitle,
-                                validDescription,
-                                validBody,
-                                validTags,
+                            .shouldBeRight()
+
+                        val feed =
+                            dependencies.articleService.getUserFeed(
+                                input = GetFeed(userId = UserId(userId), limit = 20, offset = 0)
                             )
-                        )
-                        .shouldBeRight()
+
+                        assert(feed.articlesCount == 1)
+                        assert(feed.articles.single().slug == createdFollowedArticle.slug)
+                    }
                 }
             }
     })

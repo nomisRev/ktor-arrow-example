@@ -1,6 +1,7 @@
 package io.github.nomisrev.routes
 
 import io.github.nomisrev.service.RegisterUser
+import io.github.nomisrev.userFixture
 import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.StringSpec
@@ -16,22 +17,19 @@ import io.ktor.http.contentType
 
 class UserRouteSpec :
     StringSpec({
-        val validUsername = "username"
-        val validEmail = "valid@domain.com"
-        val validPw = "123456789"
-
         "Can register user" {
-            withServer {
+            withServer { _ ->
+                val user = userFixture()
                 val response =
                     post(UsersResource()) {
                         contentType(ContentType.Application.Json)
-                        setBody(UserWrapper(NewUser(validUsername, validEmail, validPw)))
+                        setBody(UserWrapper(NewUser(user.username, user.email, user.password)))
                     }
 
                 assert(response.status == HttpStatusCode.Created)
                 with(response.body<UserWrapper<User>>().user) {
-                    assert(username == validUsername)
-                    assert(email == validEmail)
+                    assert(username == user.username)
+                    assert(email == user.email)
                     assert(bio == "")
                     assert(image == "")
                 }
@@ -40,20 +38,21 @@ class UserRouteSpec :
 
         "Can log in a registered user" {
             withServer { dependencies ->
+                val user = userFixture()
                 dependencies.userService
-                    .register(RegisterUser(validUsername, validEmail, validPw))
+                    .register(RegisterUser(user.username, user.email, user.password))
                     .shouldBeRight()
 
                 val response =
                     post(UsersResource.Login()) {
                         contentType(ContentType.Application.Json)
-                        setBody(UserWrapper(LoginUser(validEmail, validPw)))
+                        setBody(UserWrapper(LoginUser(user.email, user.password)))
                     }
 
                 assert(response.status == HttpStatusCode.OK)
                 with(response.body<UserWrapper<User>>().user) {
-                    assert(username == validUsername)
-                    assert(email == validEmail)
+                    assert(username == user.username)
+                    assert(email == user.email)
                     assert(bio == "")
                     assert(image == "")
                 }
@@ -62,17 +61,18 @@ class UserRouteSpec :
 
         "Can get current user" {
             withServer { dependencies ->
+                val user = userFixture()
                 val expected =
                     dependencies.userService
-                        .register(RegisterUser(validUsername, validEmail, validPw))
+                        .register(RegisterUser(user.username, user.email, user.password))
                         .shouldBeRight()
 
                 val response = get(UserResource()) { bearerAuth(expected.value) }
 
                 assert(response.status == HttpStatusCode.OK)
                 with(response.body<UserWrapper<User>>().user) {
-                    assert(username == validUsername)
-                    assert(email == validEmail)
+                    assert(username == user.username)
+                    assert(email == user.email)
                     assert(token == expected.value)
                     assert(bio == "")
                     assert(image == "")
@@ -82,11 +82,12 @@ class UserRouteSpec :
 
         "Update user" {
             withServer { dependencies ->
+                val user = userFixture()
                 val expected =
                     dependencies.userService
-                        .register(RegisterUser(validUsername, validEmail, validPw))
+                        .register(RegisterUser(user.username, user.email, user.password))
                         .shouldBeRight()
-                val newUsername = "newUsername"
+                val newUsername = "new-${user.username}"
 
                 val response =
                     put(UserResource()) {
@@ -98,7 +99,7 @@ class UserRouteSpec :
                 assert(response.status == HttpStatusCode.OK)
                 with(response.body<UserWrapper<User>>().user) {
                     assert(username == newUsername)
-                    assert(email == validEmail)
+                    assert(email == user.email)
                     assert(token == expected.value)
                     assert(bio == "")
                     assert(image == "")
@@ -108,9 +109,10 @@ class UserRouteSpec :
 
         "Update user invalid email" {
             withServer { dependencies ->
+                val user = userFixture()
                 val token =
                     dependencies.userService
-                        .register(RegisterUser(validUsername, validEmail, validPw))
+                        .register(RegisterUser(user.username, user.email, user.password))
                         .shouldBeRight()
                 val invalidEmail = "invalidEmail"
 
