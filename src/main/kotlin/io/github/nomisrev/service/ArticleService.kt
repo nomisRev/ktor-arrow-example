@@ -1,7 +1,6 @@
 package io.github.nomisrev.service
 
 import arrow.core.Either
-import arrow.core.raise.Raise
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.raise.ensureNotNull
@@ -43,6 +42,15 @@ data class UpdateArticleInput(
 
 data class GetFeed(val userId: UserId, val limit: Int, val offset: Int)
 
+data class GetArticles(
+    val limit: Int,
+    val offset: Int,
+    val author: String? = null,
+    val favorited: String? = null,
+    val tag: String? = null,
+    val currentUserId: UserId? = null,
+)
+
 interface ArticleService {
     /** Creates a new article and returns the resulting Article */
     suspend fun createArticle(input: CreateArticle): Either<DomainError, Article>
@@ -51,10 +59,13 @@ interface ArticleService {
     suspend fun getUserFeed(input: GetFeed): MultipleArticlesResponse
 
     /** Get all articles */
-    suspend fun getAllArticles(): Either<DomainError, MultipleArticlesResponse>
+    suspend fun getAllArticles(input: GetArticles): Either<DomainError, MultipleArticlesResponse>
 
     /** Get article by Slug */
-    suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article>
+    suspend fun getArticleBySlug(
+        slug: Slug,
+        currentUserId: UserId? = null,
+    ): Either<DomainError, Article>
 
     /** Update an article and return the updated Article */
     suspend fun updateArticle(input: UpdateArticleInput): Either<DomainError, Article>
@@ -149,8 +160,7 @@ fun articleService(
                     .updateArticle(input.slug, input.title, input.description, input.body)
                     .bind()
 
-            val favorite = favouritePersistence.isFavorite(input.userId, article.id)
-            article(updatedArticle, favorite)
+            article(updatedArticle, input.userId)
         }
 
         override suspend fun getUserFeed(input: GetFeed): MultipleArticlesResponse {
@@ -161,20 +171,50 @@ fun articleService(
                     offset = FeedOffset(input.offset),
                 )
 
-            return MultipleArticlesResponse(articles = articles, articlesCount = articles.size)
-        }
+            val articlesCount = articlePersistence.feedCount(input.userId).toInt()
 
-        override suspend fun getAllArticles(): Either<DomainError, MultipleArticlesResponse> =
-            either {
-                // Since we don't have a method to get all articles, we'll return an empty list for
-                // now
-                MultipleArticlesResponse(articles = emptyList(), articlesCount = 0)
+            val responseArticles = mutableListOf<Article>()
+            for (articleRow in articles) {
+                responseArticles.add(article(articleRow, input.userId))
             }
 
-        override suspend fun getArticleBySlug(slug: Slug): Either<DomainError, Article> = either {
+            return MultipleArticlesResponse(
+                articles = responseArticles,
+                articlesCount = articlesCount,
+            )
+        }
+
+        override suspend fun getAllArticles(
+            input: GetArticles
+        ): Either<DomainError, MultipleArticlesResponse> = either {
+            val limit = FeedLimit(input.limit)
+            val offset = FeedOffset(input.offset)
+            val result =
+                articlePersistence.allArticles(
+                    limit = limit,
+                    offset = offset,
+                    author = input.author,
+                    favorited = input.favorited,
+                    tag = input.tag,
+                )
+
+            val responseArticles = mutableListOf<Article>()
+            for (articleRow in result.articles) {
+                responseArticles.add(article(articleRow, input.currentUserId))
+            }
+
+            MultipleArticlesResponse(
+                articles = responseArticles,
+                articlesCount = result.articlesCount.toInt(),
+            )
+        }
+
+        override suspend fun getArticleBySlug(
+            slug: Slug,
+            currentUserId: UserId?,
+        ): Either<DomainError, Article> = either {
             val article = articlePersistence.findArticleBySlug(slug).bind()
-            // TODO: optional auth route check if user favorited
-            article(article, false)
+            article(article, currentUserId)
         }
 
         override suspend fun insertCommentForArticleSlug(
@@ -182,7 +222,7 @@ fun articleService(
             userId: UserId,
             comment: String,
         ): Either<DomainError, Comments> = either {
-            val article = getArticleBySlug(slug).bind()
+            val article = getArticleBySlug(slug, userId).bind()
             articlePersistence.createCommentForArticleSlug(
                 slug,
                 userId,
@@ -214,7 +254,7 @@ fun articleService(
             val articleId = article.id
 
             favouritePersistence.favoriteArticle(userId, articleId)
-            article(article, true)
+            article(article, userId)
         }
 
         override suspend fun unfavoriteArticle(
@@ -224,16 +264,24 @@ fun articleService(
             val article = articlePersistence.findArticleBySlug(slug).bind()
             val articleId = article.id
             favouritePersistence.unfavoriteArticle(userId, articleId)
-            article(article, false)
+            article(article, userId)
         }
 
-        private suspend fun Raise<DomainError>.article(
+        private suspend fun article(
             article: Articles,
-            favorited: Boolean,
+            currentUserId: UserId?,
         ): Article {
-            val user = userPersistence.select(article.author_id).bind()
+            val user =
+                when (val selectedUser = userPersistence.select(article.author_id)) {
+                    is Either.Left -> error("Author ${article.author_id.serial} not found")
+                    is Either.Right -> selectedUser.value
+                }
             val articleTags = tagPersistence.selectTagsOfArticle(article.id)
             val favouriteCount = favouritePersistence.favoriteCount(article.id)
+            val favorited =
+                if (currentUserId != null)
+                    favouritePersistence.isFavorite(currentUserId, article.id)
+                else false
             return Article(
                 article.id.serial,
                 article.slug,

@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensureNotNull
 import io.github.nomisrev.ArticleBySlugNotFound
-import io.github.nomisrev.routes.Article
 import io.github.nomisrev.routes.Comment
 import io.github.nomisrev.routes.FeedLimit
 import io.github.nomisrev.routes.FeedOffset
@@ -14,6 +13,11 @@ import io.github.nomisrev.sqldelight.*
 import java.time.OffsetDateTime
 
 @JvmInline value class ArticleId(val serial: Long)
+
+data class ArticleListResult(
+    val articles: List<Articles>,
+    val articlesCount: Long,
+)
 
 interface ArticlePersistence {
     @Suppress("LongParameterList")
@@ -33,7 +37,19 @@ interface ArticlePersistence {
     suspend fun exists(slug: Slug): Boolean
 
     /** Get recent articles from users you follow * */
-    suspend fun feed(userId: UserId, limit: FeedLimit, offset: FeedOffset): List<Article>
+    suspend fun feed(userId: UserId, limit: FeedLimit, offset: FeedOffset): List<Articles>
+
+    /** Total number of articles in the user's feed */
+    suspend fun feedCount(userId: UserId): Long
+
+    /** Get recent articles matching the optional filters */
+    suspend fun allArticles(
+        limit: FeedLimit,
+        offset: FeedOffset,
+        author: String? = null,
+        favorited: String? = null,
+        tag: String? = null,
+    ): ArticleListResult
 
     // TODO create proper domain for Articles
     suspend fun findArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles>
@@ -110,7 +126,7 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
             userId: UserId,
             limit: FeedLimit,
             offset: FeedOffset,
-        ): List<Article> =
+        ): List<Articles> =
             articles
                 .selectFeedArticles(userId.serial, limit.limit.toLong(), offset.offset.toLong()) {
                     articleId,
@@ -118,28 +134,70 @@ fun articleRepo(articles: ArticlesQueries, comments: CommentsQueries, tagsQuerie
                     articleTitle,
                     articleDescription,
                     articleBody,
-                    _,
+                    articleAuthorId,
                     articleCreatedAt,
                     articleUpdatedAt,
                     _,
-                    usersUsername,
-                    usersBio,
-                    usersImage ->
-                    Article(
-                        articleId = articleId.serial,
+                    _,
+                    _,
+                    _ ->
+                    Articles(
+                        id = articleId,
                         slug = articleSlug,
                         title = articleTitle,
                         description = articleDescription,
                         body = articleBody,
-                        author = Profile(usersUsername, usersBio, usersImage, true),
-                        favorited = false,
-                        favoritesCount = 0,
+                        author_id = articleAuthorId,
                         createdAt = articleCreatedAt,
                         updatedAt = articleUpdatedAt,
-                        tagList = listOf(),
                     )
                 }
                 .executeAsList()
+
+        override suspend fun feedCount(userId: UserId): Long =
+            articles.countFeedArticles(userId.serial).executeAsOne()
+
+        override suspend fun allArticles(
+            limit: FeedLimit,
+            offset: FeedOffset,
+            author: String?,
+            favorited: String?,
+            tag: String?,
+        ): ArticleListResult {
+            val query =
+                when {
+                    !author.isNullOrBlank() ->
+                        articles.selectArticlesByAuthor(
+                            author,
+                            limit.limit.toLong(),
+                            offset.offset.toLong(),
+                        )
+                    !favorited.isNullOrBlank() ->
+                        articles.selectArticlesFavoritedByUsername(
+                            favorited,
+                            limit.limit.toLong(),
+                            offset.offset.toLong(),
+                        )
+                    !tag.isNullOrBlank() ->
+                        articles.selectArticlesByTag(
+                            tag,
+                            limit.limit.toLong(),
+                            offset.offset.toLong(),
+                        )
+                    else -> articles.selectAllArticles(limit.limit.toLong(), offset.offset.toLong())
+                }
+
+            val count =
+                when {
+                    !author.isNullOrBlank() -> articles.countArticlesByAuthor(author).executeAsOne()
+                    !favorited.isNullOrBlank() ->
+                        articles.countArticlesFavoritedByUsername(favorited).executeAsOne()
+                    !tag.isNullOrBlank() -> articles.countArticlesByTag(tag).executeAsOne()
+                    else -> articles.countAllArticles().executeAsOne()
+                }
+
+            return ArticleListResult(query.executeAsList(), count)
+        }
 
         override suspend fun findArticleBySlug(
             slug: Slug

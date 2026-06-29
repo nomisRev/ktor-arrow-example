@@ -12,10 +12,12 @@ import arrow.core.nonEmptyListOf
 import arrow.core.right
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.routes.ArticleResource
+import io.github.nomisrev.routes.ArticlesResource
 import io.github.nomisrev.routes.FeedLimit
 import io.github.nomisrev.routes.FeedOffset
 import io.github.nomisrev.routes.NewArticle
 import io.github.nomisrev.routes.NewComment
+import io.github.nomisrev.service.GetArticles
 import io.github.nomisrev.service.GetFeed
 import io.github.nomisrev.service.Login
 import io.github.nomisrev.service.RegisterUser
@@ -192,5 +194,18 @@ fun Int.validFeedLimit(): Either<InvalidFeedLimit, FeedLimit> =
 fun ArticleResource.Feed.validate(userId: UserId): Either<IncorrectInput, GetFeed> =
     zipOrAccumulate(offsetParam.validFeedOffset(), limitParam.validFeedLimit()) { offset, limit ->
             GetFeed(userId, limit.limit, offset.offset)
+        }
+        .mapLeft(::IncorrectInput)
+
+fun ArticlesResource.validate(currentUserId: UserId?): Either<IncorrectInput, GetArticles> =
+    zipOrAccumulate(offsetParam.validFeedOffset(), limitParam.validFeedLimit()) { offset, limit ->
+            GetArticles(
+                limit = limit.limit,
+                offset = offset.offset,
+                author = author,
+                favorited = favorited,
+                tag = tag,
+                currentUserId = currentUserId,
+            )
         }
         .mapLeft(::IncorrectInput)
