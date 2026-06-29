@@ -26,6 +26,5 @@ fun main() = SuspendApp {
 fun Application.app(module: Dependencies) {
     configure()
     routes(module)
-    cohort(module.dataSource)
-  install(Cohort) { healthcheck("/readiness", module.healthCheck) }
+    install(Cohort) { healthcheck("/readiness", module.healthCheck) }
 }

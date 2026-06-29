@@ -37,25 +37,27 @@ suspend inline fun <reified A : Any> Either<DomainError, A>.respond(status: Http
 @OptIn(ExperimentalSerializationApi::class)
 @Suppress("ComplexMethod")
 suspend fun RoutingContext.respond(error: DomainError): Unit =
-  when (error) {
-    PasswordNotMatched -> call.respond(HttpStatusCode.Unauthorized)
-    is IncorrectInput ->
-      unprocessable(error.errors.map { field -> "${field.field}: ${field.errors.joinToString()}" })
-    is IncorrectJson ->
-      unprocessable("Json is missing fields: ${error.exception.missingFields.joinToString()}")
-    is EmptyUpdate -> unprocessable(error.description)
-    is EmailAlreadyExists -> unprocessable("${error.email} is already registered")
-    is JwtGeneration -> unprocessable(error.description)
-    is UserNotFound -> unprocessable("User with ${error.property} not found")
-    is UsernameAlreadyExists -> unprocessable("Username ${error.username} already exists")
-    is JwtInvalid -> unprocessable(error.description)
-    is CannotGenerateSlug -> unprocessable(error.description)
-    is ArticleBySlugNotFound -> unprocessable("Article by slug ${error.slug} not found")
-    is MissingParameter -> unprocessable("Missing ${error.name} parameter in request")
-    is NotArticleAuthor -> unprocessable("User is not the author of the article")
-    is CommentNotFound -> unprocessable("Comment with ID ${error.commentId} not found")
-    is NotCommentAuthor -> unprocessable("User is not the author of the comment")
-  }
+    when (error) {
+        PasswordNotMatched -> call.respond(HttpStatusCode.Unauthorized)
+        is IncorrectInput ->
+            unprocessable(
+                error.errors.map { field -> "${field.field}: ${field.errors.joinToString()}" }
+            )
+        is IncorrectJson ->
+            unprocessable("Json is missing fields: ${error.exception.missingFields.joinToString()}")
+        is EmptyUpdate -> unprocessable(error.description)
+        is EmailAlreadyExists -> unprocessable("${error.email} is already registered")
+        is JwtGeneration -> unprocessable(error.description)
+        is UserNotFound -> unprocessable("User with ${error.property} not found")
+        is UsernameAlreadyExists -> unprocessable("Username ${error.username} already exists")
+        is JwtInvalid -> unprocessable(error.description)
+        is CannotGenerateSlug -> unprocessable(error.description)
+        is ArticleBySlugNotFound -> unprocessable("Article by slug ${error.slug} not found")
+        is MissingParameter -> unprocessable("Missing ${error.name} parameter in request")
+        is NotArticleAuthor -> unprocessable("User is not the author of the article")
+        is CommentNotFound -> unprocessable("Comment with ID ${error.commentId} not found")
+        is NotCommentAuthor -> unprocessable("User is not the author of the comment")
+    }
 
 private suspend inline fun RoutingContext.unprocessable(error: String): Unit =
     call.respond(

@@ -116,15 +116,15 @@ data class ArticleResource(val parent: RootResource = RootResource) {
 
 @Resource("/articles")
 data class ArticlesResource(val parent: RootResource = RootResource) {
-  @Resource("{slug}")
-  data class Slug(val parent: ArticlesResource = ArticlesResource(), val slug: String) {
-    @Resource("favorite") data class Favorite(val parent: Slug)
-  }
+    @Resource("{slug}")
+    data class Slug(val parent: ArticlesResource = ArticlesResource(), val slug: String) {
+        @Resource("favorite") data class Favorite(val parent: Slug)
+    }
 
-  @Resource("{slug}/comments")
-  data class Comments(val parent: ArticlesResource = ArticlesResource(), val slug: String) {
-    @Resource("{id}") data class Id(val parent: Comments, val id: Long)
-  }
+    @Resource("{slug}/comments")
+    data class Comments(val parent: ArticlesResource = ArticlesResource(), val slug: String) {
+        @Resource("{id}") data class Id(val parent: Comments, val id: Long)
+    }
 }
 
 fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) {
@@ -141,46 +141,19 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
     }
 
     get<ArticlesResource.Slug> { slug ->
-        articleService
-      .getArticleBySlug(Slug(slug.slug))
-      .map { SingleArticleResponse(it) }
-      .respond(HttpStatusCode.OK)
-  }
+        
+            articleService
+                .getArticleBySlug(Slug(slug.slug))
+                .map { SingleArticleResponse(it) }
+                .respond(HttpStatusCode.OK)
+        
+    }
 
-    put<ArticlesResource.Slug> { slugResource ->
+    delete<ArticlesResource.Slug.Favorite> { favoriteResource ->
         jwtAuth(jwtService) { (_, userId) ->
-            either {
-                    // Receive and validate the update article request
-                    val wrapper = call.receive<ArticleWrapper<UpdateArticle>>()
-                    val updateArticleRequest = wrapper.article.validate().bind()
-
-                    // Create the update article input
-                    val input =
-                        UpdateArticleInput(
-                            slug = Slug(slugResource.slug),
-                            userId = userId,
-                            title = updateArticleRequest.title,
-                            description = updateArticleRequest.description,
-                            body = updateArticleRequest.body,
-                        )
-
-                    // Update the article
-                    val updatedArticle = articleService.updateArticle(input).bind()
-
-                    // Map to response
-                    ArticleResponse(
-                        slug = updatedArticle.slug,
-                        title = updatedArticle.title,
-                        description = updatedArticle.description,
-                        body = updatedArticle.body,
-                        author = updatedArticle.author,
-                        favorited = updatedArticle.favorited,
-                        favoritesCount = updatedArticle.favoritesCount,
-                        createdAt = updatedArticle.createdAt,
-                        updatedAt = updatedArticle.updatedAt,
-                        tagList = updatedArticle.tagList,
-                    )
-                }
+            articleService
+                .unfavoriteArticle(Slug(favoriteResource.parent.slug), userId)
+                .map { SingleArticleResponse(it) }
                 .respond(HttpStatusCode.OK)
         }
     }
@@ -208,30 +181,6 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
                 .respond(HttpStatusCode.OK)
         }
     }
-
-  delete<ArticlesResource.Slug> { slugResource ->
-    jwtAuth(jwtService) { (_, userId) ->
-      articleService.deleteArticle(Slug(slugResource.slug), userId).respond(HttpStatusCode.OK)
-    }
-  }
-
-  post<ArticlesResource.Slug.Favorite> { favoriteResource ->
-    jwtAuth(jwtService) { (_, userId) ->
-      articleService
-        .favoriteArticle(Slug(favoriteResource.parent.slug), userId)
-        .map { SingleArticleResponse(it) }
-        .respond(HttpStatusCode.OK)
-    }
-  }
-
-  delete<ArticlesResource.Slug.Favorite> { favoriteResource ->
-    jwtAuth(jwtService) { (_, userId) ->
-      articleService
-        .unfavoriteArticle(Slug(favoriteResource.parent.slug), userId)
-        .map { SingleArticleResponse(it) }
-        .respond(HttpStatusCode.OK)
-    }
-  }
 
     post<ArticlesResource> {
         jwtAuth(jwtService) { (_, userId) ->

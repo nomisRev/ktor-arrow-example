@@ -50,8 +50,9 @@ class SlugGeneratorSpec :
                     // All attempts fail
                     val result = slugGenerator.generateSlug(title) { false }
 
-          result shouldBeLeft CannotGenerateSlug("Failed to generate unique slug from $title")
-        }
+                    result shouldBeLeft
+                        CannotGenerateSlug("Failed to generate unique slug from $title")
+                }
 
                 "should handle special characters in title" {
                     val slugGenerator = slugifyGenerator(seed)
@@ -79,8 +80,9 @@ class SlugGeneratorSpec :
                 "should handle very long title" {
                     val slugGenerator = slugifyGenerator(seed)
 
-                    val title = "Very Long Title " + "x".repeat(200) + " ${Random.nextInt(1000, 9999)}"
-          val result = slugGenerator.generateSlug(title) { true }
+                    val title =
+                        "Very Long Title " + "x".repeat(200) + " ${Random.nextInt(1000, 9999)}"
+                    val result = slugGenerator.generateSlug(title) { true }
 
                     val slug = result.shouldBeRight()
                     slug.value shouldContain "very_long_title"

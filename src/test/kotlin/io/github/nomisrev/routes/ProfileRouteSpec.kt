@@ -17,14 +17,14 @@ import io.ktor.http.contentType
 
 class ProfileRouteSpec :
     StringSpec({
+        
+
         "Can follow profile" {
-            withServer { dependencies ->
-                val follower = userFixture()
+            withServer { dependencies ->val follower = userFixture()
                 val followed = userFixture()
                 val token =
                     dependencies.userService
-                        .register(
-                            RegisterUser(follower.username, follower.email, follower.password)
+                        .register(RegisterUser(follower.username, follower.email, follower.password)
                         )
                         .shouldBeRight()
                 dependencies.userService

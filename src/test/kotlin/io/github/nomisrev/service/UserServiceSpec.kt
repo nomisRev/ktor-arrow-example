@@ -29,8 +29,7 @@ class UserServiceSpec :
                     val validEmail = "valid@domain.com"
                     val res = withTestDependencies { dependencies ->
                         dependencies.userService.register(RegisterUser("", validEmail, validPw))
-                    }
-                    val errors =
+                    }val errors =
                         nonEmptyListOf("Cannot be blank", "is too short (minimum is 1 characters)")
                     val expected = IncorrectInput(InvalidUsername(errors))
                     res shouldBeLeft expected
@@ -89,9 +88,8 @@ class UserServiceSpec :
                     val res = withTestDependencies { dependencies ->
                         dependencies.userService.register(
                             RegisterUser(validUsername, validEmail, "")
-                        )
-                    }
-                    val errors =
+                    )
+                    }val errors =
                         nonEmptyListOf("Cannot be blank", "is too short (minimum is 8 characters)")
                     val expected = IncorrectInput(InvalidPassword(errors))
                     res shouldBeLeft expected
@@ -100,8 +98,9 @@ class UserServiceSpec :
                 "password can be max 100" {
                     val validUsername = userFixture().username
                     val validEmail = "valid@domain.com"
-                    val password = (0..100).joinToString("") { "A" }
-                    val res = withTestDependencies { dependencies ->
+                    valpassword = (0..100).joinToString("") { "A" }
+                    val res =
+                        withTestDependencies { dependencies ->
                         dependencies.userService.register(
                             RegisterUser(validUsername, validEmail, password)
                         )
@@ -115,22 +114,20 @@ class UserServiceSpec :
                     withTestDependencies { dependencies ->
                         val user = userFixture(password = validPw)
                         dependencies.userService
-                            .register(RegisterUser(user.username, user.email, user.password))
-                            .shouldBeRight()
-                    }
-                }
+                        .register(RegisterUser(user.username, user.email, user.password))
+                        .shouldBeRight()
+                }}
 
                 "Register twice results in" {
                     withTestDependencies { dependencies ->
                         val user = userFixture(password = validPw)
                         dependencies.userService
-                            .register(RegisterUser(user.username, user.email, user.password))
-                            .shouldBeRight()
-                        val res =
-                            dependencies.userService.register(
+                        .register(RegisterUser(user.username, user.email, user.password))
+                        .shouldBeRight()
+                    val res = dependencies.userService.register(
                                 RegisterUser(user.username, user.email, user.password)
                             )
-                        res shouldBeLeft UsernameAlreadyExists(user.username)
+                    res shouldBeLeft UsernameAlreadyExists(user.username)
                     }
                 }
             }
@@ -170,8 +167,7 @@ class UserServiceSpec :
                     val validEmail = "valid@domain.com"
                     val res = withTestDependencies { dependencies ->
                         dependencies.userService.login(Login(validEmail, ""))
-                    }
-                    val errors =
+                    }val errors =
                         nonEmptyListOf("Cannot be blank", "is too short (minimum is 8 characters)")
                     val expected = IncorrectInput(InvalidPassword(errors))
                     res shouldBeLeft expected
@@ -194,35 +190,26 @@ class UserServiceSpec :
                         dependencies.userService.register(
                             RegisterUser(user.username, user.email, user.password)
                         )
-                        val token =
-                            dependencies.userService
-                                .login(Login(user.email, user.password))
-                                .shouldBeRight()
-                        token.first.value.shouldNotBeBlank()
-                    }
+                    val token = dependencies.userService
+                                .login(Login(user.email, user.password)).shouldBeRight()
+                    token.first.value.shouldNotBeBlank()
                 }
-            }
+            }}
 
         "update" -
             {
                 "Update with all null" {
                     withTestDependencies { dependencies ->
-                        val user = userFixture(password = validPw)
-                        val token =
-                            dependencies.userService
-                                .register(RegisterUser(user.username, user.email, user.password))
-                                .shouldBeRight()
-                        val res =
-                            dependencies.userService.update(
-                                Update(token.id(), null, null, null, null, null)
-                            )
-                        res shouldBeLeft
-                            EmptyUpdate(
-                                "Cannot update user with ${token.id()} with only null values"
-                            )
-                    }
-                }
+                        val user = userFixture(password = validPw)val token =
+                        dependencies.userService
+                            .register(RegisterUser(user.username, user.email, user.password))
+                            .shouldBeRight()
+                    val res = dependencies.userService.update(Update(token.id(), null, null, null, null, null))
+                    res shouldBeLeft
+                        EmptyUpdate("Cannot update user with ${token.id()} with only null values"
+                )
             }
+    }}
     })
 
 private fun JwtToken.id(): UserId =

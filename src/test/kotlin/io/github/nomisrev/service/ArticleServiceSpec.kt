@@ -16,27 +16,26 @@ import io.kotest.assertions.arrow.core.shouldBeSome
 
 class ArticleServiceSpec :
     SuspendFun({
+        
+
         "getUserFeed" -
             {
                 "get empty user feed when the user follows nobody" {
                     withTestDependencies { dependencies ->
-                        val user = userFixture()
+                    val user = userFixture()
                         val userId =
                             dependencies.userService
-                                .register(RegisterUser(user.username, user.email, user.password))
-                                .shouldHaveUserId()
-
-                        val otherUser = userFixture()
-                        val otherUserId =
-                            dependencies.userService
-                                .register(
-                                    RegisterUser(
-                                        otherUser.username,
-                                        otherUser.email,
+                            .register(RegisterUser(user.username, user.email, user.password))
+                            .shouldHaveUserId()val otherUser = userFixture()
+                    val otherUserId =
+                        dependencies.userService
+                            .register(RegisterUser(
+                            otherUser.username,
+                    otherUser.email,
                                         otherUser.password,
                                     )
-                                )
-                                .shouldHaveUserId()
+                        )
+                            .shouldHaveUserId()
 
                         val article = articleFixture()
                         dependencies.articleService
@@ -51,40 +50,38 @@ class ArticleServiceSpec :
                             )
                             .shouldBeRight()
 
-                        val feed =
-                            dependencies.articleService
-                                .getUserFeed(input = GetFeed(userId = UserId(userId), limit = 20, offset = 0))
-              .shouldBeRight()
+                    
+                    val feed =
+                        dependencies.articleService.getUserFeed(
+                            input = GetFeed(userId = UserId(userId), limit = 20, offset = 0)
+                        )
 
-                        assert(feed.articlesCount == 0)
-                    }
+                    assert(feed.articlesCount == 0)
+                }
                 }
 
                 "get user feed when the user follows another user" {
                     withTestDependencies { dependencies ->
-                        val user = userFixture()
+                    val user = userFixture()
                         val userId =
                             dependencies.userService
-                                .register(RegisterUser(user.username, user.email, user.password))
-                                .shouldHaveUserId()
-                        val followed = userFixture()
-                        val followedId =
-                            dependencies.userService
-                                .register(
-                                    RegisterUser(
-                                        followed.username,
+                            .register(RegisterUser(user.username, user.email, user.password))
+                            .shouldHaveUserId()
+                            val followed = userFixture()
+                    val followedId =
+                        dependencies.userService
+                            .register(RegisterUser(followed.username,
                                         followed.email,
                                         followed.password,
                                     )
-                                )
-                                .shouldHaveUserId()
-                        val unrelated = userFixture()
-                        val unrelatedId =
-                            dependencies.userService
-                                .register(
-                                    RegisterUser(
-                                        unrelated.username,
-                                        unrelated.email,
+                            )
+                            .shouldHaveUserId()
+                            val unrelated = userFixture()
+                    val unrelatedId =
+                        dependencies.userService
+                            .register(RegisterUser(
+                            unrelated.username,
+                            unrelated.email,
                                         unrelated.password,
                                     )
                                 )
