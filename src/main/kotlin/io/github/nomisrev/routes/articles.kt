@@ -249,7 +249,13 @@ fun Route.commentRoutes(
                             .insertCommentForArticleSlug(
                                 slug = Slug(slug.slug),
                                 userId = userId,
-                                comment = call.receive<CommentWrapper<NewComment>>().comment.validate().bind().body,
+                                comment =
+                                    call
+                                        .receive<CommentWrapper<NewComment>>()
+                                        .comment
+                                        .validate()
+                                        .bind()
+                                        .body,
                             )
                             .bind()
                     val userProfile = userService.getUser(UserId(comments.author)).bind()
