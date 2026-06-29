@@ -71,10 +71,88 @@ DELETE FROM articles
 WHERE id = :articleId;
 
 selectAllArticles:
-SELECT
-articles.id AS article__id, articles.slug AS article__slug, articles.title AS article__title, articles.description AS article__description, articles.body AS article__body, articles.author_id AS article__author_id, articles.createdAt AS article__createdAt, articles.updatedAt AS article__updatedAt,
-users.id AS users__id, users.username AS users__username, users.bio AS users__bio, users.image AS users__image
+SELECT id, slug, title, description, body, author_id, createdAt, updatedAt
 FROM articles
-INNER JOIN users ON articles.author_id = users.id
 ORDER BY createdAt DESC
 LIMIT :limit OFFSET :offset;
+
+countAllArticles:
+SELECT COUNT(id)
+FROM articles;
+
+selectArticlesByAuthor:
+SELECT id, slug, title, description, body, author_id, createdAt, updatedAt
+FROM articles
+WHERE author_id IN (
+    SELECT id
+    FROM users
+    WHERE username = :username
+)
+ORDER BY createdAt DESC
+LIMIT :limit OFFSET :offset;
+
+countArticlesByAuthor:
+SELECT COUNT(id)
+FROM articles
+WHERE author_id IN (
+    SELECT id
+    FROM users
+    WHERE username = :username
+);
+
+selectArticlesByTag:
+SELECT id, slug, title, description, body, author_id, createdAt, updatedAt
+FROM articles
+WHERE id IN (
+    SELECT article_id
+    FROM tags
+    WHERE tag = :tag
+)
+ORDER BY createdAt DESC
+LIMIT :limit OFFSET :offset;
+
+countArticlesByTag:
+SELECT COUNT(id)
+FROM articles
+WHERE id IN (
+    SELECT article_id
+    FROM tags
+    WHERE tag = :tag
+);
+
+selectArticlesFavoritedByUsername:
+SELECT id, slug, title, description, body, author_id, createdAt, updatedAt
+FROM articles
+WHERE id IN (
+    SELECT article_id
+    FROM favorites
+    WHERE user_id IN (
+        SELECT id
+        FROM users
+        WHERE username = :username
+    )
+)
+ORDER BY createdAt DESC
+LIMIT :limit OFFSET :offset;
+
+countArticlesFavoritedByUsername:
+SELECT COUNT(id)
+FROM articles
+WHERE id IN (
+    SELECT article_id
+    FROM favorites
+    WHERE user_id IN (
+        SELECT id
+        FROM users
+        WHERE username = :username
+    )
+);
+
+countFeedArticles:
+SELECT COUNT(id)
+FROM articles
+WHERE author_id IN (
+    SELECT following.followed_id
+    FROM following
+    WHERE following.follower_id = :user_id
+);

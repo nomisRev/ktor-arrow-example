@@ -1,7 +1,6 @@
 package io.github.nomisrev.routes
 
 import arrow.core.Either
-import arrow.core.raise.context.bind
 import arrow.core.raise.either
 import io.github.nomisrev.IncorrectInput
 import io.github.nomisrev.auth.jwtAuth
@@ -117,7 +116,14 @@ data class ArticleResource(val parent: RootResource = RootResource) {
 }
 
 @Resource("/articles")
-data class ArticlesResource(val parent: RootResource = RootResource) {
+data class ArticlesResource(
+    val author: String? = null,
+    val favorited: String? = null,
+    val tag: String? = null,
+    val offsetParam: Int = 0,
+    val limitParam: Int = 20,
+    val parent: RootResource = RootResource,
+) {
     @Resource("{slug}")
     data class Slug(val parent: ArticlesResource = ArticlesResource(), val slug: String) {
         @Resource("favorite") data class Favorite(val parent: Slug)
@@ -130,7 +136,15 @@ data class ArticlesResource(val parent: RootResource = RootResource) {
 }
 
 fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) {
-    get<ArticlesResource> { articleService.getAllArticles().respond(HttpStatusCode.OK) }
+    get<ArticlesResource> { articles ->
+        optionalJwtAuth(jwtService) { context ->
+            either {
+                    val input = articles.validate(currentUserId = context?.userId).bind()
+                    articleService.getAllArticles(input).bind()
+                }
+                .respond(HttpStatusCode.OK)
+        }
+    }
 
     get<ArticleResource.Feed> { feed ->
         jwtAuth(jwtService) { (_, userId) ->
@@ -143,9 +157,9 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
     }
 
     get<ArticlesResource.Slug> { slug ->
-        optionalJwtAuth(jwtService) {
+        optionalJwtAuth(jwtService) { context ->
             articleService
-                .getArticleBySlug(Slug(slug.slug))
+                .getArticleBySlug(Slug(slug.slug), context?.userId)
                 .map { SingleArticleResponse(it) }
                 .respond(HttpStatusCode.OK)
         }
