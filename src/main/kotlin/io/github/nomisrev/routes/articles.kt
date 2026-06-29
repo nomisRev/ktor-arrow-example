@@ -58,6 +58,8 @@ data class MultipleArticlesResponse(val articles: List<Article>, val articlesCou
 
 @JvmInline @Serializable value class FeedLimit(val limit: Int)
 
+@Serializable data class CommentWrapper<T : Any>(val comment: T)
+
 @Serializable data class NewComment(val body: String)
 
 @Serializable data class SingleCommentResponse(val comment: Comment)
@@ -247,7 +249,7 @@ fun Route.commentRoutes(
                             .insertCommentForArticleSlug(
                                 slug = Slug(slug.slug),
                                 userId = userId,
-                                comment = call.receive<NewComment>().validate().bind().body,
+                                comment = call.receive<CommentWrapper<NewComment>>().comment.validate().bind().body,
                             )
                             .bind()
                     val userProfile = userService.getUser(UserId(comments.author)).bind()

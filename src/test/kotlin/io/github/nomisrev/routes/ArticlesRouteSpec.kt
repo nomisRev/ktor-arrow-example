@@ -156,7 +156,7 @@ class ArticlesRouteSpec :
                     post(ArticlesResource.Comments(slug = created.slug)) {
                         contentType(ContentType.Application.Json)
                         bearerAuth(token.value)
-                        setBody(NewComment(comment))
+                        setBody(CommentWrapper(NewComment(comment)))
                     }
 
                 assert(response.status == HttpStatusCode.OK)
@@ -194,7 +194,7 @@ class ArticlesRouteSpec :
                     post(ArticlesResource.Comments(slug = created.slug)) {
                         contentType(ContentType.Application.Json)
                         bearerAuth("invalid token")
-                        setBody(NewComment(comment))
+                        setBody(CommentWrapper(NewComment(comment)))
                     }
 
                 assert(response.status == HttpStatusCode.Unauthorized)
@@ -227,7 +227,7 @@ class ArticlesRouteSpec :
                     post(ArticlesResource.Comments(slug = created.slug)) {
                         contentType(ContentType.Application.Json)
                         bearerAuth(token.value)
-                        setBody(NewComment(""))
+                        setBody(CommentWrapper(NewComment("")))
                     }
 
                 assert(response.status == HttpStatusCode.UnprocessableEntity)
