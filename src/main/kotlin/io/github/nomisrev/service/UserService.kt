@@ -45,21 +45,21 @@ interface UserService {
 fun userService(repo: UserPersistence, jwtService: JwtService) =
     object : UserService {
         override suspend fun register(input: RegisterUser): Either<DomainError, JwtToken> = either {
-            val (username, email, password) = input.validate().bind()
+            val (username, email, password) = input.validate()
             val userId = repo.insert(username, email, password).bind()
             jwtService.generateJwtToken(userId).bind()
         }
 
         override suspend fun login(input: Login): Either<DomainError, Pair<JwtToken, UserInfo>> =
             either {
-                val (email, password) = input.validate().bind()
+                val (email, password) = input.validate()
                 val (userId, info) = repo.verifyPassword(email, password).bind()
                 val token = jwtService.generateJwtToken(userId).bind()
                 Pair(token, info)
             }
 
         override suspend fun update(input: Update): Either<DomainError, UserInfo> = either {
-            val (userId, username, email, password, bio, image) = input.validate().bind()
+            val (userId, username, email, password, bio, image) = input.validate()
             ensure(email != null || username != null || bio != null || image != null) {
                 EmptyUpdate("Cannot update user with $userId with only null values")
             }

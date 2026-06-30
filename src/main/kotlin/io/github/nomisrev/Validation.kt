@@ -1,15 +1,17 @@
+@file:OptIn(ExperimentalRaiseAccumulateApi::class)
 @file:Suppress("TooManyFunctions")
 
 package io.github.nomisrev
 
-import arrow.core.Either
-import arrow.core.Either.Companion.zipOrAccumulate
-import arrow.core.EitherNel
 import arrow.core.NonEmptyList
-import arrow.core.leftNel
-import arrow.core.mapOrAccumulate
-import arrow.core.nonEmptyListOf
-import arrow.core.right
+import arrow.core.raise.ExperimentalRaiseAccumulateApi
+import arrow.core.raise.context.Raise
+import arrow.core.raise.context.RaiseAccumulate
+import arrow.core.raise.context.accumulate
+import arrow.core.raise.context.accumulating
+import arrow.core.raise.context.ensureOrAccumulate
+import arrow.core.raise.context.mapOrAccumulate
+import arrow.core.raise.context.withError
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.routes.ArticleResource
 import io.github.nomisrev.routes.ArticlesResource
@@ -60,30 +62,37 @@ data class InvalidEmailOrPassword(override val errors: NonEmptyList<String>) : I
     override val field: String = "email or password"
 }
 
-fun Login.validate(): Either<IncorrectInput, Login> =
-    zipOrAccumulate(email.validEmail(), password.validPassword(), ::Login).mapLeft(::IncorrectInput)
+context(_: Raise<IncorrectInput>)
+fun Login.validate(): Login = withError(::incorrectInput) { validated() }
 
-fun RegisterUser.validate(): Either<IncorrectInput, RegisterUser> =
-    zipOrAccumulate(
-            username.validUsername(),
-            email.validEmail(),
-            password.validPassword(),
-            ::RegisterUser,
-        )
-        .mapLeft(::IncorrectInput)
+context(_: Raise<NonEmptyList<InvalidField>>)
+private fun Login.validated(): Login = accumulate {
+    val email by accumulating { email.validEmail() }
+    val password by accumulating { password.validPassword() }
+    Login(email, password)
+}
 
-fun Update.validate(): Either<IncorrectInput, Update> =
-    zipOrAccumulate(
-            username.mapOrAccumulate(String::validUsername),
-            email.mapOrAccumulate(String::validEmail),
-            password.mapOrAccumulate(String::validPassword),
-        ) { username, email, password ->
-            Update(userId, username, email, password, bio, image)
-        }
-        .mapLeft(::IncorrectInput)
+context(_: Raise<IncorrectInput>)
+fun RegisterUser.validate(): RegisterUser = withError(::incorrectInput) { validated() }
 
-private fun <E, A, B> A?.mapOrAccumulate(f: (A) -> EitherNel<E, B>): EitherNel<E, B?> =
-    this?.let(f) ?: null.right()
+context(_: Raise<NonEmptyList<InvalidField>>)
+private fun RegisterUser.validated(): RegisterUser = accumulate {
+    val username by accumulating { username.validUsername() }
+    val email by accumulating { email.validEmail() }
+    val password by accumulating { password.validPassword() }
+    RegisterUser(username, email, password)
+}
+
+context(_: Raise<IncorrectInput>)
+fun Update.validate(): Update = withError(::incorrectInput) { validated() }
+
+context(_: Raise<NonEmptyList<InvalidField>>)
+private fun Update.validated(): Update = accumulate {
+    val username by accumulating { username?.validUsername() }
+    val email by accumulating { email?.validEmail() }
+    val password by accumulating { password?.validPassword() }
+    Update(userId, username, email, password, bio, image)
+}
 
 private const val MIN_PASSWORD_LENGTH = 8
 private const val MAX_PASSWORD_LENGTH = 100
@@ -91,85 +100,137 @@ private const val MAX_EMAIL_LENGTH = 350
 private const val MIN_USERNAME_LENGTH = 1
 private const val MAX_USERNAME_LENGTH = 25
 
-private fun String.validPassword(): EitherNel<InvalidPassword, String> =
-    zipOrAccumulate(notBlank(), minSize(MIN_PASSWORD_LENGTH), maxSize(MAX_PASSWORD_LENGTH)) {
-            a,
-            _,
-            _ ->
-            a
-        }
-        .mapLeft(toInvalidField(::InvalidPassword))
+context(_: Raise<InvalidField>)
+private fun String.validPassword(): String = passwordValidation()
 
-private fun String.validEmail(): EitherNel<InvalidEmail, String> {
-    val trimmed = trim()
-    return zipOrAccumulate(
-            trimmed.notBlank(),
-            trimmed.maxSize(MAX_EMAIL_LENGTH),
-            trimmed.looksLikeEmail(),
-        ) { a, _, _ ->
-            a
-        }
-        .mapLeft(toInvalidField(::InvalidEmail))
+context(_: Raise<InvalidField>)
+private fun String.passwordValidation(): String = withError(::invalidPassword) { passwordRules() }
+
+context(_: Raise<NonEmptyList<String>>)
+private fun String.passwordRules(): String = accumulate {
+    notBlank()
+    minSize(MIN_PASSWORD_LENGTH)
+    maxSize(MAX_PASSWORD_LENGTH)
+    this@passwordRules
 }
 
-private fun String.validUsername(): EitherNel<InvalidUsername, String> {
-    val trimmed = trim()
-    return zipOrAccumulate(
-            trimmed.notBlank(),
-            trimmed.minSize(MIN_USERNAME_LENGTH),
-            trimmed.maxSize(MAX_USERNAME_LENGTH),
-        ) { a, _, _ ->
-            a
-        }
-        .mapLeft(toInvalidField(::InvalidUsername))
+context(_: Raise<InvalidField>)
+private fun String.validEmail(): String = emailValidation()
+
+context(_: Raise<InvalidField>)
+private fun String.emailValidation(): String = withError(::invalidEmail) { trim().emailRules() }
+
+context(_: Raise<NonEmptyList<String>>)
+private fun String.emailRules(): String = accumulate {
+    notBlank()
+    maxSize(MAX_EMAIL_LENGTH)
+    looksLikeEmail()
+    this@emailRules
 }
 
-@Suppress("UnusedPrivateMember")
-private fun String.validTitle(): Either<InvalidTitle, String> =
-    trim().notBlank().mapLeft(::InvalidTitle)
+context(_: Raise<InvalidField>)
+private fun String.validUsername(): String = usernameValidation()
 
-@Suppress("UnusedPrivateMember")
-private fun String.validDescription(): Either<InvalidDescription, String> =
-    trim().notBlank().mapLeft(::InvalidDescription)
+context(_: Raise<InvalidField>)
+private fun String.usernameValidation(): String =
+    withError(::invalidUsername) { trim().usernameRules() }
 
-@Suppress("UnusedPrivateMember")
-private fun String.validBody(): Either<InvalidBody, String> =
-    trim().notBlank().mapLeft(::InvalidBody)
+context(_: Raise<NonEmptyList<String>>)
+private fun String.usernameRules(): String = accumulate {
+    notBlank()
+    minSize(MIN_USERNAME_LENGTH)
+    maxSize(MAX_USERNAME_LENGTH)
+    this@usernameRules
+}
 
-@Suppress("UnusedPrivateMember")
-private fun validTags(tags: List<String>): Either<InvalidTag, Set<String>> =
-    tags.mapOrAccumulate { it.trim().notBlank().bindNel() }.mapLeft(::InvalidTag).map { it.toSet() }
+context(_: Raise<InvalidField>)
+private fun String.validTitle(): String = withError(::invalidTitle) { trim().notBlankRule() }
 
-private fun <A : InvalidField> toInvalidField(
-    transform: (NonEmptyList<String>) -> A
-): (NonEmptyList<String>) -> NonEmptyList<A> = { nel -> nonEmptyListOf(transform(nel)) }
+context(_: Raise<InvalidField>)
+private fun String.validDescription(): String =
+    withError(::invalidDescription) { trim().notBlankRule() }
 
-private fun String.notBlank(): EitherNel<String, String> =
-    if (isNotBlank()) right() else "Cannot be blank".leftNel()
+context(_: Raise<InvalidField>)
+private fun String.validBody(): String = withError(::invalidBody) { trim().notBlankRule() }
 
-private fun String.minSize(size: Int): EitherNel<String, String> =
-    if (length >= size) right() else "is too short (minimum is $size characters)".leftNel()
+context(_: Raise<NonEmptyList<String>>)
+private fun String.notBlankRule(): String = accumulate {
+    notBlank()
+    this@notBlankRule
+}
 
-private fun String.maxSize(size: Int): EitherNel<String, String> =
-    if (length <= size) right() else "is too long (maximum is $size characters)".leftNel()
+context(_: Raise<InvalidField>)
+private fun List<String>.validTags(): Set<String> =
+    withError(::invalidTag) { mapOrAccumulate { it.trim().notBlank() }.toSet() }
+
+private fun incorrectInput(errors: NonEmptyList<InvalidField>): IncorrectInput =
+    IncorrectInput(errors)
+
+private fun invalidEmail(errors: NonEmptyList<String>): InvalidField = InvalidEmail(errors)
+
+private fun invalidPassword(errors: NonEmptyList<String>): InvalidField = InvalidPassword(errors)
+
+private fun invalidTag(errors: NonEmptyList<String>): InvalidField = InvalidTag(errors)
+
+private fun invalidUsername(errors: NonEmptyList<String>): InvalidField = InvalidUsername(errors)
+
+private fun invalidTitle(errors: NonEmptyList<String>): InvalidField = InvalidTitle(errors)
+
+private fun invalidDescription(errors: NonEmptyList<String>): InvalidField =
+    InvalidDescription(errors)
+
+private fun invalidBody(errors: NonEmptyList<String>): InvalidField = InvalidBody(errors)
+
+private fun invalidFeedOffset(error: InvalidFeedOffset): InvalidField = error
+
+private fun invalidFeedLimit(error: InvalidFeedLimit): InvalidField = error
+
+context(_: RaiseAccumulate<String>)
+private fun String.notBlank(): String {
+    ensureOrAccumulate(isNotBlank()) { "Cannot be blank" }
+    return this
+}
+
+context(_: RaiseAccumulate<String>)
+private fun String.minSize(size: Int): String {
+    ensureOrAccumulate(length >= size) { "is too short (minimum is $size characters)" }
+    return this
+}
+
+context(_: RaiseAccumulate<String>)
+private fun String.maxSize(size: Int): String {
+    ensureOrAccumulate(length <= size) { "is too long (maximum is $size characters)" }
+    return this
+}
 
 private val emailPattern = ".+@.+\\..+".toRegex()
 
-private fun String.looksLikeEmail(): EitherNel<String, String> =
-    if (emailPattern.matches(this)) right() else "'$this' is invalid email".leftNel()
+context(_: RaiseAccumulate<String>)
+private fun String.looksLikeEmail(): String {
+    ensureOrAccumulate(emailPattern.matches(this)) { "'$this' is invalid email" }
+    return this
+}
 
-fun NewArticle.validate(): Either<IncorrectInput, NewArticle> =
-    zipOrAccumulate(
-            title.validTitle(),
-            description.validDescription(),
-            body.validBody(),
-            validTags(tagList).map { it.toList() },
-            ::NewArticle,
-        )
-        .mapLeft(::IncorrectInput)
+context(_: Raise<IncorrectInput>)
+fun NewArticle.validate(): NewArticle = withError(::incorrectInput) { validated() }
 
-fun NewComment.validate(): Either<IncorrectInput, NewComment> =
-    body.validBody().map { NewComment(it) }.mapLeft(::IncorrectInput)
+context(_: Raise<NonEmptyList<InvalidField>>)
+private fun NewArticle.validated(): NewArticle = accumulate {
+    val title by accumulating { title.validTitle() }
+    val description by accumulating { description.validDescription() }
+    val body by accumulating { body.validBody() }
+    val tagList by accumulating { tagList.validTags().toList() }
+    NewArticle(title, description, body, tagList)
+}
+
+context(_: Raise<IncorrectInput>)
+fun NewComment.validate(): NewComment = withError(::incorrectInput) { validated() }
+
+context(_: Raise<NonEmptyList<InvalidField>>)
+private fun NewComment.validated(): NewComment = accumulate {
+    val body by accumulating { body.validBody() }
+    NewComment(body)
+}
 
 const val MIN_FEED_LIMIT = 1
 const val MIN_FEED_OFFSET = 0
@@ -182,30 +243,63 @@ data class InvalidFeedLimit(override val errors: NonEmptyList<String>) : Invalid
     override val field: String = "feed limit"
 }
 
-private fun Int.minSize(size: Int): EitherNel<String, Int> =
-    if (this >= size) right() else "too small, minimum is $size, and found $this".leftNel()
+context(_: RaiseAccumulate<String>)
+private fun Int.minSize(size: Int): Int {
+    ensureOrAccumulate(this >= size) { "too small, minimum is $size, and found $this" }
+    return this
+}
 
-fun Int.validFeedOffset(): Either<InvalidFeedOffset, FeedOffset> =
-    minSize(MIN_FEED_OFFSET).map { FeedOffset(it) }.mapLeft { InvalidFeedOffset(it) }
-
-fun Int.validFeedLimit(): Either<InvalidFeedLimit, FeedLimit> =
-    minSize(MIN_FEED_LIMIT).map { FeedLimit(it) }.mapLeft { InvalidFeedLimit(it) }
-
-fun ArticleResource.Feed.validate(userId: UserId): Either<IncorrectInput, GetFeed> =
-    zipOrAccumulate(offsetParam.validFeedOffset(), limitParam.validFeedLimit()) { offset, limit ->
-            GetFeed(userId, limit.limit, offset.offset)
+context(_: Raise<InvalidFeedOffset>)
+fun Int.validFeedOffset(): FeedOffset =
+    withError(::InvalidFeedOffset) {
+        accumulate {
+            minSize(MIN_FEED_OFFSET)
+            FeedOffset(this@validFeedOffset)
         }
-        .mapLeft(::IncorrectInput)
+    }
 
-fun ArticlesResource.validate(currentUserId: UserId?): Either<IncorrectInput, GetArticles> =
-    zipOrAccumulate(offsetParam.validFeedOffset(), limitParam.validFeedLimit()) { offset, limit ->
-            GetArticles(
-                limit = limit.limit,
-                offset = offset.offset,
-                author = author,
-                favorited = favorited,
-                tag = tag,
-                currentUserId = currentUserId,
-            )
+context(_: Raise<InvalidFeedLimit>)
+fun Int.validFeedLimit(): FeedLimit =
+    withError(::InvalidFeedLimit) {
+        accumulate {
+            minSize(MIN_FEED_LIMIT)
+            FeedLimit(this@validFeedLimit)
         }
-        .mapLeft(::IncorrectInput)
+    }
+
+context(_: Raise<InvalidField>)
+private fun Int.validFeedOffsetField(): FeedOffset =
+    withError(::invalidFeedOffset) { validFeedOffset() }
+
+context(_: Raise<InvalidField>)
+private fun Int.validFeedLimitField(): FeedLimit =
+    withError(::invalidFeedLimit) { validFeedLimit() }
+
+context(_: Raise<IncorrectInput>)
+fun ArticleResource.Feed.validate(userId: UserId): GetFeed =
+    withError(::incorrectInput) { validated(userId) }
+
+context(_: Raise<NonEmptyList<InvalidField>>)
+private fun ArticleResource.Feed.validated(userId: UserId): GetFeed = accumulate {
+    val offset by accumulating { offsetParam.validFeedOffsetField() }
+    val limit by accumulating { limitParam.validFeedLimitField() }
+    GetFeed(userId, limit.limit, offset.offset)
+}
+
+context(_: Raise<IncorrectInput>)
+fun ArticlesResource.validate(currentUserId: UserId?): GetArticles =
+    withError(::incorrectInput) { validated(currentUserId) }
+
+context(_: Raise<NonEmptyList<InvalidField>>)
+private fun ArticlesResource.validated(currentUserId: UserId?): GetArticles = accumulate {
+    val offset by accumulating { offsetParam.validFeedOffsetField() }
+    val limit by accumulating { limitParam.validFeedLimitField() }
+    GetArticles(
+        limit = limit.limit,
+        offset = offset.offset,
+        author = author,
+        favorited = favorited,
+        tag = tag,
+        currentUserId = currentUserId,
+    )
+}
