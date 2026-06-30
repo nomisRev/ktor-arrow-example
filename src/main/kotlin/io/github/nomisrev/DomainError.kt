@@ -1,7 +1,6 @@
 package io.github.nomisrev
 
 import arrow.core.NonEmptyList
-import arrow.core.nonEmptyListOf
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.MissingFieldException
 
