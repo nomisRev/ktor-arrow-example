@@ -2,6 +2,12 @@ package io.github.nomisrev.routes
 
 import arrow.core.raise.either
 import io.github.nomisrev.articleFixture
+import io.github.nomisrev.routes.Api.Articles
+import io.github.nomisrev.routes.Api.Articles.Slug
+import io.github.nomisrev.routes.Api.Articles.Slug.Comments
+import io.github.nomisrev.routes.Api.Articles.Slug.Comments.create
+import io.github.nomisrev.routes.Api.Articles.Slug.Comments.list
+import io.github.nomisrev.routes.Api.Articles.Slug.get
 import io.github.nomisrev.service.CreateArticle
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.userFixture
@@ -9,23 +15,24 @@ import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.StringSpec
 import io.ktor.client.call.body
-import io.ktor.client.plugins.resources.get
-import io.ktor.client.plugins.resources.post
 import io.ktor.client.request.bearerAuth
-import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import opensavvy.spine.api.div
+import opensavvy.spine.api.invoke
+import opensavvy.spine.client.bodyOrThrow
+import opensavvy.spine.client.request
 
 class ArticlesRouteSpec :
     StringSpec({
         "Article by slug not found" {
             withServer {
-                val response = get(ArticlesResource.Slug(slug = "slug"))
+                val response = request(Api / Articles / Slug("slug") / get)
 
-                assert(response.status == HttpStatusCode.UnprocessableEntity)
+                assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
                 assert(
-                    response.body<GenericErrorModel>().errors.body ==
+                    response.httpResponse.body<GenericErrorModel>().errors.body ==
                         listOf("Article by slug slug not found")
                 )
             }
@@ -60,10 +67,10 @@ class ArticlesRouteSpec :
                         }
                         .shouldBeRight()
 
-                val response = get(ArticlesResource.Slug(slug = created.slug))
+                val response = request(Api / Articles / Slug(created.slug) / get)
 
-                assert(response.status == HttpStatusCode.OK)
-                with(response.body<SingleArticleResponse>().article) {
+                val bodyOrThrow = response.bodyOrThrow()
+                with(bodyOrThrow.article) {
                     assert(articleId == created.articleId)
                     assert(slug == created.slug)
                     assert(title == created.title)
@@ -108,10 +115,12 @@ class ArticlesRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    get(ArticlesResource.Comments(slug = created.slug)) { bearerAuth(token.value) }
+                    request(Api / Articles / Slug(created.slug) / Comments / list) {
+                        bearerAuth(token.value)
+                    }
 
-                assert(response.status == HttpStatusCode.OK)
-                assert(response.body<MultipleCommentsResponse>().comments == emptyList<Comment>())
+                val body = response.bodyOrThrow()
+                assert(body.comments == emptyList<Comment>())
             }
         }
 
@@ -143,9 +152,9 @@ class ArticlesRouteSpec :
                         }
                         .shouldBeRight()
 
-                val response = get(ArticlesResource.Comments(slug = created.slug))
+                val response = request(Api / Articles / Slug(created.slug) / Comments / list)
 
-                assert(response.status == HttpStatusCode.Unauthorized)
+                assert(response.httpResponse.status == HttpStatusCode.Unauthorized)
             }
         }
 
@@ -179,17 +188,17 @@ class ArticlesRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    post(ArticlesResource.Comments(slug = created.slug)) {
+                    request(
+                        Api / Articles / Slug(created.slug) / Comments / create,
+                        CommentWrapper(NewComment(comment)),
+                    ) {
                         contentType(ContentType.Application.Json)
                         bearerAuth(token.value)
-                        setBody(CommentWrapper(NewComment(comment)))
                     }
 
-                assert(response.status == HttpStatusCode.OK)
-                with(response.body<SingleCommentResponse>()) {
-                    assert(this.comment.body == comment)
-                    assert(this.comment.author.username == user.username)
-                }
+                val body = response.bodyOrThrow()
+                assert(body.comment.body == comment)
+                assert(body.comment.author.username == user.username)
             }
         }
 
@@ -223,13 +232,15 @@ class ArticlesRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    post(ArticlesResource.Comments(slug = created.slug)) {
+                    request(
+                        Api / Articles / Slug(created.slug) / Comments / create,
+                        CommentWrapper(NewComment(comment)),
+                    ) {
                         contentType(ContentType.Application.Json)
                         bearerAuth("invalid token")
-                        setBody(CommentWrapper(NewComment(comment)))
                     }
 
-                assert(response.status == HttpStatusCode.Unauthorized)
+                assert(response.httpResponse.status == HttpStatusCode.Unauthorized)
             }
         }
 
@@ -262,13 +273,15 @@ class ArticlesRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    post(ArticlesResource.Comments(slug = created.slug)) {
+                    request(
+                        Api / Articles / Slug(created.slug) / Comments / create,
+                        CommentWrapper(NewComment("")),
+                    ) {
                         contentType(ContentType.Application.Json)
                         bearerAuth(token.value)
-                        setBody(CommentWrapper(NewComment("")))
                     }
 
-                assert(response.status == HttpStatusCode.UnprocessableEntity)
+                assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
             }
         }
     })

@@ -2,19 +2,23 @@ package io.github.nomisrev.routes
 
 import arrow.core.raise.either
 import io.github.nomisrev.articleFixture
+import io.github.nomisrev.routes.Api.Article
+import io.github.nomisrev.routes.Api.Article.feed
+import io.github.nomisrev.routes.Api.Articles
+import io.github.nomisrev.routes.Api.Articles.create
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.userFixture
 import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.StringSpec
 import io.ktor.client.call.body
-import io.ktor.client.plugins.resources.get
-import io.ktor.client.plugins.resources.post
 import io.ktor.client.request.bearerAuth
-import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import opensavvy.spine.api.div
+import opensavvy.spine.client.bodyOrThrow
+import opensavvy.spine.client.request
 
 class ArticleRouteSpec :
     StringSpec({
@@ -30,13 +34,15 @@ class ArticleRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    get(ArticleResource.Feed(offsetParam = 0)) {
+                    request(endpoint = Api / Article / feed) {
+                        url {
+                            parameters.append("offsetParam", "0")
+                        }
                         contentType(ContentType.Application.Json)
                         bearerAuth(token.value)
                     }
 
-                assert(response.status == HttpStatusCode.OK)
-                val body = response.body<MultipleArticlesResponse>()
+                val body = response.bodyOrThrow()
                 assert(body.articles == emptyList<Article>())
                 assert(body.articlesCount == 0)
             }
@@ -54,13 +60,16 @@ class ArticleRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    get(ArticleResource.Feed(offsetParam = 0, limitParam = 5)) {
+                    request(Api / Article / feed) {
+                        url {
+                            parameters.append("offsetParam", "0")
+                            parameters.append("limitParam", "5")
+                        }
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
                     }
 
-                assert(response.status == HttpStatusCode.OK)
-                val body = response.body<MultipleArticlesResponse>()
+                val body = response.bodyOrThrow()
                 assert(body.articles == emptyList<Article>())
                 assert(body.articlesCount == 0)
             }
@@ -78,14 +87,17 @@ class ArticleRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    get(ArticleResource.Feed(offsetParam = -1)) {
+                    request(Api / Article / feed) {
+                        url {
+                            parameters.append("offsetParam", "-1")
+                        }
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
                     }
 
-                assert(response.status == HttpStatusCode.UnprocessableEntity)
+                assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
                 assert(
-                    response.body<GenericErrorModel>().errors.body ==
+                    response.httpResponse.body<GenericErrorModel>().errors.body ==
                         listOf("feed offset: too small, minimum is 0, and found -1")
                 )
             }
@@ -103,14 +115,18 @@ class ArticleRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    get(ArticleResource.Feed(offsetParam = 0, limitParam = 0)) {
+                    request(Api / Article / feed) {
+                        url {
+                            parameters.append("offsetParam", "0")
+                            parameters.append("limitParam", "0")
+                        }
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
                     }
 
-                assert(response.status == HttpStatusCode.UnprocessableEntity)
+                assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
                 assert(
-                    response.body<GenericErrorModel>().errors.body ==
+                    response.httpResponse.body<GenericErrorModel>().errors.body ==
                         listOf("feed limit: too small, minimum is 1, and found 0")
                 )
             }
@@ -128,14 +144,18 @@ class ArticleRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    get(ArticleResource.Feed(offsetParam = -1, limitParam = 0)) {
+                    request(Api / Article / feed) {
+                        url {
+                            parameters.append("offsetParam", "-1")
+                            parameters.append("limitParam", "0")
+                        }
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
                     }
 
-                assert(response.status == HttpStatusCode.UnprocessableEntity)
+                assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
                 assert(
-                    response.body<GenericErrorModel>().errors.body ==
+                    response.httpResponse.body<GenericErrorModel>().errors.body ==
                         listOf(
                             "feed offset: too small, minimum is 0, and found -1",
                             "feed limit: too small, minimum is 1, and found 0",
@@ -157,31 +177,30 @@ class ArticleRouteSpec :
                 val article = articleFixture()
 
                 val response =
-                    post(ArticlesResource()) {
+                    request(
+                        Api / Articles / create,
+                        ArticleWrapper(
+                            NewArticle(
+                                article.title,
+                                article.description,
+                                article.body,
+                                article.tags.toList(),
+                            )
+                        ),
+                    ) {
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
-                        setBody(
-                            ArticleWrapper(
-                                NewArticle(
-                                    article.title,
-                                    article.description,
-                                    article.body,
-                                    article.tags.toList(),
-                                )
-                            )
-                        )
                     }
 
-                assert(response.status == HttpStatusCode.Created)
-                with(response.body<SingleArticleResponse>().article) {
-                    assert(this.title == article.title)
-                    assert(this.description == article.description)
-                    assert(this.body == article.body)
-                    assert(this.favoritesCount == 0L)
-                    assert(this.favorited == false)
-                    assert(this.author.username == user.username)
-                    assert(this.tagList.toSet() == article.tags)
-                }
+                val created = response.bodyOrThrow()
+                assert(created.article.title == article.title)
+                assert(created.article.description == article.description)
+                assert(created.article.body == article.body)
+                assert(created.article.favoritesCount == 0L)
+                assert(created.article.favorited == false)
+                assert(created.article.author.username == user.username)
+                assert(created.article.tagList.toSet() == article.tags)
+                assert(response.httpResponse.status == HttpStatusCode.Created)
             }
         }
 
@@ -198,31 +217,30 @@ class ArticleRouteSpec :
                 val article = articleFixture()
 
                 val response =
-                    post(ArticlesResource()) {
+                    request(
+                        Api / Articles / create,
+                        ArticleWrapper(
+                            NewArticle(
+                                article.title,
+                                article.description,
+                                article.body,
+                                emptyList(),
+                            )
+                        ),
+                    ) {
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
-                        setBody(
-                            ArticleWrapper(
-                                NewArticle(
-                                    article.title,
-                                    article.description,
-                                    article.body,
-                                    emptyList(),
-                                )
-                            )
-                        )
                     }
 
-                assert(response.status == HttpStatusCode.Created)
-                with(response.body<SingleArticleResponse>().article) {
-                    assert(this.title == article.title)
-                    assert(this.description == article.description)
-                    assert(this.body == article.body)
-                    assert(this.favoritesCount == 0L)
-                    assert(this.favorited == false)
-                    assert(this.author.username == user.username)
-                    assert(this.tagList.size == 0)
-                }
+                val created = response.bodyOrThrow()
+                assert(created.article.title == article.title)
+                assert(created.article.description == article.description)
+                assert(created.article.body == article.body)
+                assert(created.article.favoritesCount == 0L)
+                assert(created.article.favorited == false)
+                assert(created.article.author.username == user.username)
+                assert(created.article.tagList.size == 0)
+                assert(response.httpResponse.status == HttpStatusCode.Created)
             }
         }
 
@@ -239,17 +257,17 @@ class ArticleRouteSpec :
                 val article = articleFixture()
 
                 val response =
-                    post(ArticlesResource()) {
+                    request(
+                        Api / Articles / create,
+                        ArticleWrapper(
+                            NewArticle(article.title, article.description, "", emptyList())
+                        ),
+                    ) {
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
-                        setBody(
-                            ArticleWrapper(
-                                NewArticle(article.title, article.description, "", emptyList())
-                            )
-                        )
                     }
 
-                assert(response.status == HttpStatusCode.UnprocessableEntity)
+                assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
             }
         }
 
@@ -266,15 +284,15 @@ class ArticleRouteSpec :
                 val article = articleFixture()
 
                 val response =
-                    post(ArticlesResource()) {
+                    request(
+                        Api / Articles / create,
+                        ArticleWrapper(NewArticle(article.title, "", article.body, emptyList())),
+                    ) {
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
-                        setBody(
-                            ArticleWrapper(NewArticle(article.title, "", article.body, emptyList()))
-                        )
                     }
 
-                assert(response.status == HttpStatusCode.UnprocessableEntity)
+                assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
             }
         }
 
@@ -291,17 +309,17 @@ class ArticleRouteSpec :
                 val article = articleFixture()
 
                 val response =
-                    post(ArticlesResource()) {
+                    request(
+                        Api / Articles / create,
+                        ArticleWrapper(
+                            NewArticle("", article.description, article.body, emptyList())
+                        ),
+                    ) {
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
-                        setBody(
-                            ArticleWrapper(
-                                NewArticle("", article.description, article.body, emptyList())
-                            )
-                        )
                     }
 
-                assert(response.status == HttpStatusCode.UnprocessableEntity)
+                assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
             }
         }
 
@@ -309,21 +327,21 @@ class ArticleRouteSpec :
             withServer {
                 val article = articleFixture()
                 val response =
-                    post(ArticlesResource()) {
-                        contentType(ContentType.Application.Json)
-                        setBody(
-                            ArticleWrapper(
-                                NewArticle(
-                                    article.title,
-                                    article.description,
-                                    article.body,
-                                    emptyList(),
-                                )
+                    request(
+                        Api / Articles / create,
+                        ArticleWrapper(
+                            NewArticle(
+                                article.title,
+                                article.description,
+                                article.body,
+                                emptyList(),
                             )
-                        )
+                        ),
+                    ) {
+                        contentType(ContentType.Application.Json)
                     }
 
-                assert(response.status == HttpStatusCode.Unauthorized)
+                assert(response.httpResponse.status == HttpStatusCode.Unauthorized)
             }
         }
     })

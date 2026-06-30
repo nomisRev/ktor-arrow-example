@@ -58,6 +58,9 @@ dependencies {
   implementation(ktorLibs.server.resources)
   implementation(ktorLibs.server.cors)
   implementation(ktorLibs.server.contentNegotiation)
+  implementation("dev.opensavvy.spine:api:0.11.0")
+  implementation("dev.opensavvy.spine:server:0.11.0")
+  implementation("dev.opensavvy.spine:server-arrow:0.11.0")
   implementation(ktorLibs.server.auth)
   implementation(libs.kjwt.core)
   implementation(libs.logback.classic)
@@ -69,6 +72,7 @@ dependencies {
 
   implementation(ktorLibs.client.contentNegotiation)
   implementation(ktorLibs.client.resources)
+  testImplementation("dev.opensavvy.spine:client:0.11.0")
   testImplementation(libs.testcontainers.postgresql)
   testImplementation(libs.ktor.server.tests)
   testImplementation(libs.bundles.kotest)

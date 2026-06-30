@@ -2,9 +2,6 @@
 
 package io.github.nomisrev.routes
 
-import arrow.core.raise.Raise
-import arrow.core.raise.either
-import io.github.nomisrev.IncorrectInput
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.auth.optionalJwtAuth
 import io.github.nomisrev.repo.UserId
@@ -16,13 +13,7 @@ import io.github.nomisrev.service.UpdateArticleInput
 import io.github.nomisrev.service.UserService
 import io.github.nomisrev.validate
 import io.ktor.http.HttpStatusCode
-import io.ktor.resources.Resource
-import io.ktor.server.request.receive
-import io.ktor.server.resources.delete
-import io.ktor.server.resources.get
-import io.ktor.server.resources.post
-import io.ktor.server.resources.put
-import io.ktor.server.response.respond
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.routing.Route
 import java.time.OffsetDateTime
 import kotlinx.serialization.KSerializer
@@ -32,8 +23,13 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import opensavvy.spine.api.DynamicResource
+import opensavvy.spine.api.RootResource as SpineRootResource
+import opensavvy.spine.api.StaticResource
+import opensavvy.spine.server.respond
 
-@Serializable data class ArticleWrapper<T : Any>(val article: T)
+@Serializable
+data class ArticleWrapper<T : Any>(val article: T)
 
 @Serializable
 data class Article(
@@ -50,20 +46,28 @@ data class Article(
     val tagList: List<String>,
 )
 
-@Serializable data class SingleArticleResponse(val article: Article)
+@Serializable
+data class SingleArticleResponse(val article: Article)
 
 @Serializable
 data class MultipleArticlesResponse(val articles: List<Article>, val articlesCount: Int)
 
-@JvmInline @Serializable value class FeedOffset(val offset: Int)
+@JvmInline
+@Serializable
+value class FeedOffset(val offset: Int)
 
-@JvmInline @Serializable value class FeedLimit(val limit: Int)
+@JvmInline
+@Serializable
+value class FeedLimit(val limit: Int)
 
-@Serializable data class CommentWrapper<T : Any>(val comment: T)
+@Serializable
+data class CommentWrapper<T : Any>(val comment: T)
 
-@Serializable data class NewComment(val body: String)
+@Serializable
+data class NewComment(val body: String)
 
-@Serializable data class SingleCommentResponse(val comment: Comment)
+@Serializable
+data class SingleCommentResponse(val comment: Comment)
 
 @Serializable
 data class Comment(
@@ -74,7 +78,8 @@ data class Comment(
     val author: Profile,
 )
 
-@Serializable data class MultipleCommentsResponse(val comments: List<Comment>)
+@Serializable
+data class MultipleCommentsResponse(val comments: List<Comment>)
 
 @Serializable
 data class NewArticle(
@@ -91,153 +96,207 @@ data class UpdateArticle(
     val body: String? = null,
 )
 
-context(_: Raise<IncorrectInput>)
-fun UpdateArticle.validate(): UpdateArticle = this
-
-@Resource("/article")
-data class ArticleResource(val parent: RootResource = RootResource) {
-    @Resource("/feed")
-    data class Feed(
-        val offsetParam: Int = 0,
-        val limitParam: Int = 20,
-        val parent: ArticleResource = ArticleResource(),
-    )
+// Validation input models kept separate from Spine resources so validation tests remain simple.
+class ArticleResource {
+    data class Feed(val offsetParam: Int = 0, val limitParam: Int = 20)
 }
 
-@Resource("/articles")
 data class ArticlesResource(
     val author: String? = null,
     val favorited: String? = null,
     val tag: String? = null,
     val offsetParam: Int = 0,
     val limitParam: Int = 20,
-    val parent: RootResource = RootResource,
 ) {
-    @Resource("{slug}")
-    data class Slug(val parent: ArticlesResource = ArticlesResource(), val slug: String) {
-        @Resource("favorite") data class Favorite(val parent: Slug)
+    data class Slug(val slug: String) {
+        data class Favorite(val parent: Slug)
     }
 
-    @Resource("{slug}/comments")
-    data class Comments(val parent: ArticlesResource = ArticlesResource(), val slug: String) {
-        @Resource("{id}") data class Id(val parent: Comments, val id: Long)
+    data class Comments(val slug: String) {
+        data class Id(val id: Long)
     }
 }
 
+object Api : SpineRootResource("api") {
+    object Articles : StaticResource<Api>("articles", Api) {
+        val list by
+        get()
+            .response<MultipleArticlesResponse>()
+            .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+
+        val create by
+        post()
+            .request<ArticleWrapper<NewArticle>>()
+            .response<SingleArticleResponse>()
+            .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+
+        object Slug : DynamicResource<Articles>("slug", Articles) {
+            val get by
+            get()
+                .response<SingleArticleResponse>()
+                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+
+            val update by
+            put()
+                .request<ArticleWrapper<UpdateArticle>>()
+                .response<ArticleResponse>()
+                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+
+            val delete by
+            delete()
+                .response<Unit>()
+                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+
+            object Favorite : StaticResource<Slug>("favorite", Slug) {
+                val add by
+                post()
+                    .response<SingleArticleResponse>()
+                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+
+                val remove by
+                delete()
+                    .response<SingleArticleResponse>()
+                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+            }
+
+            object Comments : StaticResource<Slug>("comments", Slug) {
+                val create by
+                post()
+                    .request<CommentWrapper<NewComment>>()
+                    .response<SingleCommentResponse>()
+                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+
+                val list by
+                get()
+                    .response<MultipleCommentsResponse>()
+                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+
+                object Id : DynamicResource<Comments>("id", Comments) {
+                    val delete by
+                    delete()
+                        .response<Unit>()
+                        .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+                }
+            }
+        }
+    }
+
+    object Article : StaticResource<Api>("article", Api) {
+        val feed by
+        get("feed")
+            .response<MultipleArticlesResponse>()
+            .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+    }
+}
+
+private fun ApplicationCall.articlesResource(): ArticlesResource =
+    ArticlesResource(
+        author = request.queryParameters["author"],
+        favorited = request.queryParameters["favorited"],
+        tag = request.queryParameters["tag"],
+        offsetParam = request.queryParameters["offsetParam"]?.toIntOrNull() ?: 0,
+        limitParam = request.queryParameters["limitParam"]?.toIntOrNull() ?: 20,
+    )
+
+private fun ApplicationCall.feedResource(): ArticleResource.Feed =
+    ArticleResource.Feed(
+        offsetParam = request.queryParameters["offsetParam"]?.toIntOrNull() ?: 0,
+        limitParam = request.queryParameters["limitParam"]?.toIntOrNull() ?: 20,
+    )
+
 fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) {
-    get<ArticlesResource> { articles ->
+    route(Api.Articles.list) {
         optionalJwtAuth(jwtService) { context ->
-            either {
-                    val input = articles.validate(currentUserId = context?.userId)
-                    articleService.getAllArticles(input)
-                }
-                .respond(HttpStatusCode.OK)
+            val input = call.articlesResource().validate(context?.userId)
+            val articles = articleService.getAllArticles(input)
+            respond(articles)
         }
     }
 
-    get<ArticleResource.Feed> { feed ->
+    route(Api.Article.feed) {
         jwtAuth(jwtService) { (_, userId) ->
-            either {
-                    val getFeed = feed.validate(userId)
-                    articleService.getUserFeed(input = getFeed)
-                }
-                .respond(HttpStatusCode.OK)
+            val input = call.feedResource().validate(userId)
+            val feed = articleService.getUserFeed(input)
+            respond(feed)
         }
     }
 
-    get<ArticlesResource.Slug> { slug ->
+    route(Api.Articles.Slug.get) {
         optionalJwtAuth(jwtService) { context ->
-            either {
-                    val article = articleService.getArticleBySlug(Slug(slug.slug), context?.userId)
-                    SingleArticleResponse(article)
-                }
-                .respond(HttpStatusCode.OK)
+            val article = articleService.getArticleBySlug(
+                Slug(idOf(Api.Articles.Slug)),
+                context?.userId,
+            )
+
+            respond(SingleArticleResponse(article))
         }
     }
 
-    put<ArticlesResource.Slug> { slugResource ->
+    route(Api.Articles.Slug.update) {
         jwtAuth(jwtService) { (_, userId) ->
-            either {
-                    val wrapper = call.receive<ArticleWrapper<UpdateArticle>>()
-                    val updateArticleRequest = wrapper.article.validate()
+            val input =
+                UpdateArticleInput(
+                    slug = Slug(idOf(Api.Articles.Slug)),
+                    userId = userId,
+                    title = body.article.title,
+                    description = body.article.description,
+                    body = body.article.body,
+                )
+            val updatedArticle = articleService.updateArticle(input)
 
-                    val input =
-                        UpdateArticleInput(
-                            slug = Slug(slugResource.slug),
-                            userId = userId,
-                            title = updateArticleRequest.title,
-                            description = updateArticleRequest.description,
-                            body = updateArticleRequest.body,
-                        )
+            respond(
+                ArticleResponse(
+                    slug = updatedArticle.slug,
+                    title = updatedArticle.title,
+                    description = updatedArticle.description,
+                    body = updatedArticle.body,
+                    author = updatedArticle.author,
+                    favorited = updatedArticle.favorited,
+                    favoritesCount = updatedArticle.favoritesCount,
+                    createdAt = updatedArticle.createdAt,
+                    updatedAt = updatedArticle.updatedAt,
+                    tagList = updatedArticle.tagList,
+                )
+            )
+        }
+    }
 
-                    val updatedArticle = articleService.updateArticle(input)
+    route(Api.Articles.Slug.delete) {
+        jwtAuth(jwtService) { (_, userId) ->
+            articleService.deleteArticle(Slug(idOf(Api.Articles.Slug)), userId)
+            respond(code = HttpStatusCode.OK)
+        }
+    }
 
-                    ArticleResponse(
-                        slug = updatedArticle.slug,
-                        title = updatedArticle.title,
-                        description = updatedArticle.description,
-                        body = updatedArticle.body,
-                        author = updatedArticle.author,
-                        favorited = updatedArticle.favorited,
-                        favoritesCount = updatedArticle.favoritesCount,
-                        createdAt = updatedArticle.createdAt,
-                        updatedAt = updatedArticle.updatedAt,
-                        tagList = updatedArticle.tagList,
+    route(Api.Articles.Slug.Favorite.add) {
+        jwtAuth(jwtService) { (_, userId) ->
+            val article = articleService.favoriteArticle(Slug(idOf(Api.Articles.Slug)), userId)
+            respond(SingleArticleResponse(article))
+        }
+    }
+
+    route(Api.Articles.Slug.Favorite.remove) {
+        jwtAuth(jwtService) { (_, userId) ->
+            val article =
+                articleService.unfavoriteArticle(Slug(idOf(Api.Articles.Slug)), userId)
+            respond(SingleArticleResponse(article))
+        }
+    }
+
+    route(Api.Articles.create) {
+        jwtAuth(jwtService) { (_, userId) ->
+            val article = body.article.validate()
+            val created =
+                articleService.createArticle(
+                    CreateArticle(
+                        userId,
+                        article.title,
+                        article.description,
+                        article.body,
+                        article.tagList.toSet(),
                     )
-                }
-                .respond(HttpStatusCode.OK)
-        }
-    }
-
-    delete<ArticlesResource.Slug> { slugResource ->
-        jwtAuth(jwtService) { (_, userId) ->
-            either {
-                    articleService.deleteArticle(Slug(slugResource.slug), userId)
-                    Unit
-                }
-                .respond(HttpStatusCode.OK)
-        }
-    }
-
-    post<ArticlesResource.Slug.Favorite> { favoriteResource ->
-        jwtAuth(jwtService) { (_, userId) ->
-            either {
-                    val article =
-                        articleService.favoriteArticle(Slug(favoriteResource.parent.slug), userId)
-                    SingleArticleResponse(article)
-                }
-                .respond(HttpStatusCode.OK)
-        }
-    }
-
-    delete<ArticlesResource.Slug.Favorite> { favoriteResource ->
-        jwtAuth(jwtService) { (_, userId) ->
-            either {
-                    val article =
-                        articleService.unfavoriteArticle(Slug(favoriteResource.parent.slug), userId)
-                    SingleArticleResponse(article)
-                }
-                .respond(HttpStatusCode.OK)
-        }
-    }
-
-    post<ArticlesResource> {
-        jwtAuth(jwtService) { (_, userId) ->
-            either {
-                    val article = call.receive<ArticleWrapper<NewArticle>>().article.validate()
-                    val created =
-                        articleService.createArticle(
-                            CreateArticle(
-                                userId,
-                                article.title,
-                                article.description,
-                                article.body,
-                                article.tagList.toSet(),
-                            )
-                        )
-                    SingleArticleResponse(created)
-                }
-                .respond(HttpStatusCode.Created)
+                )
+            respond(SingleArticleResponse(created), HttpStatusCode.Created)
         }
     }
 }
@@ -247,58 +306,51 @@ fun Route.commentRoutes(
     articleService: ArticleService,
     jwtService: JwtService,
 ) {
-    post<ArticlesResource.Comments> { slug ->
+    route(Api.Articles.Slug.Comments.create) {
         jwtAuth(jwtService) { (_, userId) ->
-            either {
-                    val comments =
-                        articleService.insertCommentForArticleSlug(
-                            slug = Slug(slug.slug),
-                            userId = userId,
-                            comment =
-                                call.receive<CommentWrapper<NewComment>>().comment.validate().body,
-                        )
+            val commentBody = body.comment.validate()
+            val comments =
+                articleService.insertCommentForArticleSlug(
+                    slug = Slug(idOf(Api.Articles.Slug)),
+                    userId = userId,
+                    comment = commentBody.body,
+                )
+            val userProfile = userService.getUser(UserId(comments.author))
 
-                    val userProfile = userService.getUser(UserId(comments.author))
-
-                    SingleCommentResponse(
-                        Comment(
-                            commentId = comments.id,
-                            createdAt = comments.createdAt,
-                            updatedAt = comments.updatedAt,
-                            body = comments.body,
-                            author =
-                                Profile(
-                                    username = userProfile.username,
-                                    bio = userProfile.bio,
-                                    image = userProfile.image,
-                                    following = false,
-                                ),
-                        )
+            respond(
+                SingleCommentResponse(
+                    Comment(
+                        commentId = comments.id,
+                        createdAt = comments.createdAt,
+                        updatedAt = comments.updatedAt,
+                        body = comments.body,
+                        author =
+                            Profile(
+                                username = userProfile.username,
+                                bio = userProfile.bio,
+                                image = userProfile.image,
+                                following = false,
+                            ),
                     )
-                }
-                .respond(HttpStatusCode.OK)
-        }
-    }
-}
-
-fun Route.commentRoutes(articleService: ArticleService, jwtService: JwtService) {
-    get<ArticlesResource.Comments> { slug ->
-        jwtAuth(jwtService) { (_, _) ->
-            val comments = articleService.getCommentsForSlug(Slug(slug.slug))
-            call.respond(MultipleCommentsResponse(comments))
+                )
+            )
         }
     }
 
-    delete<ArticlesResource.Comments.Id> { commentResource ->
+    route(Api.Articles.Slug.Comments.list) {
+        jwtAuth(jwtService) { _ ->
+            val comments = articleService.getCommentsForSlug(Slug(idOf(Api.Articles.Slug)))
+            respond(MultipleCommentsResponse(comments))
+        }
+    }
+
+    route(Api.Articles.Slug.Comments.Id.delete) {
         jwtAuth(jwtService) { (_, userId) ->
-            either {
-                    articleService.deleteComment(
-                        commentId = commentResource.id,
-                        userId = userId,
-                    )
-                    Unit
-                }
-                .respond(HttpStatusCode.OK)
+            articleService.deleteComment(
+                commentId = idOf(Api.Articles.Slug.Comments.Id).toLong(),
+                userId = userId,
+            )
+            respond(code = HttpStatusCode.OK)
         }
     }
 }
