@@ -108,6 +108,13 @@ data class ArticlesResource(
 }
 
 object Api : SpineRootResource("api") {
+    object Tags : StaticResource<Api>("tags", Api) {
+        val list by
+            get()
+                .response<TagsResponse>()
+                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+    }
+
     object Articles : StaticResource<Api>("articles", Api) {
         val list by
             get()

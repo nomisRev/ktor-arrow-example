@@ -7,7 +7,6 @@ import io.github.nomisrev.MissingParameter
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.service.JwtService
-import io.ktor.server.resources.get
 import io.ktor.server.routing.Route
 import kotlinx.serialization.Serializable
 import opensavvy.spine.server.respond

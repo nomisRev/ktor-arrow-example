@@ -1,7 +1,6 @@
 package io.github.nomisrev.routes
 
 import io.github.nomisrev.env.Dependencies
-import io.ktor.resources.Resource
 import io.ktor.server.application.Application
 import io.ktor.server.routing.routing
 
@@ -13,5 +12,3 @@ fun Application.routes(deps: Dependencies) = routing {
     profileRoutes(deps.userPersistence, deps.jwtService)
     commentRoutes(deps.userService, deps.articleService, deps.jwtService)
 }
-
-@Resource("/api") data object RootResource
