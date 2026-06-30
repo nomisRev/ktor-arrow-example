@@ -1,6 +1,7 @@
 package io.github.nomisrev.routes
 
-import arrow.core.Either
+import arrow.core.raise.context.Raise
+import arrow.core.raise.context.raise
 import arrow.core.raise.either
 import io.github.nomisrev.IncorrectJson
 import io.github.nomisrev.auth.jwtAuth
@@ -15,6 +16,7 @@ import io.ktor.server.request.receive
 import io.ktor.server.resources.get
 import io.ktor.server.resources.post
 import io.ktor.server.resources.put
+import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.RoutingContext
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -56,27 +58,27 @@ fun Route.userRoutes(userService: UserService, jwtService: JwtService) {
     /* Registration: POST /api/users */
     post<UsersResource> {
         either {
-                val (username, email, password) =
-                    receiveCatching<UserWrapper<NewUser>>().bind().user
-                val token =
-                    userService.register(RegisterUser(username, email, password)).bind().value
-                UserWrapper(User(email, token, username, "", ""))
+                val (username, email, password) = receiveCatching<UserWrapper<NewUser>>().user
+                val token = userService.register(RegisterUser(username, email, password))
+                UserWrapper(User(email, token.value, username, "", ""))
             }
             .respond(HttpStatusCode.Created)
     }
+
     post<UsersResource.Login> {
         either {
-                val (email, password) = receiveCatching<UserWrapper<LoginUser>>().bind().user
-                val (token, info) = userService.login(Login(email, password)).bind()
+                val (email, password) = receiveCatching<UserWrapper<LoginUser>>().user
+                val (token, info) = userService.login(Login(email, password))
                 UserWrapper(User(email, token.value, info.username, info.bio, info.image))
             }
             .respond(HttpStatusCode.OK)
     }
+
     /* Get Current User: GET /api/user */
     get<UserResource> {
         jwtAuth(jwtService) { (token, userId) ->
             either {
-                    val info = userService.getUser(userId).bind()
+                    val info = userService.getUser(userId)
                     UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
                 }
                 .respond(HttpStatusCode.OK)
@@ -88,11 +90,9 @@ fun Route.userRoutes(userService: UserService, jwtService: JwtService) {
         jwtAuth(jwtService) { (token, userId) ->
             either {
                     val (email, username, password, bio, image) =
-                        receiveCatching<UserWrapper<UpdateUser>>().bind().user
+                        receiveCatching<UserWrapper<UpdateUser>>().user
                     val info =
-                        userService
-                            .update(Update(userId, username, email, password, bio, image))
-                            .bind()
+                        userService.update(Update(userId, username, email, password, bio, image))
                     UserWrapper(User(info.email, token.value, info.username, info.bio, info.image))
                 }
                 .respond(HttpStatusCode.OK)
@@ -102,6 +102,11 @@ fun Route.userRoutes(userService: UserService, jwtService: JwtService) {
 
 // TODO improve how we receive models with validation
 @OptIn(ExperimentalSerializationApi::class)
-private suspend inline fun <reified A : Any> RoutingContext.receiveCatching():
-    Either<IncorrectJson, A> =
-    Either.catchOrThrow<MissingFieldException, A> { call.receive() }.mapLeft { IncorrectJson(it) }
+context(_: Raise<IncorrectJson>)
+private suspend inline fun <reified A : Any> RoutingContext.receiveCatching(): A {
+    return try {
+        call.receive()
+    } catch (e: MissingFieldException) {
+        raise(IncorrectJson(e))
+    }
+}

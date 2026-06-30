@@ -1,6 +1,8 @@
+@file:Suppress("MatchingDeclarationName")
+
 package io.github.nomisrev.routes
 
-import arrow.core.Either
+import arrow.core.raise.Raise
 import arrow.core.raise.either
 import io.github.nomisrev.IncorrectInput
 import io.github.nomisrev.auth.jwtAuth
@@ -89,21 +91,8 @@ data class UpdateArticle(
     val body: String? = null,
 )
 
-fun UpdateArticle.validate(): Either<IncorrectInput, UpdateArticle> = Either.Right(this)
-
-@Serializable
-data class ArticleResponse(
-    val slug: String,
-    val title: String,
-    val description: String,
-    val body: String,
-    val author: Profile,
-    val favorited: Boolean,
-    val favoritesCount: Long,
-    @Serializable(with = OffsetDateTimeIso8601Serializer::class) val createdAt: OffsetDateTime,
-    @Serializable(with = OffsetDateTimeIso8601Serializer::class) val updatedAt: OffsetDateTime,
-    val tagList: List<String>,
-)
+context(_: Raise<IncorrectInput>)
+fun UpdateArticle.validate(): UpdateArticle = this
 
 @Resource("/article")
 data class ArticleResource(val parent: RootResource = RootResource) {
@@ -140,7 +129,7 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
         optionalJwtAuth(jwtService) { context ->
             either {
                     val input = articles.validate(currentUserId = context?.userId)
-                    articleService.getAllArticles(input).bind()
+                    articleService.getAllArticles(input)
                 }
                 .respond(HttpStatusCode.OK)
         }
@@ -158,9 +147,10 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
 
     get<ArticlesResource.Slug> { slug ->
         optionalJwtAuth(jwtService) { context ->
-            articleService
-                .getArticleBySlug(Slug(slug.slug), context?.userId)
-                .map { SingleArticleResponse(it) }
+            either {
+                    val article = articleService.getArticleBySlug(Slug(slug.slug), context?.userId)
+                    SingleArticleResponse(article)
+                }
                 .respond(HttpStatusCode.OK)
         }
     }
@@ -168,11 +158,9 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
     put<ArticlesResource.Slug> { slugResource ->
         jwtAuth(jwtService) { (_, userId) ->
             either {
-                    // Receive and validate the update article request
                     val wrapper = call.receive<ArticleWrapper<UpdateArticle>>()
-                    val updateArticleRequest = wrapper.article.validate().bind()
+                    val updateArticleRequest = wrapper.article.validate()
 
-                    // Create the update article input
                     val input =
                         UpdateArticleInput(
                             slug = Slug(slugResource.slug),
@@ -182,10 +170,8 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
                             body = updateArticleRequest.body,
                         )
 
-                    // Update the article
-                    val updatedArticle = articleService.updateArticle(input).bind()
+                    val updatedArticle = articleService.updateArticle(input)
 
-                    // Map to response
                     ArticleResponse(
                         slug = updatedArticle.slug,
                         title = updatedArticle.title,
@@ -205,24 +191,32 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
 
     delete<ArticlesResource.Slug> { slugResource ->
         jwtAuth(jwtService) { (_, userId) ->
-            articleService.deleteArticle(Slug(slugResource.slug), userId).respond(HttpStatusCode.OK)
+            either {
+                    articleService.deleteArticle(Slug(slugResource.slug), userId)
+                    Unit
+                }
+                .respond(HttpStatusCode.OK)
         }
     }
 
     post<ArticlesResource.Slug.Favorite> { favoriteResource ->
         jwtAuth(jwtService) { (_, userId) ->
-            articleService
-                .favoriteArticle(Slug(favoriteResource.parent.slug), userId)
-                .map { SingleArticleResponse(it) }
+            either {
+                    val article =
+                        articleService.favoriteArticle(Slug(favoriteResource.parent.slug), userId)
+                    SingleArticleResponse(article)
+                }
                 .respond(HttpStatusCode.OK)
         }
     }
 
     delete<ArticlesResource.Slug.Favorite> { favoriteResource ->
         jwtAuth(jwtService) { (_, userId) ->
-            articleService
-                .unfavoriteArticle(Slug(favoriteResource.parent.slug), userId)
-                .map { SingleArticleResponse(it) }
+            either {
+                    val article =
+                        articleService.unfavoriteArticle(Slug(favoriteResource.parent.slug), userId)
+                    SingleArticleResponse(article)
+                }
                 .respond(HttpStatusCode.OK)
         }
     }
@@ -231,8 +225,8 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
         jwtAuth(jwtService) { (_, userId) ->
             either {
                     val article = call.receive<ArticleWrapper<NewArticle>>().article.validate()
-                    articleService
-                        .createArticle(
+                    val created =
+                        articleService.createArticle(
                             CreateArticle(
                                 userId,
                                 article.title,
@@ -241,8 +235,7 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
                                 article.tagList.toSet(),
                             )
                         )
-                        .map { SingleArticleResponse(it) }
-                        .bind()
+                    SingleArticleResponse(created)
                 }
                 .respond(HttpStatusCode.Created)
         }
@@ -258,19 +251,15 @@ fun Route.commentRoutes(
         jwtAuth(jwtService) { (_, userId) ->
             either {
                     val comments =
-                        articleService
-                            .insertCommentForArticleSlug(
-                                slug = Slug(slug.slug),
-                                userId = userId,
-                                comment =
-                                    call
-                                        .receive<CommentWrapper<NewComment>>()
-                                        .comment
-                                        .validate()
-                                        .body,
-                            )
-                            .bind()
-                    val userProfile = userService.getUser(UserId(comments.author)).bind()
+                        articleService.insertCommentForArticleSlug(
+                            slug = Slug(slug.slug),
+                            userId = userId,
+                            comment =
+                                call.receive<CommentWrapper<NewComment>>().comment.validate().body,
+                        )
+
+                    val userProfile = userService.getUser(UserId(comments.author))
+
                     SingleCommentResponse(
                         Comment(
                             commentId = comments.id,
@@ -302,16 +291,31 @@ fun Route.commentRoutes(articleService: ArticleService, jwtService: JwtService) 
 
     delete<ArticlesResource.Comments.Id> { commentResource ->
         jwtAuth(jwtService) { (_, userId) ->
-            articleService
-                .deleteComment(
-                    slug = Slug(commentResource.parent.slug),
-                    commentId = commentResource.id,
-                    userId = userId,
-                )
+            either {
+                    articleService.deleteComment(
+                        commentId = commentResource.id,
+                        userId = userId,
+                    )
+                    Unit
+                }
                 .respond(HttpStatusCode.OK)
         }
     }
 }
+
+@Serializable
+data class ArticleResponse(
+    val slug: String,
+    val title: String,
+    val description: String,
+    val body: String,
+    val author: Profile,
+    val favorited: Boolean,
+    val favoritesCount: Long,
+    @Serializable(with = OffsetDateTimeIso8601Serializer::class) val createdAt: OffsetDateTime,
+    @Serializable(with = OffsetDateTimeIso8601Serializer::class) val updatedAt: OffsetDateTime,
+    val tagList: List<String>,
+)
 
 private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
     override val descriptor: SerialDescriptor =

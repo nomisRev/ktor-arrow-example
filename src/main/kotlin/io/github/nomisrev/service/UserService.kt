@@ -1,10 +1,10 @@
 package io.github.nomisrev.service
 
-import arrow.core.Either
-import arrow.core.raise.either
-import arrow.core.raise.ensure
+import arrow.core.raise.context.Raise
+import arrow.core.raise.context.ensure
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.EmptyUpdate
+import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.repo.UserPersistence
@@ -29,34 +29,33 @@ class UserService(
     private val repo: UserPersistence,
     private val jwtService: JwtService,
 ) {
-    /** Registers the user and returns its unique identifier */
-    suspend fun register(input: RegisterUser): Either<DomainError, JwtToken> = either {
+    context(_: Raise<DomainError>)
+    fun register(input: RegisterUser): JwtToken {
         val (username, email, password) = input.validate()
-        val userId = repo.insert(username, email, password).bind()
-        jwtService.generateJwtToken(userId).bind()
+        val userId = repo.insert(username, email, password)
+        return jwtService.generateJwtToken(userId)
     }
 
-    /** Updates a user with all the provided fields, returns resulting info */
-    suspend fun update(input: Update): Either<DomainError, UserInfo> = either {
+    context(_: Raise<DomainError>)
+    fun update(input: Update): UserInfo {
         val (userId, username, email, password, bio, image) = input.validate()
         ensure(email != null || username != null || bio != null || image != null) {
             EmptyUpdate("Cannot update user with $userId with only null values")
         }
-        repo.update(userId, email, username, password, bio, image).bind()
+        return repo.update(userId, email, username, password, bio, image)
     }
 
-    /** Logs in a user based on email and password. */
-    suspend fun login(input: Login): Either<DomainError, Pair<JwtToken, UserInfo>> =
-        either {
-            val (email, password) = input.validate()
-            val (userId, info) = repo.verifyPassword(email, password).bind()
-            val token = jwtService.generateJwtToken(userId).bind()
-            Pair(token, info)
-        }
+    context(_: Raise<DomainError>)
+    fun login(input: Login): Pair<JwtToken, UserInfo> {
+        val (email, password) = input.validate()
+        val (userId, info) = repo.verifyPassword(email, password)
+        val token = jwtService.generateJwtToken(userId)
+        return Pair(token, info)
+    }
 
-    /** Retrieve used based on userId */
-    suspend fun getUser(userId: UserId): Either<DomainError, UserInfo> = repo.select(userId)
+    context(_: Raise<UserNotFound>)
+    fun getUser(userId: UserId): UserInfo = repo.select(userId)
 
-    /** Retrieve used based on username */
-    suspend fun getUser(username: String): Either<DomainError, UserInfo> = repo.select(username)
+    context(_: Raise<UserNotFound>)
+    fun getUser(username: String): UserInfo = repo.select(username)
 }

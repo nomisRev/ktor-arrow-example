@@ -1,5 +1,6 @@
 package io.github.nomisrev.service
 
+import arrow.core.raise.either
 import io.github.nomisrev.CannotGenerateSlug
 import io.github.nomisrev.SuspendFun
 import io.kotest.assertions.arrow.core.shouldBeLeft
@@ -19,7 +20,7 @@ class SlugGeneratorSpec :
                     val slugGenerator = slugifyGenerator(seed)
 
                     val title = "Test Title ${Random.nextInt(1000, 9999)}"
-                    val result = slugGenerator.generateSlug(title) { true }
+                    val result = either { slugGenerator.generateSlug(title) { true } }
 
                     val slug = result.shouldBeRight()
                     slug.value shouldContain "test_title"
@@ -32,10 +33,11 @@ class SlugGeneratorSpec :
                     val title = "Test Title ${Random.nextInt(1000, 9999)}"
 
                     // First attempt not unique, second attempt is unique
-                    val result =
+                    val result = either {
                         slugGenerator.generateSlug(title) { slug ->
                             slug.value == title.lowercase().replace(' ', '_') // First attempt fails
                         }
+                    }
 
                     val slug = result.shouldBeRight()
                     slug.value shouldContain "test_title"
@@ -48,7 +50,7 @@ class SlugGeneratorSpec :
                     val title = "Test Title ${Random.nextInt(1000, 9999)}"
 
                     // All attempts fail
-                    val result = slugGenerator.generateSlug(title) { false }
+                    val result = either { slugGenerator.generateSlug(title) { false } }
 
                     result shouldBeLeft
                         CannotGenerateSlug("Failed to generate unique slug from $title")
@@ -58,7 +60,7 @@ class SlugGeneratorSpec :
                     val slugGenerator = slugifyGenerator(seed)
 
                     val title = "Special @#$%^&*() Title ${Random.nextInt(1000, 9999)}"
-                    val result = slugGenerator.generateSlug(title) { true }
+                    val result = either { slugGenerator.generateSlug(title) { true } }
 
                     val slug = result.shouldBeRight()
                     slug.value shouldContain "special_title"
@@ -71,7 +73,7 @@ class SlugGeneratorSpec :
                     val slugGenerator = slugifyGenerator(seed)
 
                     val title = ""
-                    val result = slugGenerator.generateSlug(title) { true }
+                    val result = either { slugGenerator.generateSlug(title) { true } }
 
                     val slug = result.shouldBeRight()
                     slug.value shouldBe ""
@@ -82,7 +84,7 @@ class SlugGeneratorSpec :
 
                     val title =
                         "Very Long Title " + "x".repeat(200) + " ${Random.nextInt(1000, 9999)}"
-                    val result = slugGenerator.generateSlug(title) { true }
+                    val result = either { slugGenerator.generateSlug(title) { true } }
 
                     val slug = result.shouldBeRight()
                     slug.value shouldContain "very_long_title"

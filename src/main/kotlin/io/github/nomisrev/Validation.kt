@@ -219,20 +219,22 @@ private fun Int.minSize(size: Int): Int = also {
 }
 
 context(_: Raise<InvalidFeedOffset>)
-fun Int.validFeedOffset(): FeedOffset = withError(::InvalidFeedOffset) {
-    accumulate {
-        minSize(MIN_FEED_OFFSET)
-        FeedOffset(this@validFeedOffset)
+fun Int.validFeedOffset(): FeedOffset =
+    withError(::InvalidFeedOffset) {
+        accumulate {
+            minSize(MIN_FEED_OFFSET)
+            FeedOffset(this@validFeedOffset)
+        }
     }
-}
 
 context(_: Raise<InvalidFeedLimit>)
-fun Int.validFeedLimit(): FeedLimit = withError(::InvalidFeedLimit) {
-    accumulate {
-        minSize(MIN_FEED_LIMIT)
-        FeedLimit(this@validFeedLimit)
+fun Int.validFeedLimit(): FeedLimit =
+    withError(::InvalidFeedLimit) {
+        accumulate {
+            minSize(MIN_FEED_LIMIT)
+            FeedLimit(this@validFeedLimit)
+        }
     }
-}
 
 context(_: Raise<IncorrectInput>)
 fun ArticleResource.Feed.validate(userId: UserId): GetFeed =

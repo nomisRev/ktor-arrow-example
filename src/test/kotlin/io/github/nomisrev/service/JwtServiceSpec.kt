@@ -1,5 +1,6 @@
 package io.github.nomisrev.service
 
+import arrow.core.raise.either
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
 import io.github.nomisrev.JwtInvalid
@@ -23,15 +24,21 @@ class JwtServiceSpec :
                     withTestDependencies { dependencies ->
                         val user = userFixture()
                         val token =
-                            dependencies.userService
-                                .register(RegisterUser(user.username, user.email, user.password))
+                            either {
+                                    dependencies.userService.register(
+                                        RegisterUser(user.username, user.email, user.password)
+                                    )
+                                }
                                 .shouldBeRight()
+
                         val userId =
                             JWT.decodeT(token.value, JWSHMAC512Algorithm)
                                 .map { it.claimValueAsLong("id").shouldBeSome() }
                                 .shouldBeRight()
 
-                        val result = dependencies.jwtService.generateJwtToken(UserId(userId))
+                        val result = either {
+                            dependencies.jwtService.generateJwtToken(UserId(userId))
+                        }
 
                         val jwtToken = result.shouldBeRight()
                         jwtToken.value.shouldNotBeBlank()
@@ -42,18 +49,25 @@ class JwtServiceSpec :
                     withTestDependencies { dependencies ->
                         val user = userFixture()
                         val token =
-                            dependencies.userService
-                                .register(RegisterUser(user.username, user.email, user.password))
+                            either {
+                                    dependencies.userService.register(
+                                        RegisterUser(user.username, user.email, user.password)
+                                    )
+                                }
                                 .shouldBeRight()
+
                         val userId =
                             JWT.decodeT(token.value, JWSHMAC512Algorithm)
                                 .map { it.claimValueAsLong("id").shouldBeSome() }
                                 .shouldBeRight()
 
                         val generatedToken =
-                            dependencies.jwtService.generateJwtToken(UserId(userId)).shouldBeRight()
+                            either { dependencies.jwtService.generateJwtToken(UserId(userId)) }
+                                .shouldBeRight()
 
-                        val verifiedUserId = dependencies.jwtService.verifyJwtToken(generatedToken)
+                        val verifiedUserId = either {
+                            dependencies.jwtService.verifyJwtToken(generatedToken)
+                        }
 
                         val resultUserId = verifiedUserId.shouldBeRight()
                         resultUserId shouldBe UserId(userId)
@@ -67,11 +81,14 @@ class JwtServiceSpec :
                     withTestDependencies { dependencies ->
                         val user = userFixture()
                         val token =
-                            dependencies.userService
-                                .register(RegisterUser(user.username, user.email, user.password))
+                            either {
+                                    dependencies.userService.register(
+                                        RegisterUser(user.username, user.email, user.password)
+                                    )
+                                }
                                 .shouldBeRight()
 
-                        val userId = dependencies.jwtService.verifyJwtToken(token)
+                        val userId = either { dependencies.jwtService.verifyJwtToken(token) }
 
                         userId.shouldBeRight()
                     }
@@ -80,8 +97,11 @@ class JwtServiceSpec :
                 "should return JwtInvalid for an invalid token" {
                     withTestDependencies { dependencies ->
                         val error =
-                            dependencies.jwtService
-                                .verifyJwtToken(JwtToken("invalid.token.value"))
+                            either {
+                                    dependencies.jwtService.verifyJwtToken(
+                                        JwtToken("invalid.token.value")
+                                    )
+                                }
                                 .shouldBeLeft()
                         error.shouldBeInstanceOf<JwtInvalid>()
                     }

@@ -1,8 +1,7 @@
 package io.github.nomisrev.repo
 
-import arrow.core.Either
-import arrow.core.raise.either
-import arrow.core.raise.ensureNotNull
+import arrow.core.raise.context.Raise
+import arrow.core.raise.context.ensureNotNull
 import io.github.nomisrev.ArticleBySlugNotFound
 import io.github.nomisrev.routes.Comment
 import io.github.nomisrev.routes.FeedLimit
@@ -24,9 +23,8 @@ class ArticlePersistence(
     private val comments: CommentsQueries,
     private val tagsQueries: TagsQueries,
 ) {
-    /** Creates a new Article with the specified tags */
     @Suppress("LongParameterList")
-    suspend fun create(
+    fun create(
         authorId: UserId,
         slug: Slug,
         title: String,
@@ -35,31 +33,28 @@ class ArticlePersistence(
         createdAt: OffsetDateTime,
         updatedAt: OffsetDateTime,
         tags: Set<String>,
-    ): ArticleId =
-        articles.transactionWithResult {
-            val articleId =
-                articles
-                    .insertAndGetId(
-                        slug.value,
-                        title,
-                        description,
-                        body,
-                        authorId,
-                        createdAt,
-                        updatedAt,
-                    )
-                    .executeAsOne()
+    ): ArticleId = articles.transactionWithResult {
+        val articleId =
+            articles
+                .insertAndGetId(
+                    slug.value,
+                    title,
+                    description,
+                    body,
+                    authorId,
+                    createdAt,
+                    updatedAt,
+                )
+                .executeAsOne()
 
-            tags.forEach { tag -> tagsQueries.insert(articleId, tag) }
+        tags.forEach { tag -> tagsQueries.insert(articleId, tag) }
 
-            articleId
-        }
+        articleId
+    }
 
-    /** Verifies if a certain slug already exists or not */
-    suspend fun exists(slug: Slug): Boolean = articles.slugExists(slug.value).executeAsOne()
+    fun exists(slug: Slug): Boolean = articles.slugExists(slug.value).executeAsOne()
 
-    /** Get recent articles from users you follow * */
-    suspend fun feed(userId: UserId, limit: FeedLimit, offset: FeedOffset): List<Articles> =
+    fun feed(userId: UserId, limit: FeedLimit, offset: FeedOffset): List<Articles> =
         articles
             .selectFeedArticles(userId.serial, limit.limit.toLong(), offset.offset.toLong()) {
                 articleId,
@@ -87,10 +82,9 @@ class ArticlePersistence(
             }
             .executeAsList()
 
-    suspend fun feedCount(userId: UserId): Long =
-        articles.countFeedArticles(userId.serial).executeAsOne()
+    fun feedCount(userId: UserId): Long = articles.countFeedArticles(userId.serial).executeAsOne()
 
-    suspend fun allArticles(
+    fun allArticles(
         limit: FeedLimit,
         offset: FeedOffset,
         author: String? = null,
@@ -132,17 +126,19 @@ class ArticlePersistence(
         return ArticleListResult(query.executeAsList(), count)
     }
 
-    suspend fun findArticleBySlug(slug: Slug): Either<ArticleBySlugNotFound, Articles> = either {
+    context(_: Raise<ArticleBySlugNotFound>)
+    fun findArticleBySlug(slug: Slug): Articles {
         val article = articles.selectBySlug(slug.value).executeAsOneOrNull()
-        ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
+        return ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
     }
 
-    suspend fun updateArticle(
+    context(_: Raise<ArticleBySlugNotFound>)
+    fun updateArticle(
         slug: Slug,
         title: String?,
         description: String?,
         body: String?,
-    ): Either<ArticleBySlugNotFound, Articles> = either {
+    ): Articles {
         val article =
             articles
                 .update(title, description, body, OffsetDateTime.now(), slug.value) {
@@ -166,43 +162,43 @@ class ArticlePersistence(
                     )
                 }
                 .executeAsOneOrNull()
-        ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
+
+        return ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
     }
 
-    suspend fun deleteArticle(slug: Slug): Either<ArticleBySlugNotFound, Unit> = either {
-        val article = findArticleBySlug(slug).bind()
+    context(_: Raise<ArticleBySlugNotFound>)
+    fun deleteArticle(slug: Slug) {
+        val article = findArticleBySlug(slug)
         articles.delete(article.id)
     }
 
-    suspend fun createCommentForArticleSlug(
-        slug: Slug,
+    fun createCommentForArticleSlug(
         userId: UserId,
         comment: String,
         articleId: ArticleId,
         createdAt: OffsetDateTime,
-    ): Comments =
-        comments.transactionWithResult {
-            comments
-                .insertAndGetComment(
-                    article_id = articleId.serial,
-                    body = comment,
-                    author = userId.serial,
+    ): Comments = comments.transactionWithResult {
+        comments
+            .insertAndGetComment(
+                article_id = articleId.serial,
+                body = comment,
+                author = userId.serial,
+                createdAt = createdAt,
+                updatedAt = createdAt,
+            ) { id, articleId, body, author, createdAt, updatedAt ->
+                Comments(
+                    id = id,
+                    body = body,
+                    author = author,
                     createdAt = createdAt,
-                    updatedAt = createdAt,
-                ) { id, articleId, body, author, createdAt, updatedAt ->
-                    Comments(
-                        id = id,
-                        body = body,
-                        author = author,
-                        createdAt = createdAt,
-                        updatedAt = updatedAt,
-                        article_id = articleId,
-                    )
-                }
-                .executeAsOne()
-        }
+                    updatedAt = updatedAt,
+                    article_id = articleId,
+                )
+            }
+            .executeAsOne()
+    }
 
-    suspend fun findCommentsForSlug(slug: Slug): List<Comment> =
+    fun findCommentsForSlug(slug: Slug): List<Comment> =
         comments
             .selectForSlug(slug.value) {
                 commentId,
@@ -224,10 +220,9 @@ class ArticlePersistence(
             }
             .executeAsList()
 
-    suspend fun findCommentAuthor(commentId: Long): UserId? =
+    fun findCommentAuthor(commentId: Long): UserId? =
         comments.selectAuthorId(commentId).executeAsOneOrNull()?.let { UserId(it) }
 
-    /** Delete a comment by ID */
-    suspend fun deleteComment(commentId: Long, authorId: UserId): Boolean =
+    fun deleteComment(commentId: Long, authorId: UserId): Boolean =
         comments.delete(commentId, authorId.serial).executeAsList().size == 1
 }

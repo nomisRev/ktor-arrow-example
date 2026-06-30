@@ -39,7 +39,7 @@ fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtService
     get<ProfilesResource.Username> { route ->
         either {
                 ensure(!route.username.isNullOrBlank()) { MissingParameter("username") }
-                userPersistence.selectProfile(route.username).bind()
+                userPersistence.selectProfile(route.username)
             }
             .respond(HttpStatusCode.OK)
     }
@@ -48,7 +48,7 @@ fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtService
         jwtAuth(jwtService) { (_, userId) ->
             either {
                     userPersistence.unfollowProfile(follow.username, userId)
-                    val userUnfollowed = userPersistence.select(follow.username).bind()
+                    val userUnfollowed = userPersistence.select(follow.username)
                     ProfileWrapper(
                         Profile(
                             userUnfollowed.username,
@@ -65,7 +65,7 @@ fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtService
         jwtAuth(jwtService) { (_, userId) ->
             either {
                     userPersistence.followProfile(follow.username, userId)
-                    val userFollowed = userPersistence.select(follow.username).bind()
+                    val userFollowed = userPersistence.select(follow.username)
                     ProfileWrapper(
                         Profile(userFollowed.username, userFollowed.bio, userFollowed.image, true)
                     )

@@ -3,6 +3,7 @@
 package io.github.nomisrev.auth
 
 import arrow.core.Either
+import arrow.core.raise.either
 import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.service.JwtService
 import io.ktor.http.HttpStatusCode
@@ -12,10 +13,9 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.RoutingContext
 
 /**
- * TODO: This will be deprecated and made obsolete by Ktor Typed Auth
- *    Check https://github.com/ktorio/ktor-klip/pull/6 for details
+ * TODO: This will be deprecated and made obsolete by Ktor Typed Auth Check
+ *   https://github.com/ktorio/ktor-klip/pull/6 for details
  */
-
 @JvmInline value class JwtToken(val value: String)
 
 data class JwtContext(val token: JwtToken, val userId: UserId)
@@ -35,8 +35,9 @@ suspend inline fun RoutingContext.optionalJwtAuth(
     crossinline body: suspend RoutingContext.(JwtContext?) -> Unit,
 ) {
     jwtToken()?.let { token ->
-        jwtService
-            .verifyJwtToken(JwtToken(token))
+        either {
+                jwtService.verifyJwtToken(JwtToken(token))
+            }
             .fold(
                 { error -> call.respond(error) },
                 { userId -> body(this, JwtContext(JwtToken(token), userId)) },

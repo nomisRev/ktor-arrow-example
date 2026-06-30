@@ -1,5 +1,6 @@
 package io.github.nomisrev.routes
 
+import arrow.core.raise.either
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.userFixture
 import io.github.nomisrev.withServer
@@ -21,14 +22,20 @@ class ProfileRouteSpec :
             withServer { dependencies ->
                 val follower = userFixture()
                 val followed = userFixture()
+
                 val token =
-                    dependencies.userService
-                        .register(
-                            RegisterUser(follower.username, follower.email, follower.password)
-                        )
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(follower.username, follower.email, follower.password)
+                            )
+                        }
                         .shouldBeRight()
-                dependencies.userService
-                    .register(RegisterUser(followed.username, followed.email, followed.password))
+
+                either {
+                        dependencies.userService.register(
+                            RegisterUser(followed.username, followed.email, followed.password)
+                        )
+                    }
                     .shouldBeRight()
 
                 val response =
@@ -50,14 +57,20 @@ class ProfileRouteSpec :
             withServer { dependencies ->
                 val follower = userFixture()
                 val followed = userFixture()
+
                 val token =
-                    dependencies.userService
-                        .register(
-                            RegisterUser(follower.username, follower.email, follower.password)
-                        )
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(follower.username, follower.email, follower.password)
+                            )
+                        }
                         .shouldBeRight()
-                dependencies.userService
-                    .register(RegisterUser(followed.username, followed.email, followed.password))
+
+                either {
+                        dependencies.userService.register(
+                            RegisterUser(followed.username, followed.email, followed.password)
+                        )
+                    }
                     .shouldBeRight()
 
                 val response =
@@ -78,7 +91,6 @@ class ProfileRouteSpec :
         "Needs token to follow" {
             withServer {
                 val response = post(ProfilesResource.Follow(username = userFixture().username))
-
                 response.status shouldBe HttpStatusCode.Unauthorized
             }
         }
@@ -86,7 +98,6 @@ class ProfileRouteSpec :
         "Needs token to unfollow" {
             withServer {
                 val response = delete(ProfilesResource.Follow(username = userFixture().username))
-
                 response.status shouldBe HttpStatusCode.Unauthorized
             }
         }
@@ -95,10 +106,11 @@ class ProfileRouteSpec :
             withServer { dependencies ->
                 val follower = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(
-                            RegisterUser(follower.username, follower.email, follower.password)
-                        )
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(follower.username, follower.email, follower.password)
+                            )
+                        }
                         .shouldBeRight()
 
                 val response =
@@ -114,10 +126,11 @@ class ProfileRouteSpec :
             withServer { dependencies ->
                 val follower = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(
-                            RegisterUser(follower.username, follower.email, follower.password)
-                        )
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(follower.username, follower.email, follower.password)
+                            )
+                        }
                         .shouldBeRight()
 
                 val response =
@@ -132,9 +145,14 @@ class ProfileRouteSpec :
         "Get profile with no following" {
             withServer { dependencies ->
                 val user = userFixture()
-                dependencies.userService
-                    .register(RegisterUser(user.username, user.email, user.password))
+
+                either {
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    }
                     .shouldBeRight()
+
                 val response =
                     get(ProfilesResource.Username(username = user.username)) {
                         contentType(ContentType.Application.Json)
@@ -153,6 +171,7 @@ class ProfileRouteSpec :
         "Get profile invalid username" {
             withServer {
                 val invalidUsername = userFixture().username
+
                 val response =
                     get(ProfilesResource.Username(username = invalidUsername)) {
                         contentType(ContentType.Application.Json)

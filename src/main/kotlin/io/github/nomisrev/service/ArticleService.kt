@@ -1,13 +1,14 @@
 package io.github.nomisrev.service
 
-import arrow.core.Either
-import arrow.core.raise.either
-import arrow.core.raise.ensure
-import arrow.core.raise.ensureNotNull
+import arrow.core.raise.context.Raise
+import arrow.core.raise.context.ensure
+import arrow.core.raise.context.ensureNotNull
+import io.github.nomisrev.ArticleError
 import io.github.nomisrev.CommentNotFound
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.NotArticleAuthor
 import io.github.nomisrev.NotCommentAuthor
+import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.repo.ArticleId
 import io.github.nomisrev.repo.ArticlePersistence
 import io.github.nomisrev.repo.FavouritePersistence
@@ -58,47 +59,47 @@ class ArticleService(
     private val tagPersistence: TagPersistence,
     private val favouritePersistence: FavouritePersistence,
 ) {
-    /** Creates a new article and returns the resulting Article */
-    suspend fun createArticle(input: CreateArticle): Either<DomainError, Article> =
-        either {
-            val slug =
-                slugGenerator
-                    .generateSlug(input.title) { slug -> articlePersistence.exists(slug).not() }
-                    .bind()
+    context(_: Raise<DomainError>)
+    suspend fun createArticle(input: CreateArticle): Article {
+        val slug =
+            slugGenerator.generateSlug(input.title) { slug ->
+                articlePersistence.exists(slug).not()
+            }
 
-            val createdAt = OffsetDateTime.now()
-            val articleId =
-                articlePersistence
-                    .create(
-                        input.userId,
-                        slug,
-                        input.title,
-                        input.description,
-                        input.body,
-                        createdAt,
-                        createdAt,
-                        input.tags,
-                    )
-                    .serial
+        val createdAt = OffsetDateTime.now()
+        val articleId =
+            articlePersistence
+                .create(
+                    input.userId,
+                    slug,
+                    input.title,
+                    input.description,
+                    input.body,
+                    createdAt,
+                    createdAt,
+                    input.tags,
+                )
+                .serial
 
-            val user = userPersistence.select(input.userId).bind()
-            Article(
-                articleId,
-                slug.value,
-                input.title,
-                input.description,
-                input.body,
-                Profile(user.username, user.bio, user.image, false),
-                false,
-                0,
-                createdAt,
-                createdAt,
-                input.tags.toList(),
-            )
-        }
+        val user = userPersistence.select(input.userId)
 
-    /** Get the user's feed which contains articles of the authors the user followed */
-    suspend fun getUserFeed(input: GetFeed): MultipleArticlesResponse {
+        return Article(
+            articleId,
+            slug.value,
+            input.title,
+            input.description,
+            input.body,
+            Profile(user.username, user.bio, user.image, false),
+            false,
+            0,
+            createdAt,
+            createdAt,
+            input.tags.toList(),
+        )
+    }
+
+    context(_: Raise<UserNotFound>)
+    fun getUserFeed(input: GetFeed): MultipleArticlesResponse {
         val articles =
             articlePersistence.feed(
                 userId = input.userId,
@@ -108,85 +109,68 @@ class ArticleService(
 
         val articlesCount = articlePersistence.feedCount(input.userId).toInt()
 
-        val responseArticles = mutableListOf<Article>()
-        for (articleRow in articles) {
-            responseArticles.add(article(articleRow, input.userId))
-        }
-
         return MultipleArticlesResponse(
-            articles = responseArticles,
+            articles = articles.map { article(it, input.userId) },
             articlesCount = articlesCount,
         )
     }
 
-    /** Get all articles */
-    suspend fun getAllArticles(input: GetArticles): Either<DomainError, MultipleArticlesResponse> =
-        either {
-            val limit = FeedLimit(input.limit)
-            val offset = FeedOffset(input.offset)
+    context(_: Raise<UserNotFound>)
+    fun getAllArticles(input: GetArticles): MultipleArticlesResponse {
+        val limit = FeedLimit(input.limit)
+        val offset = FeedOffset(input.offset)
 
-            val result =
-                articlePersistence.allArticles(
-                    limit = limit,
-                    offset = offset,
-                    author = input.author,
-                    favorited = input.favorited,
-                    tag = input.tag,
-                )
-
-            val responseArticles = mutableListOf<Article>()
-            for (articleRow in result.articles) {
-                responseArticles.add(article(articleRow, input.currentUserId))
-            }
-
-            MultipleArticlesResponse(
-                articles = responseArticles,
-                articlesCount = result.articlesCount.toInt(),
+        val result =
+            articlePersistence.allArticles(
+                limit = limit,
+                offset = offset,
+                author = input.author,
+                favorited = input.favorited,
+                tag = input.tag,
             )
-        }
 
-    /** Get article by Slug */
-    suspend fun getArticleBySlug(
-        slug: Slug,
-        currentUserId: UserId? = null,
-    ): Either<DomainError, Article> =
-        either {
-            val article = articlePersistence.findArticleBySlug(slug).bind()
-            article(article, currentUserId)
-        }
+        return MultipleArticlesResponse(
+            articles = result.articles.map { article(it, input.currentUserId) },
+            articlesCount = result.articlesCount.toInt(),
+        )
+    }
 
-    /** Update an article and return the updated Article */
-    suspend fun updateArticle(input: UpdateArticleInput): Either<DomainError, Article> = either {
-        val article = articlePersistence.findArticleBySlug(input.slug).bind()
+    context(_: Raise<DomainError>)
+    fun getArticleBySlug(slug: Slug, currentUserId: UserId? = null): Article {
+        val article = articlePersistence.findArticleBySlug(slug)
+        return article(article, currentUserId)
+    }
+
+    context(_: Raise<DomainError>)
+    fun updateArticle(input: UpdateArticleInput): Article {
+        val article = articlePersistence.findArticleBySlug(input.slug)
 
         ensure(article.author_id != input.userId) {
-            raise(NotArticleAuthor(input.userId.serial, input.slug.value))
+            NotArticleAuthor(input.userId.serial, input.slug.value)
         }
 
         val updatedArticle =
-            articlePersistence
-                .updateArticle(input.slug, input.title, input.description, input.body)
-                .bind()
+            articlePersistence.updateArticle(
+                input.slug,
+                input.title,
+                input.description,
+                input.body,
+            )
 
-        article(updatedArticle, input.userId)
+        return article(updatedArticle, input.userId)
     }
 
-    /** Delete an article by slug */
-    suspend fun deleteArticle(slug: Slug, userId: UserId): Either<DomainError, Unit> =
-        either {
-            val article = articlePersistence.findArticleBySlug(slug).bind()
-            ensure(article.author_id == userId) { NotArticleAuthor(userId.serial, slug.value) }
-            articlePersistence.deleteArticle(slug).bind()
-        }
+    context(_: Raise<ArticleError>)
+    fun deleteArticle(slug: Slug, userId: UserId) {
+        val article = articlePersistence.findArticleBySlug(slug)
+        ensure(article.author_id == userId) { NotArticleAuthor(userId.serial, slug.value) }
+        articlePersistence.deleteArticle(slug)
+    }
 
-    suspend fun insertCommentForArticleSlug(
-        slug: Slug,
-        userId: UserId,
-        comment: String,
-    ): Either<DomainError, Comments> = either {
-        val article = getArticleBySlug(slug, userId).bind()
-        articlePersistence.createCommentForArticleSlug(
-            slug,
+    context(_: Raise<DomainError>)
+    fun insertCommentForArticleSlug(slug: Slug, userId: UserId, comment: String): Comments {
+        val article = getArticleBySlug(slug, userId)
+        return articlePersistence.createCommentForArticleSlug(
             userId,
             comment,
             ArticleId(article.articleId),
@@ -194,55 +178,39 @@ class ArticleService(
         )
     }
 
-    suspend fun getCommentsForSlug(slug: Slug): List<Comment> =
-        articlePersistence.findCommentsForSlug(slug)
+    fun getCommentsForSlug(slug: Slug): List<Comment> = articlePersistence.findCommentsForSlug(slug)
 
-    /** Delete a comment for an article */
-    suspend fun deleteComment(
-        slug: Slug,
-        commentId: Long,
-        userId: UserId,
-    ): Either<DomainError, Unit> =
-        either {
-            val authorId = articlePersistence.findCommentAuthor(commentId)
-            ensureNotNull(authorId) { CommentNotFound(commentId) }
-            ensure(authorId == userId) { NotCommentAuthor(userId.serial, commentId) }
-            articlePersistence.deleteComment(commentId, userId)
-        }
+    context(_: Raise<ArticleError>)
+    fun deleteComment(commentId: Long, userId: UserId) {
+        val authorId = articlePersistence.findCommentAuthor(commentId)
+        val authorIdNonNull = ensureNotNull(authorId) { CommentNotFound(commentId) }
+        ensure(authorIdNonNull == userId) { NotCommentAuthor(userId.serial, commentId) }
+        articlePersistence.deleteComment(commentId, userId)
+    }
 
-    /** Favorite an article and return the updated article */
-    suspend fun favoriteArticle(slug: Slug, userId: UserId): Either<DomainError, Article> =
-        either {
-            val article = articlePersistence.findArticleBySlug(slug).bind()
-            val articleId = article.id
+    context(_: Raise<DomainError>)
+    suspend fun favoriteArticle(slug: Slug, userId: UserId): Article {
+        val article = articlePersistence.findArticleBySlug(slug)
+        favouritePersistence.favoriteArticle(userId, article.id)
+        return article(article, userId)
+    }
 
-            favouritePersistence.favoriteArticle(userId, articleId)
-            article(article, userId)
-        }
+    context(_: Raise<DomainError>)
+    suspend fun unfavoriteArticle(slug: Slug, userId: UserId): Article {
+        val article = articlePersistence.findArticleBySlug(slug)
+        val articleId = article.id
+        favouritePersistence.unfavoriteArticle(userId, articleId)
+        return article(article, userId)
+    }
 
-    /** Unfavorite an article and return the updated article */
-    suspend fun unfavoriteArticle(slug: Slug, userId: UserId): Either<DomainError, Article> =
-        either {
-            val article = articlePersistence.findArticleBySlug(slug).bind()
-            val articleId = article.id
-            favouritePersistence.unfavoriteArticle(userId, articleId)
-            article(article, userId)
-        }
-
-    private suspend fun article(
-        article: Articles,
-        currentUserId: UserId?,
-    ): Article {
-        val user =
-            when (val selectedUser = userPersistence.select(article.author_id)) {
-                is Either.Left -> error("Author ${article.author_id.serial} not found")
-                is Either.Right -> selectedUser.value
-            }
+    context(_: Raise<UserNotFound>)
+    private fun article(article: Articles, currentUserId: UserId?): Article {
+        val user = userPersistence.select(article.author_id)
 
         val articleTags = tagPersistence.selectTagsOfArticle(article.id)
         val favouriteCount = favouritePersistence.favoriteCount(article.id)
         val favorited =
-            if (currentUserId != null) favouritePersistence.isFavorite(currentUserId, article.id) else false
+            currentUserId != null && favouritePersistence.isFavorite(currentUserId, article.id)
 
         return Article(
             article.id.serial,

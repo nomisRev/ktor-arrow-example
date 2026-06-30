@@ -28,7 +28,11 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
 
     val userRepo = UserPersistence(sqlDelight.usersQueries, sqlDelight.followingQueries)
     val articleRepo =
-        ArticlePersistence(sqlDelight.articlesQueries, sqlDelight.commentsQueries, sqlDelight.tagsQueries)
+        ArticlePersistence(
+            sqlDelight.articlesQueries,
+            sqlDelight.commentsQueries,
+            sqlDelight.tagsQueries,
+        )
     val tagPersistence = TagPersistence(sqlDelight.tagsQueries)
     val favouritePersistence = FavouritePersistence(sqlDelight.favoritesQueries)
 

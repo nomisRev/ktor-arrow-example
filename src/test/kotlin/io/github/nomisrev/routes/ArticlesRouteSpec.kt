@@ -1,5 +1,6 @@
 package io.github.nomisrev.routes
 
+import arrow.core.raise.either
 import io.github.nomisrev.articleFixture
 import io.github.nomisrev.service.CreateArticle
 import io.github.nomisrev.service.RegisterUser
@@ -34,22 +35,29 @@ class ArticlesRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
-                val userId = dependencies.jwtService.verifyJwtToken(token).shouldBeRight()
+
+                val userId =
+                    either { dependencies.jwtService.verifyJwtToken(token) }.shouldBeRight()
+
                 val article = articleFixture()
                 val created =
-                    dependencies.articleService
-                        .createArticle(
-                            CreateArticle(
-                                userId,
-                                article.title,
-                                article.description,
-                                article.body,
-                                article.tags,
+                    either {
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    userId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
                             )
-                        )
+                        }
                         .shouldBeRight()
 
                 val response = get(ArticlesResource.Slug(slug = created.slug))
@@ -75,22 +83,28 @@ class ArticlesRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
-                val userId = dependencies.jwtService.verifyJwtToken(token).shouldBeRight()
+                val userId =
+                    either { dependencies.jwtService.verifyJwtToken(token) }.shouldBeRight()
+
                 val article = articleFixture()
                 val created =
-                    dependencies.articleService
-                        .createArticle(
-                            CreateArticle(
-                                userId,
-                                article.title,
-                                article.description,
-                                article.body,
-                                article.tags,
+                    either {
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    userId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
                             )
-                        )
+                        }
                         .shouldBeRight()
 
                 val response =
@@ -105,22 +119,28 @@ class ArticlesRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
-                val userId = dependencies.jwtService.verifyJwtToken(token).shouldBeRight()
+                val userId =
+                    either { dependencies.jwtService.verifyJwtToken(token) }.shouldBeRight()
+
                 val article = articleFixture()
                 val created =
-                    dependencies.articleService
-                        .createArticle(
-                            CreateArticle(
-                                userId,
-                                article.title,
-                                article.description,
-                                article.body,
-                                article.tags,
+                    either {
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    userId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
                             )
-                        )
+                        }
                         .shouldBeRight()
 
                 val response = get(ArticlesResource.Comments(slug = created.slug))
@@ -133,23 +153,29 @@ class ArticlesRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
-                val userId = dependencies.jwtService.verifyJwtToken(token).shouldBeRight()
+                val userId =
+                    either { dependencies.jwtService.verifyJwtToken(token) }.shouldBeRight()
+
                 val comment = "This is a comment ${user.username}"
                 val article = articleFixture()
                 val created =
-                    dependencies.articleService
-                        .createArticle(
-                            CreateArticle(
-                                userId,
-                                article.title,
-                                article.description,
-                                article.body,
-                                article.tags,
+                    either {
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    userId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
                             )
-                        )
+                        }
                         .shouldBeRight()
 
                 val response =
@@ -171,23 +197,29 @@ class ArticlesRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
-                val userId = dependencies.jwtService.verifyJwtToken(token).shouldBeRight()
+                val userId =
+                    either { dependencies.jwtService.verifyJwtToken(token) }.shouldBeRight()
+
                 val comment = "This is a comment"
                 val article = articleFixture()
                 val created =
-                    dependencies.articleService
-                        .createArticle(
-                            CreateArticle(
-                                userId,
-                                article.title,
-                                article.description,
-                                article.body,
-                                article.tags,
+                    either {
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    userId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
                             )
-                        )
+                        }
                         .shouldBeRight()
 
                 val response =
@@ -205,22 +237,28 @@ class ArticlesRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
-                val userId = dependencies.jwtService.verifyJwtToken(token).shouldBeRight()
+                val userId =
+                    either { dependencies.jwtService.verifyJwtToken(token) }.shouldBeRight()
+
                 val article = articleFixture()
                 val created =
-                    dependencies.articleService
-                        .createArticle(
-                            CreateArticle(
-                                userId,
-                                article.title,
-                                article.description,
-                                article.body,
-                                article.tags,
+                    either {
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    userId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
                             )
-                        )
+                        }
                         .shouldBeRight()
 
                 val response =

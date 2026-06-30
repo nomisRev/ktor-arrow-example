@@ -1,5 +1,6 @@
 package io.github.nomisrev.routes
 
+import arrow.core.raise.either
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.userFixture
 import io.github.nomisrev.withServer
@@ -39,8 +40,11 @@ class UserRouteSpec :
         "Can log in a registered user" {
             withServer { dependencies ->
                 val user = userFixture()
-                dependencies.userService
-                    .register(RegisterUser(user.username, user.email, user.password))
+                either {
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    }
                     .shouldBeRight()
 
                 val response =
@@ -63,8 +67,11 @@ class UserRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val expected =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
 
                 val response = get(UserResource()) { bearerAuth(expected.value) }
@@ -84,8 +91,11 @@ class UserRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val expected =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
                 val newUsername = "new-${user.username}"
 
@@ -111,8 +121,11 @@ class UserRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
                 val invalidEmail = "invalidEmail"
 

@@ -1,5 +1,6 @@
 package io.github.nomisrev.routes
 
+import arrow.core.raise.either
 import io.github.nomisrev.articleFixture
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.userFixture
@@ -21,8 +22,11 @@ class ArticleRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
 
                 val response =
@@ -42,8 +46,11 @@ class ArticleRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
 
                 val response =
@@ -63,8 +70,11 @@ class ArticleRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
 
                 val response =
@@ -85,8 +95,11 @@ class ArticleRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
 
                 val response =
@@ -107,8 +120,11 @@ class ArticleRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
 
                 val response =
@@ -132,8 +148,11 @@ class ArticleRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
                 val article = articleFixture()
 
@@ -170,8 +189,11 @@ class ArticleRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
                 val article = articleFixture()
 
@@ -208,8 +230,11 @@ class ArticleRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
                 val article = articleFixture()
 
@@ -232,8 +257,11 @@ class ArticleRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
                 val article = articleFixture()
 
@@ -254,8 +282,11 @@ class ArticleRouteSpec :
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
-                    dependencies.userService
-                        .register(RegisterUser(user.username, user.email, user.password))
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                         .shouldBeRight()
                 val article = articleFixture()
 

@@ -2,6 +2,7 @@ package io.github.nomisrev.service
 
 import arrow.core.Either
 import arrow.core.flatMap
+import arrow.core.raise.either
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
 import io.github.nomisrev.DomainError
@@ -22,39 +23,50 @@ class ArticleServiceSpec :
                     withTestDependencies { dependencies ->
                         val user = userFixture()
                         val userId =
-                            dependencies.userService
-                                .register(RegisterUser(user.username, user.email, user.password))
+                            either {
+                                    dependencies.userService.register(
+                                        RegisterUser(user.username, user.email, user.password)
+                                    )
+                                }
                                 .shouldHaveUserId()
 
                         val otherUser = userFixture()
                         val otherUserId =
-                            dependencies.userService
-                                .register(
-                                    RegisterUser(
-                                        otherUser.username,
-                                        otherUser.email,
-                                        otherUser.password,
+                            either {
+                                    dependencies.userService.register(
+                                        RegisterUser(
+                                            otherUser.username,
+                                            otherUser.email,
+                                            otherUser.password,
+                                        )
                                     )
-                                )
+                                }
                                 .shouldHaveUserId()
 
                         val article = articleFixture()
-                        dependencies.articleService
-                            .createArticle(
-                                CreateArticle(
-                                    UserId(otherUserId),
-                                    article.title,
-                                    article.description,
-                                    article.body,
-                                    article.tags,
-                                )
-                            )
-                            .shouldBeRight()
+
+                        val created =
+                            either {
+                                    dependencies.articleService.createArticle(
+                                        CreateArticle(
+                                            UserId(otherUserId),
+                                            article.title,
+                                            article.description,
+                                            article.body,
+                                            article.tags,
+                                        )
+                                    )
+                                }
+                                .shouldBeRight()
 
                         val feed =
-                            dependencies.articleService.getUserFeed(
-                                input = GetFeed(userId = UserId(userId), limit = 20, offset = 0)
-                            )
+                            either {
+                                    dependencies.articleService.getUserFeed(
+                                        input =
+                                            GetFeed(userId = UserId(userId), limit = 20, offset = 0)
+                                    )
+                                }
+                                .shouldBeRight()
 
                         assert(feed.articlesCount == 0)
                     }
@@ -64,67 +76,82 @@ class ArticleServiceSpec :
                     withTestDependencies { dependencies ->
                         val user = userFixture()
                         val userId =
-                            dependencies.userService
-                                .register(RegisterUser(user.username, user.email, user.password))
+                            either {
+                                    dependencies.userService.register(
+                                        RegisterUser(user.username, user.email, user.password)
+                                    )
+                                }
                                 .shouldHaveUserId()
                         val followed = userFixture()
                         val followedId =
-                            dependencies.userService
-                                .register(
-                                    RegisterUser(
-                                        followed.username,
-                                        followed.email,
-                                        followed.password,
+                            either {
+                                    dependencies.userService.register(
+                                        RegisterUser(
+                                            followed.username,
+                                            followed.email,
+                                            followed.password,
+                                        )
                                     )
-                                )
+                                }
                                 .shouldHaveUserId()
                         val unrelated = userFixture()
                         val unrelatedId =
-                            dependencies.userService
-                                .register(
-                                    RegisterUser(
-                                        unrelated.username,
-                                        unrelated.email,
-                                        unrelated.password,
+                            either {
+                                    dependencies.userService.register(
+                                        RegisterUser(
+                                            unrelated.username,
+                                            unrelated.email,
+                                            unrelated.password,
+                                        )
                                     )
-                                )
+                                }
                                 .shouldHaveUserId()
 
-                        dependencies.userPersistence
-                            .followProfile(followed.username, UserId(userId))
+                        either {
+                                dependencies.userPersistence.followProfile(
+                                    followed.username,
+                                    UserId(userId),
+                                )
+                            }
                             .shouldBeRight()
 
                         val followedArticle = articleFixture()
                         val createdFollowedArticle =
-                            dependencies.articleService
-                                .createArticle(
-                                    CreateArticle(
-                                        UserId(followedId),
-                                        followedArticle.title,
-                                        followedArticle.description,
-                                        followedArticle.body,
-                                        followedArticle.tags,
+                            either {
+                                    dependencies.articleService.createArticle(
+                                        CreateArticle(
+                                            UserId(followedId),
+                                            followedArticle.title,
+                                            followedArticle.description,
+                                            followedArticle.body,
+                                            followedArticle.tags,
+                                        )
                                     )
-                                )
+                                }
                                 .shouldBeRight()
 
                         val unrelatedArticle = articleFixture()
-                        dependencies.articleService
-                            .createArticle(
-                                CreateArticle(
-                                    UserId(unrelatedId),
-                                    unrelatedArticle.title,
-                                    unrelatedArticle.description,
-                                    unrelatedArticle.body,
-                                    unrelatedArticle.tags,
+                        either {
+                                dependencies.articleService.createArticle(
+                                    CreateArticle(
+                                        UserId(unrelatedId),
+                                        unrelatedArticle.title,
+                                        unrelatedArticle.description,
+                                        unrelatedArticle.body,
+                                        unrelatedArticle.tags,
+                                    )
                                 )
-                            )
+                            }
                             .shouldBeRight()
 
                         val feed =
-                            dependencies.articleService.getUserFeed(
-                                input = GetFeed(userId = UserId(userId), limit = 20, offset = 0)
-                            )
+                            either {
+                                    dependencies.articleService.getUserFeed(
+                                        input =
+                                            GetFeed(userId = UserId(userId), limit = 20, offset = 0)
+                                    )
+                                }
+                                .shouldBeRight()
 
                         assert(feed.articlesCount == 1)
                         assert(feed.articles.single().slug == createdFollowedArticle.slug)
