@@ -64,14 +64,13 @@ inline fun <
             Or<Never, ByCode<GenericErrorModel>>,
             Params,
         >.() -> Unit,
-) {
+): Unit =
     route(endpoint) response@{
         recover(
             block = { block() },
-            recover = { it: DomainError -> fail(it.toGenericErrorModel()) },
+            recover = { error: DomainError -> fail(error.toGenericErrorModel()) },
         )
     }
-}
 
 fun DomainError.toGenericErrorModel(): GenericErrorModel =
     when (this) {

@@ -7,7 +7,6 @@ import io.github.nomisrev.MissingParameter
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.service.JwtService
-import io.ktor.resources.Resource
 import io.ktor.server.resources.get
 import io.ktor.server.routing.Route
 import kotlinx.serialization.Serializable
@@ -22,15 +21,6 @@ data class Profile(
     val image: String,
     val following: Boolean,
 )
-
-@Resource("/profiles")
-data class ProfilesResource(val parent: RootResource = RootResource) {
-    @Resource("/{username?}")
-    data class Username(val parent: ProfilesResource = ProfilesResource(), val username: String?)
-
-    @Resource("/{username}/follow")
-    data class Follow(val parent: ProfilesResource = ProfilesResource(), val username: String)
-}
 
 fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtService) {
     route(Api.Profiles.Username.get) {

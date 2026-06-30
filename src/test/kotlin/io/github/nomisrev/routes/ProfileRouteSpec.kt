@@ -1,20 +1,28 @@
 package io.github.nomisrev.routes
 
 import arrow.core.raise.either
+import io.github.nomisrev.routes.Api.Profiles
+import io.github.nomisrev.routes.Api.Profiles.Username
+import io.github.nomisrev.routes.Api.Profiles.Username.Follow
+import io.github.nomisrev.routes.Api.Profiles.Username.Follow.add
+import io.github.nomisrev.routes.Api.Profiles.Username.Follow.remove
+import io.github.nomisrev.routes.Api.Profiles.Username.get
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.userFixture
 import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
-import io.ktor.client.call.body
-import io.ktor.client.plugins.resources.delete
-import io.ktor.client.plugins.resources.get
-import io.ktor.client.plugins.resources.post
+import io.ktor.client.call.*
+import io.ktor.client.plugins.logging.DEFAULT
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logger
+import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.bearerAuth
-import io.ktor.http.ContentType
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
+import io.ktor.http.*
+import opensavvy.spine.api.*
+import opensavvy.spine.client.bodyOrThrow
+import opensavvy.spine.client.request
 
 class ProfileRouteSpec :
     StringSpec({
@@ -25,26 +33,26 @@ class ProfileRouteSpec :
 
                 val token =
                     either {
-                            dependencies.userService.register(
-                                RegisterUser(follower.username, follower.email, follower.password)
-                            )
-                        }
+                        dependencies.userService.register(
+                            RegisterUser(follower.username, follower.email, follower.password)
+                        )
+                    }
                         .shouldBeRight()
 
                 either {
-                        dependencies.userService.register(
-                            RegisterUser(followed.username, followed.email, followed.password)
-                        )
-                    }
+                    dependencies.userService.register(
+                        RegisterUser(followed.username, followed.email, followed.password)
+                    )
+                }
                     .shouldBeRight()
 
                 val response =
-                    post(ProfilesResource.Follow(username = followed.username)) {
+                    request(Api / Profiles / Username(followed.username) / Follow / add) {
                         bearerAuth(token.value)
                     }
 
-                response.status shouldBe HttpStatusCode.OK
-                with(response.body<ProfileWrapper<Profile>>().profile) {
+                response.httpResponse.status shouldBe HttpStatusCode.OK
+                with(response.bodyOrThrow().profile) {
                     username shouldBe followed.username
                     bio shouldBe ""
                     image shouldBe ""
@@ -60,26 +68,26 @@ class ProfileRouteSpec :
 
                 val token =
                     either {
-                            dependencies.userService.register(
-                                RegisterUser(follower.username, follower.email, follower.password)
-                            )
-                        }
+                        dependencies.userService.register(
+                            RegisterUser(follower.username, follower.email, follower.password)
+                        )
+                    }
                         .shouldBeRight()
 
                 either {
-                        dependencies.userService.register(
-                            RegisterUser(followed.username, followed.email, followed.password)
-                        )
-                    }
+                    dependencies.userService.register(
+                        RegisterUser(followed.username, followed.email, followed.password)
+                    )
+                }
                     .shouldBeRight()
 
                 val response =
-                    delete(ProfilesResource.Follow(username = followed.username)) {
+                    request(Api / Profiles / Username(followed.username) / Follow / remove) {
                         bearerAuth(token.value)
                     }
 
-                response.status shouldBe HttpStatusCode.OK
-                with(response.body<ProfileWrapper<Profile>>().profile) {
+                response.httpResponse.status shouldBe HttpStatusCode.OK
+                with(response.bodyOrThrow().profile) {
                     username shouldBe followed.username
                     bio shouldBe ""
                     image shouldBe ""
@@ -90,15 +98,17 @@ class ProfileRouteSpec :
 
         "Needs token to follow" {
             withServer {
-                val response = post(ProfilesResource.Follow(username = userFixture().username))
-                response.status shouldBe HttpStatusCode.Unauthorized
+                val response =
+                    request(Api / Profiles / Username(userFixture().username) / Follow / add)
+                response.httpResponse.status shouldBe HttpStatusCode.Unauthorized
             }
         }
 
         "Needs token to unfollow" {
             withServer {
-                val response = delete(ProfilesResource.Follow(username = userFixture().username))
-                response.status shouldBe HttpStatusCode.Unauthorized
+                val response =
+                    request(Api / Profiles / Username(userFixture().username) / Follow / remove)
+                response.httpResponse.status shouldBe HttpStatusCode.Unauthorized
             }
         }
 
@@ -107,18 +117,18 @@ class ProfileRouteSpec :
                 val follower = userFixture()
                 val token =
                     either {
-                            dependencies.userService.register(
-                                RegisterUser(follower.username, follower.email, follower.password)
-                            )
-                        }
+                        dependencies.userService.register(
+                            RegisterUser(follower.username, follower.email, follower.password)
+                        )
+                    }
                         .shouldBeRight()
 
                 val response =
-                    post(ProfilesResource.Follow(username = userFixture().username)) {
+                    request(Api / Profiles / Username(userFixture().username) / Follow / add) {
                         bearerAuth(token.value)
                     }
 
-                response.status shouldBe HttpStatusCode.UnprocessableEntity
+                response.httpResponse.status shouldBe HttpStatusCode.UnprocessableEntity
             }
         }
 
@@ -127,18 +137,18 @@ class ProfileRouteSpec :
                 val follower = userFixture()
                 val token =
                     either {
-                            dependencies.userService.register(
-                                RegisterUser(follower.username, follower.email, follower.password)
-                            )
-                        }
+                        dependencies.userService.register(
+                            RegisterUser(follower.username, follower.email, follower.password)
+                        )
+                    }
                         .shouldBeRight()
 
                 val response =
-                    delete(ProfilesResource.Follow(username = userFixture().username)) {
+                    request(Api / Profiles / Username(userFixture().username) / Follow / remove) {
                         bearerAuth(token.value)
                     }
 
-                response.status shouldBe HttpStatusCode.UnprocessableEntity
+                response.httpResponse.status shouldBe HttpStatusCode.UnprocessableEntity
             }
         }
 
@@ -147,19 +157,19 @@ class ProfileRouteSpec :
                 val user = userFixture()
 
                 either {
-                        dependencies.userService.register(
-                            RegisterUser(user.username, user.email, user.password)
-                        )
-                    }
+                    dependencies.userService.register(
+                        RegisterUser(user.username, user.email, user.password)
+                    )
+                }
                     .shouldBeRight()
 
                 val response =
-                    get(ProfilesResource.Username(username = user.username)) {
+                    request(Api / Profiles / Username(user.username) / get) {
                         contentType(ContentType.Application.Json)
                     }
 
-                response.status shouldBe HttpStatusCode.OK
-                with(response.body<Profile>()) {
+                response.httpResponse.status shouldBe HttpStatusCode.OK
+                with(response.bodyOrThrow()) {
                     username shouldBe user.username
                     bio shouldBe ""
                     image shouldBe ""
@@ -173,26 +183,39 @@ class ProfileRouteSpec :
                 val invalidUsername = userFixture().username
 
                 val response =
-                    get(ProfilesResource.Username(username = invalidUsername)) {
+                    request(Api / Profiles / Username(invalidUsername) / get) {
                         contentType(ContentType.Application.Json)
                     }
 
-                response.status shouldBe HttpStatusCode.UnprocessableEntity
-                response.body<GenericErrorModel>().errors.body shouldBe
-                    listOf("User with username=$invalidUsername not found")
+                response.httpResponse.status shouldBe HttpStatusCode.UnprocessableEntity
+                response.httpResponse.body<GenericErrorModel>().errors.body shouldBe
+                        listOf("User with username=$invalidUsername not found")
             }
         }
 
         "Get profile by username missing username" {
             withServer {
                 val response =
-                    get(ProfilesResource.Username(username = " ")) {
+                    request(Api / Profiles / Username("%20") / get) {
                         contentType(ContentType.Application.Json)
                     }
 
-                response.status shouldBe HttpStatusCode.UnprocessableEntity
-                response.body<GenericErrorModel>().errors.body shouldBe
-                    listOf("Missing username cannot be null or blank parameter in request")
+                response.httpResponse.status shouldBe HttpStatusCode.UnprocessableEntity
+                response.httpResponse.body<GenericErrorModel>().errors.body shouldBe
+                        listOf("Missing username cannot be null or blank parameter in request")
+            }
+        }
+
+        // TODO: report bug to Spine
+        "Get profile by username missing username" {
+            withServer {
+                val response = request(Api / Profiles / Username(" ") / get) {
+                        contentType(ContentType.Application.Json)
+                    }
+
+                response.httpResponse.status shouldBe HttpStatusCode.UnprocessableEntity
+                response.httpResponse.body<GenericErrorModel>().errors.body shouldBe
+                        listOf("Missing username cannot be null or blank parameter in request")
             }
         }
     })

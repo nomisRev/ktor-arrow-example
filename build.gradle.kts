@@ -72,6 +72,7 @@ dependencies {
 
   implementation(ktorLibs.client.contentNegotiation)
   implementation(ktorLibs.client.resources)
+  implementation("io.ktor:ktor-client-logging:3.5.1")
   testImplementation("dev.opensavvy.spine:client:0.11.0")
   testImplementation(libs.testcontainers.postgresql)
   testImplementation(libs.ktor.server.tests)
