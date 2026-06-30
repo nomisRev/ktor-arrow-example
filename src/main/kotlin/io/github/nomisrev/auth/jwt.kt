@@ -11,6 +11,11 @@ import io.ktor.server.auth.parseAuthorizationHeader
 import io.ktor.server.response.respond
 import io.ktor.server.routing.RoutingContext
 
+/**
+ * TODO: This will be deprecated and made obsolete by Ktor Typed Auth
+ *    Check https://github.com/ktorio/ktor-klip/pull/6 for details
+ */
+
 @JvmInline value class JwtToken(val value: String)
 
 data class JwtContext(val token: JwtToken, val userId: UserId)

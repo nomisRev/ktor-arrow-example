@@ -2,18 +2,13 @@ package io.github.nomisrev.repo
 
 import io.github.nomisrev.sqldelight.TagsQueries
 
-interface TagPersistence {
+class TagPersistence(
+    private val tags: TagsQueries,
+) {
     /** List all tags * */
-    suspend fun selectTags(): List<String>
+    suspend fun selectTags(): List<String> = tags.selectTags().executeAsList()
 
     /** List tags of an article * */
-    suspend fun selectTagsOfArticle(articleId: ArticleId): List<String>
+    suspend fun selectTagsOfArticle(articleId: ArticleId): List<String> =
+        tags.selectTagsOfArticle(articleId).executeAsList()
 }
-
-fun tagPersistence(tags: TagsQueries) =
-    object : TagPersistence {
-        override suspend fun selectTags() = tags.selectTags().executeAsList()
-
-        override suspend fun selectTagsOfArticle(articleId: ArticleId): List<String> =
-            tags.selectTagsOfArticle(articleId).executeAsList()
-    }
