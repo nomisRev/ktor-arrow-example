@@ -58,12 +58,8 @@ data class InvalidBody(override val errors: NonEmptyList<String>) : InvalidField
     override val field: String = "body"
 }
 
-data class InvalidEmailOrPassword(override val errors: NonEmptyList<String>) : InvalidField {
-    override val field: String = "email or password"
-}
-
 context(_: Raise<IncorrectInput>)
-fun Login.validate(): Login = withError(::incorrectInput) { validated() }
+fun Login.validate(): Login = withError(::IncorrectInput) { validated() }
 
 context(_: Raise<NonEmptyList<InvalidField>>)
 private fun Login.validated(): Login = accumulate {
@@ -73,7 +69,7 @@ private fun Login.validated(): Login = accumulate {
 }
 
 context(_: Raise<IncorrectInput>)
-fun RegisterUser.validate(): RegisterUser = withError(::incorrectInput) { validated() }
+fun RegisterUser.validate(): RegisterUser = withError(::IncorrectInput) { validated() }
 
 context(_: Raise<NonEmptyList<InvalidField>>)
 private fun RegisterUser.validated(): RegisterUser = accumulate {
@@ -84,7 +80,7 @@ private fun RegisterUser.validated(): RegisterUser = accumulate {
 }
 
 context(_: Raise<IncorrectInput>)
-fun Update.validate(): Update = withError(::incorrectInput) { validated() }
+fun Update.validate(): Update = withError(::IncorrectInput) { validated() }
 
 context(_: Raise<NonEmptyList<InvalidField>>)
 private fun Update.validated(): Update = accumulate {
@@ -104,7 +100,7 @@ context(_: Raise<InvalidField>)
 private fun String.validPassword(): String = passwordValidation()
 
 context(_: Raise<InvalidField>)
-private fun String.passwordValidation(): String = withError(::invalidPassword) { passwordRules() }
+private fun String.passwordValidation(): String = withError(::InvalidPassword) { passwordRules() }
 
 context(_: Raise<NonEmptyList<String>>)
 private fun String.passwordRules(): String = accumulate {
@@ -118,7 +114,7 @@ context(_: Raise<InvalidField>)
 private fun String.validEmail(): String = emailValidation()
 
 context(_: Raise<InvalidField>)
-private fun String.emailValidation(): String = withError(::invalidEmail) { trim().emailRules() }
+private fun String.emailValidation(): String = withError(::InvalidEmail) { trim().emailRules() }
 
 context(_: Raise<NonEmptyList<String>>)
 private fun String.emailRules(): String = accumulate {
@@ -133,7 +129,7 @@ private fun String.validUsername(): String = usernameValidation()
 
 context(_: Raise<InvalidField>)
 private fun String.usernameValidation(): String =
-    withError(::invalidUsername) { trim().usernameRules() }
+    withError(::InvalidUsername) { trim().usernameRules() }
 
 context(_: Raise<NonEmptyList<String>>)
 private fun String.usernameRules(): String = accumulate {
@@ -144,14 +140,14 @@ private fun String.usernameRules(): String = accumulate {
 }
 
 context(_: Raise<InvalidField>)
-private fun String.validTitle(): String = withError(::invalidTitle) { trim().notBlankRule() }
+private fun String.validTitle(): String = withError(::InvalidTitle) { trim().notBlankRule() }
 
 context(_: Raise<InvalidField>)
 private fun String.validDescription(): String =
-    withError(::invalidDescription) { trim().notBlankRule() }
+    withError(::InvalidDescription) { trim().notBlankRule() }
 
 context(_: Raise<InvalidField>)
-private fun String.validBody(): String = withError(::invalidBody) { trim().notBlankRule() }
+private fun String.validBody(): String = withError(::InvalidBody) { trim().notBlankRule() }
 
 context(_: Raise<NonEmptyList<String>>)
 private fun String.notBlankRule(): String = accumulate {
@@ -161,58 +157,32 @@ private fun String.notBlankRule(): String = accumulate {
 
 context(_: Raise<InvalidField>)
 private fun List<String>.validTags(): Set<String> =
-    withError(::invalidTag) { mapOrAccumulate { it.trim().notBlank() }.toSet() }
-
-private fun incorrectInput(errors: NonEmptyList<InvalidField>): IncorrectInput =
-    IncorrectInput(errors)
-
-private fun invalidEmail(errors: NonEmptyList<String>): InvalidField = InvalidEmail(errors)
-
-private fun invalidPassword(errors: NonEmptyList<String>): InvalidField = InvalidPassword(errors)
-
-private fun invalidTag(errors: NonEmptyList<String>): InvalidField = InvalidTag(errors)
-
-private fun invalidUsername(errors: NonEmptyList<String>): InvalidField = InvalidUsername(errors)
-
-private fun invalidTitle(errors: NonEmptyList<String>): InvalidField = InvalidTitle(errors)
-
-private fun invalidDescription(errors: NonEmptyList<String>): InvalidField =
-    InvalidDescription(errors)
-
-private fun invalidBody(errors: NonEmptyList<String>): InvalidField = InvalidBody(errors)
-
-private fun invalidFeedOffset(error: InvalidFeedOffset): InvalidField = error
-
-private fun invalidFeedLimit(error: InvalidFeedLimit): InvalidField = error
+    withError(::InvalidTag) { mapOrAccumulate { it.trim().notBlank() }.toSet() }
 
 context(_: RaiseAccumulate<String>)
-private fun String.notBlank(): String {
+private fun String.notBlank(): String = also {
     ensureOrAccumulate(isNotBlank()) { "Cannot be blank" }
-    return this
 }
 
 context(_: RaiseAccumulate<String>)
-private fun String.minSize(size: Int): String {
+private fun String.minSize(size: Int): String = also {
     ensureOrAccumulate(length >= size) { "is too short (minimum is $size characters)" }
-    return this
 }
 
 context(_: RaiseAccumulate<String>)
-private fun String.maxSize(size: Int): String {
+private fun String.maxSize(size: Int): String = also {
     ensureOrAccumulate(length <= size) { "is too long (maximum is $size characters)" }
-    return this
 }
 
 private val emailPattern = ".+@.+\\..+".toRegex()
 
 context(_: RaiseAccumulate<String>)
-private fun String.looksLikeEmail(): String {
+private fun String.looksLikeEmail(): String = also {
     ensureOrAccumulate(emailPattern.matches(this)) { "'$this' is invalid email" }
-    return this
 }
 
 context(_: Raise<IncorrectInput>)
-fun NewArticle.validate(): NewArticle = withError(::incorrectInput) { validated() }
+fun NewArticle.validate(): NewArticle = withError(::IncorrectInput) { validated() }
 
 context(_: Raise<NonEmptyList<InvalidField>>)
 private fun NewArticle.validated(): NewArticle = accumulate {
@@ -224,7 +194,7 @@ private fun NewArticle.validated(): NewArticle = accumulate {
 }
 
 context(_: Raise<IncorrectInput>)
-fun NewComment.validate(): NewComment = withError(::incorrectInput) { validated() }
+fun NewComment.validate(): NewComment = withError(::IncorrectInput) { validated() }
 
 context(_: Raise<NonEmptyList<InvalidField>>)
 private fun NewComment.validated(): NewComment = accumulate {
@@ -232,8 +202,8 @@ private fun NewComment.validated(): NewComment = accumulate {
     NewComment(body)
 }
 
-const val MIN_FEED_LIMIT = 1
-const val MIN_FEED_OFFSET = 0
+private const val MIN_FEED_LIMIT = 1
+private const val MIN_FEED_OFFSET = 0
 
 data class InvalidFeedOffset(override val errors: NonEmptyList<String>) : InvalidField {
     override val field: String = "feed offset"
@@ -244,56 +214,45 @@ data class InvalidFeedLimit(override val errors: NonEmptyList<String>) : Invalid
 }
 
 context(_: RaiseAccumulate<String>)
-private fun Int.minSize(size: Int): Int {
+private fun Int.minSize(size: Int): Int = also {
     ensureOrAccumulate(this >= size) { "too small, minimum is $size, and found $this" }
-    return this
 }
 
 context(_: Raise<InvalidFeedOffset>)
-fun Int.validFeedOffset(): FeedOffset =
-    withError(::InvalidFeedOffset) {
-        accumulate {
-            minSize(MIN_FEED_OFFSET)
-            FeedOffset(this@validFeedOffset)
-        }
+fun Int.validFeedOffset(): FeedOffset = withError(::InvalidFeedOffset) {
+    accumulate {
+        minSize(MIN_FEED_OFFSET)
+        FeedOffset(this@validFeedOffset)
     }
+}
 
 context(_: Raise<InvalidFeedLimit>)
-fun Int.validFeedLimit(): FeedLimit =
-    withError(::InvalidFeedLimit) {
-        accumulate {
-            minSize(MIN_FEED_LIMIT)
-            FeedLimit(this@validFeedLimit)
-        }
+fun Int.validFeedLimit(): FeedLimit = withError(::InvalidFeedLimit) {
+    accumulate {
+        minSize(MIN_FEED_LIMIT)
+        FeedLimit(this@validFeedLimit)
     }
-
-context(_: Raise<InvalidField>)
-private fun Int.validFeedOffsetField(): FeedOffset =
-    withError(::invalidFeedOffset) { validFeedOffset() }
-
-context(_: Raise<InvalidField>)
-private fun Int.validFeedLimitField(): FeedLimit =
-    withError(::invalidFeedLimit) { validFeedLimit() }
+}
 
 context(_: Raise<IncorrectInput>)
 fun ArticleResource.Feed.validate(userId: UserId): GetFeed =
-    withError(::incorrectInput) { validated(userId) }
+    withError(::IncorrectInput) { validated(userId) }
 
 context(_: Raise<NonEmptyList<InvalidField>>)
 private fun ArticleResource.Feed.validated(userId: UserId): GetFeed = accumulate {
-    val offset by accumulating { offsetParam.validFeedOffsetField() }
-    val limit by accumulating { limitParam.validFeedLimitField() }
+    val offset by accumulating { offsetParam.validFeedOffset() }
+    val limit by accumulating { limitParam.validFeedLimit() }
     GetFeed(userId, limit.limit, offset.offset)
 }
 
 context(_: Raise<IncorrectInput>)
 fun ArticlesResource.validate(currentUserId: UserId?): GetArticles =
-    withError(::incorrectInput) { validated(currentUserId) }
+    withError(::IncorrectInput) { validated(currentUserId) }
 
 context(_: Raise<NonEmptyList<InvalidField>>)
 private fun ArticlesResource.validated(currentUserId: UserId?): GetArticles = accumulate {
-    val offset by accumulating { offsetParam.validFeedOffsetField() }
-    val limit by accumulating { limitParam.validFeedLimitField() }
+    val offset by accumulating { offsetParam.validFeedOffset() }
+    val limit by accumulating { limitParam.validFeedLimit() }
     GetArticles(
         limit = limit.limit,
         offset = offset.offset,
