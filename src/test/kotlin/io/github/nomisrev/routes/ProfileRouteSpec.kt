@@ -192,7 +192,7 @@ class ProfileRouteSpec :
 
                 response.status shouldBe HttpStatusCode.UnprocessableEntity
                 response.body<GenericErrorModel>().errors.body shouldBe
-                    listOf("Missing username parameter in request")
+                    listOf("Missing username cannot be null or blank parameter in request")
             }
         }
     })

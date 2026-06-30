@@ -2,19 +2,16 @@
 
 package io.github.nomisrev.routes
 
-import arrow.core.raise.either
-import arrow.core.raise.ensure
+import arrow.core.raise.context.ensure
 import io.github.nomisrev.MissingParameter
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.service.JwtService
-import io.ktor.http.HttpStatusCode
 import io.ktor.resources.Resource
-import io.ktor.server.resources.delete
 import io.ktor.server.resources.get
-import io.ktor.server.resources.post
 import io.ktor.server.routing.Route
 import kotlinx.serialization.Serializable
+import opensavvy.spine.server.respond
 
 @Serializable data class ProfileWrapper<T : Any>(val profile: T)
 
@@ -36,41 +33,45 @@ data class ProfilesResource(val parent: RootResource = RootResource) {
 }
 
 fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtService) {
-    get<ProfilesResource.Username> { route ->
-        either {
-                ensure(!route.username.isNullOrBlank()) { MissingParameter("username") }
-                userPersistence.selectProfile(route.username)
-            }
-            .respond(HttpStatusCode.OK)
+    route(Api.Profiles.Username.get) {
+        val username = idOf(Api.Profiles.Username)
+        ensure(username.isNotBlank()) { MissingParameter("username cannot be null or blank") }
+        respond(userPersistence.selectProfile(username))
     }
 
-    delete<ProfilesResource.Follow> { follow ->
+    route(Api.Profiles.Username.Follow.add) {
         jwtAuth(jwtService) { (_, userId) ->
-            either {
-                    userPersistence.unfollowProfile(follow.username, userId)
-                    val userUnfollowed = userPersistence.select(follow.username)
-                    ProfileWrapper(
-                        Profile(
-                            userUnfollowed.username,
-                            userUnfollowed.bio,
-                            userUnfollowed.image,
-                            false,
-                        )
+            val username = idOf(Api.Profiles.Username)
+            userPersistence.followProfile(username, userId)
+            val userFollowed = userPersistence.select(username)
+            respond(
+                ProfileWrapper(
+                    Profile(
+                        userFollowed.username,
+                        userFollowed.bio,
+                        userFollowed.image,
+                        true,
                     )
-                }
-                .respond(HttpStatusCode.OK)
+                )
+            )
         }
     }
-    post<ProfilesResource.Follow> { follow ->
+
+    route(Api.Profiles.Username.Follow.remove) {
         jwtAuth(jwtService) { (_, userId) ->
-            either {
-                    userPersistence.followProfile(follow.username, userId)
-                    val userFollowed = userPersistence.select(follow.username)
-                    ProfileWrapper(
-                        Profile(userFollowed.username, userFollowed.bio, userFollowed.image, true)
+            val username = idOf(Api.Profiles.Username)
+            userPersistence.unfollowProfile(username, userId)
+            val userUnfollowed = userPersistence.select(username)
+            respond(
+                ProfileWrapper(
+                    Profile(
+                        userUnfollowed.username,
+                        userUnfollowed.bio,
+                        userUnfollowed.image,
+                        false,
                     )
-                }
-                .respond(HttpStatusCode.OK)
+                )
+            )
         }
     }
 }

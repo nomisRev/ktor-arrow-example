@@ -3,10 +3,8 @@
 package io.github.nomisrev.auth
 
 import arrow.core.Either
-import arrow.core.raise.either
 import arrow.core.raise.recover
 import io.github.nomisrev.repo.UserId
-import io.github.nomisrev.routes.jwtToken
 import io.github.nomisrev.service.JwtService
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.auth.HttpAuthHeader
@@ -22,8 +20,7 @@ import opensavvy.spine.server.TypedResponseScope
  * TODO: This will be deprecated and made obsolete by Ktor Typed Auth Check
  *   https://github.com/ktorio/ktor-klip/pull/6 for details
  */
-@JvmInline
-value class JwtToken(val value: String)
+@JvmInline value class JwtToken(val value: String)
 
 data class JwtContext(val token: JwtToken, val userId: UserId)
 
@@ -52,11 +49,12 @@ suspend inline fun RoutingContext.optionalJwtAuth(
 }
 
 suspend inline fun <A : Any, B : Any, C : FailureSpec, D : Parameters> TypedResponseScope<
-        A,
-        B,
-        C,
-        D,
-        >.optionalJwtAuth(
+    A,
+    B,
+    C,
+    D,
+>
+    .optionalJwtAuth(
     jwtService: JwtService,
     crossinline body: suspend TypedResponseScope<A, B, C, D>.(JwtContext?) -> Unit,
 ) {
@@ -71,11 +69,12 @@ suspend inline fun <A : Any, B : Any, C : FailureSpec, D : Parameters> TypedResp
 }
 
 suspend inline fun <A : Any, B : Any, C : FailureSpec, D : Parameters> TypedResponseScope<
-        A,
-        B,
-        C,
-        D,
-        >.jwtAuth(
+    A,
+    B,
+    C,
+    D,
+>
+    .jwtAuth(
     jwtService: JwtService,
     crossinline body: suspend TypedResponseScope<A, B, C, D>.(JwtContext) -> Unit,
 ) {

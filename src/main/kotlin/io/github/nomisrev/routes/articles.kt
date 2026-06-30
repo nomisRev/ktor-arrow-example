@@ -28,8 +28,7 @@ import opensavvy.spine.api.RootResource as SpineRootResource
 import opensavvy.spine.api.StaticResource
 import opensavvy.spine.server.respond
 
-@Serializable
-data class ArticleWrapper<T : Any>(val article: T)
+@Serializable data class ArticleWrapper<T : Any>(val article: T)
 
 @Serializable
 data class Article(
@@ -46,28 +45,20 @@ data class Article(
     val tagList: List<String>,
 )
 
-@Serializable
-data class SingleArticleResponse(val article: Article)
+@Serializable data class SingleArticleResponse(val article: Article)
 
 @Serializable
 data class MultipleArticlesResponse(val articles: List<Article>, val articlesCount: Int)
 
-@JvmInline
-@Serializable
-value class FeedOffset(val offset: Int)
+@JvmInline @Serializable value class FeedOffset(val offset: Int)
 
-@JvmInline
-@Serializable
-value class FeedLimit(val limit: Int)
+@JvmInline @Serializable value class FeedLimit(val limit: Int)
 
-@Serializable
-data class CommentWrapper<T : Any>(val comment: T)
+@Serializable data class CommentWrapper<T : Any>(val comment: T)
 
-@Serializable
-data class NewComment(val body: String)
+@Serializable data class NewComment(val body: String)
 
-@Serializable
-data class SingleCommentResponse(val comment: Comment)
+@Serializable data class SingleCommentResponse(val comment: Comment)
 
 @Serializable
 data class Comment(
@@ -78,8 +69,7 @@ data class Comment(
     val author: Profile,
 )
 
-@Serializable
-data class MultipleCommentsResponse(val comments: List<Comment>)
+@Serializable data class MultipleCommentsResponse(val comments: List<Comment>)
 
 @Serializable
 data class NewArticle(
@@ -120,62 +110,62 @@ data class ArticlesResource(
 object Api : SpineRootResource("api") {
     object Articles : StaticResource<Api>("articles", Api) {
         val list by
-        get()
-            .response<MultipleArticlesResponse>()
-            .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+            get()
+                .response<MultipleArticlesResponse>()
+                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
 
         val create by
-        post()
-            .request<ArticleWrapper<NewArticle>>()
-            .response<SingleArticleResponse>()
-            .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-
-        object Slug : DynamicResource<Articles>("slug", Articles) {
-            val get by
-            get()
+            post()
+                .request<ArticleWrapper<NewArticle>>()
                 .response<SingleArticleResponse>()
                 .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
 
+        object Slug : DynamicResource<Articles>("slug", Articles) {
+            val get by
+                get()
+                    .response<SingleArticleResponse>()
+                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+
             val update by
-            put()
-                .request<ArticleWrapper<UpdateArticle>>()
-                .response<ArticleResponse>()
-                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+                put()
+                    .request<ArticleWrapper<UpdateArticle>>()
+                    .response<ArticleResponse>()
+                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
 
             val delete by
-            delete()
-                .response<Unit>()
-                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+                delete()
+                    .response<Unit>()
+                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
 
             object Favorite : StaticResource<Slug>("favorite", Slug) {
                 val add by
-                post()
-                    .response<SingleArticleResponse>()
-                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+                    post()
+                        .response<SingleArticleResponse>()
+                        .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
 
                 val remove by
-                delete()
-                    .response<SingleArticleResponse>()
-                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+                    delete()
+                        .response<SingleArticleResponse>()
+                        .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
             }
 
             object Comments : StaticResource<Slug>("comments", Slug) {
                 val create by
-                post()
-                    .request<CommentWrapper<NewComment>>()
-                    .response<SingleCommentResponse>()
-                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+                    post()
+                        .request<CommentWrapper<NewComment>>()
+                        .response<SingleCommentResponse>()
+                        .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
 
                 val list by
-                get()
-                    .response<MultipleCommentsResponse>()
-                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+                    get()
+                        .response<MultipleCommentsResponse>()
+                        .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
 
                 object Id : DynamicResource<Comments>("id", Comments) {
                     val delete by
-                    delete()
-                        .response<Unit>()
-                        .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+                        delete()
+                            .response<Unit>()
+                            .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
                 }
             }
         }
@@ -183,9 +173,30 @@ object Api : SpineRootResource("api") {
 
     object Article : StaticResource<Api>("article", Api) {
         val feed by
-        get("feed")
-            .response<MultipleArticlesResponse>()
-            .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+            get("feed")
+                .response<MultipleArticlesResponse>()
+                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+    }
+
+    object Profiles : StaticResource<Api>("profiles", Api) {
+        object Username : DynamicResource<Profiles>("username", Profiles) {
+            val get by
+                get()
+                    .response<Profile>()
+                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+
+            object Follow : StaticResource<Username>("follow", Username) {
+                val add by
+                    post()
+                        .response<ProfileWrapper<Profile>>()
+                        .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+
+                val remove by
+                    delete()
+                        .response<ProfileWrapper<Profile>>()
+                        .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+            }
+        }
     }
 }
 
@@ -223,10 +234,11 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
 
     route(Api.Articles.Slug.get) {
         optionalJwtAuth(jwtService) { context ->
-            val article = articleService.getArticleBySlug(
-                Slug(idOf(Api.Articles.Slug)),
-                context?.userId,
-            )
+            val article =
+                articleService.getArticleBySlug(
+                    Slug(idOf(Api.Articles.Slug)),
+                    context?.userId,
+                )
 
             respond(SingleArticleResponse(article))
         }
@@ -277,8 +289,7 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
 
     route(Api.Articles.Slug.Favorite.remove) {
         jwtAuth(jwtService) { (_, userId) ->
-            val article =
-                articleService.unfavoriteArticle(Slug(idOf(Api.Articles.Slug)), userId)
+            val article = articleService.unfavoriteArticle(Slug(idOf(Api.Articles.Slug)), userId)
             respond(SingleArticleResponse(article))
         }
     }
