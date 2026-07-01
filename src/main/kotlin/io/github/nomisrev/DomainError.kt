@@ -1,7 +1,6 @@
 package io.github.nomisrev
 
 import arrow.core.NonEmptyList
-import arrow.core.nonEmptyListOf
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.MissingFieldException
 
@@ -14,9 +13,7 @@ data class IncorrectJson(val exception: MissingFieldException) : ValidationError
 
 data class EmptyUpdate(val description: String) : ValidationError
 
-data class IncorrectInput(val errors: NonEmptyList<InvalidField>) : ValidationError {
-    constructor(head: InvalidField) : this(nonEmptyListOf(head))
-}
+data class IncorrectInput(val errors: NonEmptyList<InvalidField>) : ValidationError
 
 data class MissingParameter(val name: String) : ValidationError
 

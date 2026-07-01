@@ -1,7 +1,5 @@
 package io.github.nomisrev.routes
 
-import io.github.nomisrev.MIN_FEED_LIMIT
-import io.github.nomisrev.MIN_FEED_OFFSET
 import io.github.nomisrev.articleFixture
 import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.userFixture
@@ -78,7 +76,7 @@ class ArticleRouteSpec :
                 assert(response.status == HttpStatusCode.UnprocessableEntity)
                 assert(
                     response.body<GenericErrorModel>().errors.body ==
-                        listOf("feed offset: too small, minimum is $MIN_FEED_OFFSET, and found -1")
+                        listOf("feed offset: too small, minimum is 0, and found -1")
                 )
             }
         }
@@ -100,7 +98,7 @@ class ArticleRouteSpec :
                 assert(response.status == HttpStatusCode.UnprocessableEntity)
                 assert(
                     response.body<GenericErrorModel>().errors.body ==
-                        listOf("feed limit: too small, minimum is $MIN_FEED_LIMIT, and found 0")
+                        listOf("feed limit: too small, minimum is 1, and found 0")
                 )
             }
         }
@@ -123,8 +121,8 @@ class ArticleRouteSpec :
                 assert(
                     response.body<GenericErrorModel>().errors.body ==
                         listOf(
-                            "feed offset: too small, minimum is $MIN_FEED_OFFSET, and found -1",
-                            "feed limit: too small, minimum is $MIN_FEED_LIMIT, and found 0",
+                            "feed offset: too small, minimum is 0, and found -1",
+                            "feed limit: too small, minimum is 1, and found 0",
                         )
                 )
             }
