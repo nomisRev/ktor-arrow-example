@@ -267,10 +267,8 @@ fun Route.commentRoutes(
     }
 
     route(Api.Articles.Slug.Comments.list) {
-        jwtAuth(jwtService) { _ ->
-            val comments = articleService.getCommentsForSlug(Slug(idOf(Api.Articles.Slug)))
-            respond(MultipleCommentsResponse(comments))
-        }
+        val comments = articleService.getCommentsForSlug(Slug(idOf(Api.Articles.Slug)))
+        respond(MultipleCommentsResponse(comments))
     }
 
     route(Api.Articles.Slug.Comments.Id.delete) {

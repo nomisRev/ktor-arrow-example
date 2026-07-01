@@ -187,7 +187,7 @@ class ArticlesRouteSpec :
             }
         }
 
-        "can not get comments for an article when not authenticated" {
+        "can get comments for an article when not authenticated" {
             withServer { dependencies ->
                 val user = userFixture()
                 val token =
@@ -217,7 +217,8 @@ class ArticlesRouteSpec :
 
                 val response = request(Api / Articles / Slug(created.slug) / Comments / list)
 
-                assert(response.httpResponse.status == HttpStatusCode.Unauthorized)
+                val body = response.bodyOrThrow()
+                assert(body.comments == emptyList<Comment>())
             }
         }
 
