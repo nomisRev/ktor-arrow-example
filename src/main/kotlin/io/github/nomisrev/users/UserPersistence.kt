@@ -86,6 +86,9 @@ class UserPersistence(
         return ensureNotNull(profileInfo) { UserNotFound("username=$username") }
     }
 
+    fun isFollowing(followedId: UserId, followerId: UserId): Boolean =
+        followingQueries.select(followedId.serial, followerId.serial).executeAsOneOrNull() != null
+
     private fun toProfile(username: String, bio: String, image: String, following: Int): Profile =
         Profile(username, bio, image, following > 0)
 

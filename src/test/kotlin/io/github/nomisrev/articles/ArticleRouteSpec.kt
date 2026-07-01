@@ -213,6 +213,67 @@ class ArticleRouteSpec :
             }
         }
 
+        "article list returns viewer specific metadata" {
+            withServer { dependencies ->
+                val author = userFixture()
+                val authorToken =
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(author.username, author.email, author.password)
+                            )
+                        }
+                        .shouldBeRight()
+                val authorId =
+                    either { dependencies.jwtService.verifyJwtToken(authorToken) }.shouldBeRight()
+
+                val viewer = userFixture()
+                val viewerToken =
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(viewer.username, viewer.email, viewer.password)
+                            )
+                        }
+                        .shouldBeRight()
+                val viewerId =
+                    either { dependencies.jwtService.verifyJwtToken(viewerToken) }.shouldBeRight()
+
+                val article = articleFixture()
+                val created =
+                    either {
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    authorId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
+                            )
+                        }
+                        .shouldBeRight()
+
+                either { dependencies.userPersistence.followProfile(author.username, viewerId) }
+                    .shouldBeRight()
+                either { dependencies.articleService.favoriteArticle(Slug(created.slug), viewerId) }
+                    .shouldBeRight()
+
+                val response =
+                    request(
+                        endpoint = Api / Articles / list,
+                        parameters = {},
+                    ) {
+                        bearerAuth(viewerToken.value)
+                    }
+
+                val body: MultipleArticlesResponse = response.bodyOrThrow()
+                val articleResponse = body.articles.single()
+                assert(articleResponse.slug == created.slug)
+                assert(articleResponse.favorited)
+                assert(articleResponse.favoritesCount == 1L)
+                assert(articleResponse.author.following)
+            }
+        }
+
         "create article with tags" {
             withServer { dependencies ->
                 val user = userFixture()

@@ -87,6 +87,68 @@ class ArticlesRouteSpec :
             }
         }
 
+        "authenticated article reads return viewer specific metadata" {
+            withServer { dependencies ->
+                val author = userFixture()
+                val authorToken =
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(author.username, author.email, author.password)
+                            )
+                        }
+                        .shouldBeRight()
+                val authorId =
+                    either { dependencies.jwtService.verifyJwtToken(authorToken) }.shouldBeRight()
+
+                val viewer = userFixture()
+                val viewerToken =
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(viewer.username, viewer.email, viewer.password)
+                            )
+                        }
+                        .shouldBeRight()
+                val viewerId =
+                    either { dependencies.jwtService.verifyJwtToken(viewerToken) }.shouldBeRight()
+
+                val article = articleFixture()
+                val created =
+                    either {
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    authorId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
+                            )
+                        }
+                        .shouldBeRight()
+
+                either { dependencies.userPersistence.followProfile(author.username, viewerId) }
+                    .shouldBeRight()
+                either {
+                        dependencies.articleService.favoriteArticle(
+                            io.github.nomisrev.articles.Slug(created.slug),
+                            viewerId,
+                        )
+                    }
+                    .shouldBeRight()
+
+                val response = request(Api / Articles / Slug(created.slug) / get) {
+                    bearerAuth(viewerToken.value)
+                }
+
+                val body: SingleArticleResponse = response.bodyOrThrow()
+                with(body.article) {
+                    assert(favorited)
+                    assert(favoritesCount == 1L)
+                    assert(this.author.following)
+                }
+            }
+        }
+
         "can get comments for an article by slug when authenticated" {
             withServer { dependencies ->
                 val user = userFixture()

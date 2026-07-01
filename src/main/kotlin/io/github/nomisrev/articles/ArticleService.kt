@@ -57,31 +57,16 @@ class ArticleService(
                 articlePersistence.exists(slug).not()
             }
 
-        val insertAndGet =
-            articlePersistence.create(
-                input.userId,
-                slug,
-                input.title,
-                input.description,
-                input.body,
-                input.tags,
-            )
-
-        val user = userPersistence.select(input.userId)
-
-        return Article(
-            insertAndGet.id.serial,
-            slug.value,
+        articlePersistence.create(
+            input.userId,
+            slug,
             input.title,
             input.description,
             input.body,
-            Profile(user.username, user.bio, user.image, false),
-            false,
-            0,
-            insertAndGet.createdAt,
-            insertAndGet.updatedAt,
-            input.tags.toList(),
+            input.tags,
         )
+
+        return article(articlePersistence.findArticleBySlug(slug), input.userId)
     }
 
     context(_: Raise<UserNotFound>)
@@ -197,13 +182,16 @@ class ArticleService(
         val favorited =
             currentUserId != null && favouritePersistence.isFavorite(currentUserId, article.id)
 
+        val following =
+            currentUserId != null && userPersistence.isFollowing(article.author_id, currentUserId)
+
         return Article(
             article.id.serial,
             article.slug,
             article.title,
             article.description,
             article.body,
-            Profile(user.username, user.bio, user.image, false),
+            Profile(user.username, user.bio, user.image, following),
             favorited,
             favouriteCount,
             article.createdAt,
