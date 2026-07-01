@@ -262,6 +262,348 @@ class ArticleRouteSpec :
             }
         }
 
+        "feed returns articles from followed authors" {
+            withServer { dependencies ->
+                val reader = userFixture()
+                val followed = userFixture()
+                val unrelated = userFixture()
+
+                either {
+                        val readerToken =
+                            dependencies.userService.register(
+                                RegisterUser(reader.username, reader.email, reader.password)
+                            )
+                        val readerId = dependencies.jwtService.verifyJwtToken(readerToken)
+
+                        val followedToken =
+                            dependencies.userService.register(
+                                RegisterUser(followed.username, followed.email, followed.password)
+                            )
+                        val followedId = dependencies.jwtService.verifyJwtToken(followedToken)
+
+                        val unrelatedToken =
+                            dependencies.userService.register(
+                                RegisterUser(
+                                    unrelated.username,
+                                    unrelated.email,
+                                    unrelated.password,
+                                )
+                            )
+                        val unrelatedId = dependencies.jwtService.verifyJwtToken(unrelatedToken)
+
+                        dependencies.userPersistence.followProfile(followed.username, readerId)
+
+                        val followedArticle = articleFixture()
+                        val createdFollowedArticle =
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    followedId,
+                                    followedArticle.title,
+                                    followedArticle.description,
+                                    followedArticle.body,
+                                    followedArticle.tags,
+                                )
+                            )
+
+                        val unrelatedArticle = articleFixture()
+                        dependencies.articleService.createArticle(
+                            CreateArticle(
+                                unrelatedId,
+                                unrelatedArticle.title,
+                                unrelatedArticle.description,
+                                unrelatedArticle.body,
+                                unrelatedArticle.tags,
+                            )
+                        )
+
+                        val response =
+                            request(
+                                endpoint = Api / Articles / feed,
+                                parameters = {
+                                    offset = 0
+                                    limit = 20
+                                },
+                            ) {
+                                bearerAuth(readerToken.value)
+                            }
+
+                        val body: MultipleArticlesResponse = response.bodyOrThrow()
+                        assert(body.articlesCount == 1)
+                        assert(body.articles.single().slug == createdFollowedArticle.slug)
+                    }
+                    .shouldBeRight()
+            }
+        }
+
+        "article list filters by author" {
+            withServer { dependencies ->
+                val author = userFixture()
+                val otherAuthor = userFixture()
+
+                either {
+                        val authorToken =
+                            dependencies.userService.register(
+                                RegisterUser(author.username, author.email, author.password)
+                            )
+                        val authorId = dependencies.jwtService.verifyJwtToken(authorToken)
+
+                        val otherAuthorToken =
+                            dependencies.userService.register(
+                                RegisterUser(
+                                    otherAuthor.username,
+                                    otherAuthor.email,
+                                    otherAuthor.password,
+                                )
+                            )
+                        val otherAuthorId = dependencies.jwtService.verifyJwtToken(otherAuthorToken)
+
+                        val article = articleFixture()
+                        val created =
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    authorId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
+                            )
+
+                        val otherArticle = articleFixture()
+                        dependencies.articleService.createArticle(
+                            CreateArticle(
+                                otherAuthorId,
+                                otherArticle.title,
+                                otherArticle.description,
+                                otherArticle.body,
+                                otherArticle.tags,
+                            )
+                        )
+
+                        val response =
+                            request(
+                                Api / Articles / list,
+                                parameters = {
+                                    this.author = author.username
+                                },
+                            )
+
+                        val body: MultipleArticlesResponse = response.bodyOrThrow()
+                        assert(body.articlesCount == 1)
+                        assert(body.articles.single().slug == created.slug)
+                        assert(body.articles.single().author.username == author.username)
+                    }
+                    .shouldBeRight()
+            }
+        }
+
+        "article list filters by author when authenticated" {
+            withServer { dependencies ->
+                val author = userFixture()
+                val viewer = userFixture()
+
+                either {
+                        val authorToken =
+                            dependencies.userService.register(
+                                RegisterUser(author.username, author.email, author.password)
+                            )
+                        val authorId = dependencies.jwtService.verifyJwtToken(authorToken)
+
+                        val viewerToken =
+                            dependencies.userService.register(
+                                RegisterUser(viewer.username, viewer.email, viewer.password)
+                            )
+                        val viewerId = dependencies.jwtService.verifyJwtToken(viewerToken)
+
+                        val article = articleFixture()
+                        val created =
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    authorId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
+                            )
+
+                        dependencies.userPersistence.followProfile(author.username, viewerId)
+
+                        val response =
+                            request(
+                                Api / Articles / list,
+                                parameters = {
+                                    this.author = author.username
+                                },
+                            ) {
+                                bearerAuth(viewerToken.value)
+                            }
+
+                        val body: MultipleArticlesResponse = response.bodyOrThrow()
+                        val articleResponse = body.articles.single()
+                        assert(body.articlesCount == 1)
+                        assert(articleResponse.slug == created.slug)
+                        assert(articleResponse.author.username == author.username)
+                        assert(articleResponse.author.following)
+                    }
+                    .shouldBeRight()
+            }
+        }
+
+        "article list filters by tag" {
+            withServer { dependencies ->
+                val author = userFixture()
+
+                either {
+                        val token =
+                            dependencies.userService.register(
+                                RegisterUser(author.username, author.email, author.password)
+                            )
+                        val authorId = dependencies.jwtService.verifyJwtToken(token)
+
+                        val created =
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    authorId,
+                                    "How to train your dragon",
+                                    "Ever wonder how?",
+                                    "Very carefully.",
+                                    setOf("dragons", "training"),
+                                )
+                            )
+
+                        dependencies.articleService.createArticle(
+                            CreateArticle(
+                                authorId,
+                                "Something else",
+                                "Nothing about dragons",
+                                "Still interesting.",
+                                setOf("kotlin"),
+                            )
+                        )
+
+                        val response =
+                            request(
+                                Api / Articles / list,
+                                parameters = {
+                                    tag = "dragons"
+                                },
+                            )
+
+                        val body: MultipleArticlesResponse = response.bodyOrThrow()
+                        assert(body.articlesCount == 1)
+                        val articleResponse = body.articles.single()
+                        assert(articleResponse.slug == created.slug)
+                        assert(articleResponse.tagList.contains("dragons"))
+                        assert(articleResponse.tagList.contains("training"))
+                    }
+                    .shouldBeRight()
+            }
+        }
+
+        "article list filters by favorited username" {
+            withServer { dependencies ->
+                val author = userFixture()
+                val viewer = userFixture()
+
+                either {
+                        val authorToken =
+                            dependencies.userService.register(
+                                RegisterUser(author.username, author.email, author.password)
+                            )
+                        val authorId = dependencies.jwtService.verifyJwtToken(authorToken)
+
+                        val viewerToken =
+                            dependencies.userService.register(
+                                RegisterUser(viewer.username, viewer.email, viewer.password)
+                            )
+                        val viewerId = dependencies.jwtService.verifyJwtToken(viewerToken)
+
+                        val article = articleFixture()
+                        val created =
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    authorId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
+                            )
+
+                        dependencies.articleService.favoriteArticle(Slug(created.slug), viewerId)
+
+                        val response =
+                            request(
+                                Api / Articles / list,
+                                parameters = {
+                                    favorited = viewer.username
+                                },
+                            )
+
+                        val body: MultipleArticlesResponse = response.bodyOrThrow()
+                        assert(body.articlesCount == 1)
+                        val articleResponse = body.articles.single()
+                        assert(articleResponse.slug == created.slug)
+                        assert(articleResponse.favoritesCount == 1L)
+                    }
+                    .shouldBeRight()
+            }
+        }
+
+        "article list filters by favorited username when authenticated" {
+            withServer { dependencies ->
+                val author = userFixture()
+                val viewer = userFixture()
+
+                either {
+                        val authorToken =
+                            dependencies.userService.register(
+                                RegisterUser(author.username, author.email, author.password)
+                            )
+                        val authorId = dependencies.jwtService.verifyJwtToken(authorToken)
+
+                        val viewerToken =
+                            dependencies.userService.register(
+                                RegisterUser(viewer.username, viewer.email, viewer.password)
+                            )
+                        val viewerId = dependencies.jwtService.verifyJwtToken(viewerToken)
+
+                        val article = articleFixture()
+                        val created =
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    authorId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
+                            )
+
+                        dependencies.articleService.favoriteArticle(Slug(created.slug), viewerId)
+
+                        val response =
+                            request(
+                                Api / Articles / list,
+                                parameters = {
+                                    favorited = viewer.username
+                                },
+                            ) {
+                                bearerAuth(viewerToken.value)
+                            }
+
+                        val body: MultipleArticlesResponse = response.bodyOrThrow()
+                        assert(body.articlesCount == 1)
+                        val articleResponse = body.articles.single()
+                        assert(articleResponse.slug == created.slug)
+                        assert(articleResponse.favorited)
+                        assert(articleResponse.favoritesCount == 1L)
+                    }
+                    .shouldBeRight()
+            }
+        }
+
         "create article with tags" {
             withServer { dependencies ->
                 val user = userFixture()

@@ -5,9 +5,11 @@ package io.github.nomisrev.articles
 import arrow.core.raise.context.Raise
 import arrow.core.raise.context.accumulate
 import arrow.core.raise.context.accumulating
+import arrow.core.raise.context.ensureNotNull
 import arrow.core.raise.context.withError
 import io.github.nomisrev.Api
 import io.github.nomisrev.IncorrectInput
+import io.github.nomisrev.MissingParameter
 import io.github.nomisrev.auth.JwtService
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.auth.optionalJwtAuth
@@ -69,7 +71,7 @@ data class MultipleArticlesResponse(val articles: List<Article>, val articlesCou
 
 @Serializable
 data class Comment(
-    val commentId: Long,
+    val id: Long,
     @Serializable(with = OffsetDateTimeIso8601Serializer::class) val createdAt: OffsetDateTime,
     @Serializable(with = OffsetDateTimeIso8601Serializer::class) val updatedAt: OffsetDateTime,
     val body: String,
@@ -174,20 +176,7 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
                 )
             val updatedArticle = articleService.updateArticle(input)
 
-            respond(
-                ArticleResponse(
-                    slug = updatedArticle.slug,
-                    title = updatedArticle.title,
-                    description = updatedArticle.description,
-                    body = updatedArticle.body,
-                    author = updatedArticle.author,
-                    favorited = updatedArticle.favorited,
-                    favoritesCount = updatedArticle.favoritesCount,
-                    createdAt = updatedArticle.createdAt,
-                    updatedAt = updatedArticle.updatedAt,
-                    tagList = updatedArticle.tagList,
-                )
-            )
+            respond(SingleArticleResponse(updatedArticle))
         }
     }
 
@@ -249,7 +238,7 @@ fun Route.commentRoutes(
             respond(
                 SingleCommentResponse(
                     Comment(
-                        commentId = comments.id,
+                        id = comments.id,
                         createdAt = comments.createdAt,
                         updatedAt = comments.updatedAt,
                         body = comments.body,
@@ -273,28 +262,15 @@ fun Route.commentRoutes(
 
     route(Api.Articles.Slug.Comments.Id.delete) {
         jwtAuth(jwtService) { (_, userId) ->
-            articleService.deleteComment(
-                commentId = idOf(Api.Articles.Slug.Comments.Id).toLong(),
-                userId = userId,
-            )
+            val commentId =
+                ensureNotNull(idOf(Api.Articles.Slug.Comments.Id).toLongOrNull()) {
+                    MissingParameter("commentId must be a number")
+                }
+            articleService.deleteComment(commentId = commentId, userId = userId)
             respond(code = HttpStatusCode.OK)
         }
     }
 }
-
-@Serializable
-data class ArticleResponse(
-    val slug: String,
-    val title: String,
-    val description: String,
-    val body: String,
-    val author: Profile,
-    val favorited: Boolean,
-    val favoritesCount: Long,
-    @Serializable(with = OffsetDateTimeIso8601Serializer::class) val createdAt: OffsetDateTime,
-    @Serializable(with = OffsetDateTimeIso8601Serializer::class) val updatedAt: OffsetDateTime,
-    val tagList: List<String>,
-)
 
 private object OffsetDateTimeIso8601Serializer : KSerializer<OffsetDateTime> {
     override val descriptor: SerialDescriptor =

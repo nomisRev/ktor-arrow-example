@@ -168,7 +168,7 @@ class ProfileRouteSpec :
                 val response = request(Api / Profiles / Username(user.username) / get)
 
                 response.httpResponse.status shouldBe HttpStatusCode.OK
-                with(response.bodyOrThrow()) {
+                with(response.bodyOrThrow().profile) {
                     username shouldBe user.username
                     bio shouldBe ""
                     image shouldBe ""
@@ -208,7 +208,7 @@ class ProfileRouteSpec :
                         .shouldBeRight()
 
                 response.httpResponse.status shouldBe HttpStatusCode.OK
-                with(response.bodyOrThrow()) {
+                with(response.bodyOrThrow().profile) {
                     username shouldBe followed.username
                     following shouldBe true
                 }
@@ -252,7 +252,7 @@ class ProfileRouteSpec :
                         .shouldBeRight()
 
                 response.httpResponse.status shouldBe HttpStatusCode.OK
-                with(response.bodyOrThrow()) {
+                with(response.bodyOrThrow().profile) {
                     username shouldBe followed.username
                     following shouldBe false
                 }

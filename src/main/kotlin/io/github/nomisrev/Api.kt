@@ -1,6 +1,5 @@
 package io.github.nomisrev
 
-import io.github.nomisrev.articles.ArticleResponse
 import io.github.nomisrev.articles.ArticleWrapper
 import io.github.nomisrev.articles.ArticlesParameters
 import io.github.nomisrev.articles.CommentWrapper
@@ -61,7 +60,7 @@ object Api : SpineRootResource("api") {
             val update by
                 put()
                     .request<ArticleWrapper<UpdateArticle>>()
-                    .response<ArticleResponse>()
+                    .response<SingleArticleResponse>()
                     .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
 
             val delete by
@@ -107,7 +106,7 @@ object Api : SpineRootResource("api") {
         object Username : DynamicResource<Profiles>("username", Profiles) {
             val get by
                 get()
-                    .response<Profile>()
+                    .response<ProfileWrapper<Profile>>()
                     .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
 
             object Follow : StaticResource<Username>("follow", Username) {

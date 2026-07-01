@@ -30,7 +30,7 @@ fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtService
             val username = idOf(Api.Profiles.Username)
             ensure(username.isNotBlank()) { MissingParameter("username cannot be null or blank") }
             val profile = userPersistence.selectProfile(username, context?.userId)
-            respond(profile)
+            respond(ProfileWrapper(profile))
         }
     }
 

@@ -5,12 +5,16 @@ import io.github.nomisrev.Api
 import io.github.nomisrev.Api.Articles
 import io.github.nomisrev.Api.Articles.Slug
 import io.github.nomisrev.Api.Articles.Slug.Comments
+import io.github.nomisrev.Api.Articles.Slug.Comments.Id
+import io.github.nomisrev.Api.Articles.Slug.Comments.Id.delete as deleteComment
 import io.github.nomisrev.Api.Articles.Slug.Comments.create
 import io.github.nomisrev.Api.Articles.Slug.Comments.list
 import io.github.nomisrev.Api.Articles.Slug.Favorite
 import io.github.nomisrev.Api.Articles.Slug.Favorite.add as favoriteArticle
 import io.github.nomisrev.Api.Articles.Slug.Favorite.remove as unfavoriteArticle
+import io.github.nomisrev.Api.Articles.Slug.delete as deleteArticle
 import io.github.nomisrev.Api.Articles.Slug.get
+import io.github.nomisrev.Api.Articles.Slug.update as updateArticle
 import io.github.nomisrev.GenericErrorModel
 import io.github.nomisrev.articleFixture
 import io.github.nomisrev.userFixture
@@ -134,6 +138,49 @@ class ArticlesRouteSpec :
                     assert(favoritesCount == 1L)
                     assert(this.author.following)
                 }
+            }
+        }
+
+        "can update an article by slug" {
+            withServer { dependencies ->
+                val author = userFixture()
+
+                either {
+                        val token =
+                            dependencies.userService.register(
+                                RegisterUser(author.username, author.email, author.password)
+                            )
+                        val authorId = dependencies.jwtService.verifyJwtToken(token)
+
+                        val article = articleFixture()
+                        val created =
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    authorId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
+                            )
+
+                        val response =
+                            request(
+                                Api / Articles / Slug(created.slug) / updateArticle,
+                                ArticleWrapper(UpdateArticle(body = "With two hands")),
+                            ) {
+                                bearerAuth(token.value)
+                            }
+
+                        assert(response.httpResponse.status == HttpStatusCode.OK)
+                        val body: SingleArticleResponse = response.bodyOrThrow()
+                        assert(body.article.slug == created.slug)
+                        assert(body.article.title == created.title)
+                        assert(body.article.description == created.description)
+                        assert(body.article.body == "With two hands")
+                        assert(body.article.author.username == author.username)
+                    }
+                    .shouldBeRight()
             }
         }
 
@@ -399,6 +446,94 @@ class ArticlesRouteSpec :
             }
         }
 
+        "can list comments for an article when authenticated" {
+            withServer { dependencies ->
+                val user = userFixture()
+
+                either {
+                        val token =
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        val userId = dependencies.jwtService.verifyJwtToken(token)
+
+                        val article = articleFixture()
+                        val created =
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    userId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
+                            )
+
+                        request(
+                            Api / Articles / Slug(created.slug) / Comments / create,
+                            CommentWrapper(NewComment("Thank you so much!")),
+                        ) {
+                            bearerAuth(token.value)
+                        }
+
+                        val response =
+                            request(Api / Articles / Slug(created.slug) / Comments / list) {
+                                bearerAuth(token.value)
+                            }
+
+                        val body: MultipleCommentsResponse = response.bodyOrThrow()
+                        assert(body.comments.size == 1)
+                        val comment = body.comments.single()
+                        assert(comment.body == "Thank you so much!")
+                        assert(comment.author.username == user.username)
+                    }
+                    .shouldBeRight()
+            }
+        }
+
+        "can list comments for an article without authentication" {
+            withServer { dependencies ->
+                val user = userFixture()
+
+                either {
+                        val token =
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        val userId = dependencies.jwtService.verifyJwtToken(token)
+
+                        val article = articleFixture()
+                        val created =
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    userId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
+                            )
+
+                        request(
+                            Api / Articles / Slug(created.slug) / Comments / create,
+                            CommentWrapper(NewComment("Thank you so much!")),
+                        ) {
+                            bearerAuth(token.value)
+                        }
+
+                        val response =
+                            request(Api / Articles / Slug(created.slug) / Comments / list)
+
+                        val body: MultipleCommentsResponse = response.bodyOrThrow()
+                        assert(body.comments.size == 1)
+                        val comment = body.comments.single()
+                        assert(comment.body == "Thank you so much!")
+                        assert(comment.author.username == user.username)
+                    }
+                    .shouldBeRight()
+            }
+        }
+
         "Can add a comment to an article" {
             withServer { dependencies ->
                 val user = userFixture()
@@ -508,6 +643,105 @@ class ArticlesRouteSpec :
                         .shouldBeRight()
 
                 assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
+            }
+        }
+
+        "can delete a comment from an article" {
+            withServer { dependencies ->
+                val user = userFixture()
+
+                either {
+                        val token =
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        val userId = dependencies.jwtService.verifyJwtToken(token)
+
+                        val article = articleFixture()
+                        val created =
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    userId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
+                            )
+
+                        val createdComment =
+                            request(
+                                    Api / Articles / Slug(created.slug) / Comments / create,
+                                    CommentWrapper(NewComment("Thank you so much!")),
+                                ) {
+                                    bearerAuth(token.value)
+                                }
+                                .bodyOrThrow()
+
+                        val deleteResponse =
+                            request(
+                                Api /
+                                    Articles /
+                                    Slug(created.slug) /
+                                    Comments /
+                                    Id(createdComment.comment.id.toString()) /
+                                    deleteComment
+                            ) {
+                                bearerAuth(token.value)
+                            }
+
+                        assert(deleteResponse.httpResponse.status == HttpStatusCode.OK)
+
+                        val listResponse =
+                            request(Api / Articles / Slug(created.slug) / Comments / list) {
+                                bearerAuth(token.value)
+                            }
+                        val listed: MultipleCommentsResponse = listResponse.bodyOrThrow()
+                        assert(listed.comments.isEmpty())
+                    }
+                    .shouldBeRight()
+            }
+        }
+
+        "can delete an article by slug" {
+            withServer { dependencies ->
+                val author = userFixture()
+
+                either {
+                        val token =
+                            dependencies.userService.register(
+                                RegisterUser(author.username, author.email, author.password)
+                            )
+                        val authorId = dependencies.jwtService.verifyJwtToken(token)
+
+                        val article = articleFixture()
+                        val created =
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    authorId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
+                            )
+
+                        val deleteResponse =
+                            request(Api / Articles / Slug(created.slug) / deleteArticle) {
+                                bearerAuth(token.value)
+                            }
+                        assert(deleteResponse.httpResponse.status == HttpStatusCode.OK)
+
+                        val getResponse = request(Api / Articles / Slug(created.slug) / get)
+                        assert(
+                            getResponse.httpResponse.status == HttpStatusCode.UnprocessableEntity
+                        )
+                        assert(
+                            getResponse.httpResponse.body<GenericErrorModel>().errors.body ==
+                                listOf("Article by slug ${created.slug} not found")
+                        )
+                    }
+                    .shouldBeRight()
             }
         }
     })

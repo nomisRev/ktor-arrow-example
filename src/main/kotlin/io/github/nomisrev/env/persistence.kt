@@ -13,7 +13,6 @@ import io.github.nomisrev.sqldelight.SqlDelight
 import io.github.nomisrev.sqldelight.Tags
 import io.github.nomisrev.sqldelight.Users
 import io.github.nomisrev.users.UserId
-import java.time.OffsetDateTime
 import javax.sql.DataSource
 
 suspend fun ResourceScope.hikari(env: Env.DataSource): HikariDataSource = autoCloseable {
@@ -40,7 +39,6 @@ suspend fun ResourceScope.sqlDelight(dataSource: DataSource): SqlDelight {
 
 private val articleIdAdapter = columnAdapter(::ArticleId, ArticleId::serial)
 private val userIdAdapter = columnAdapter(::UserId, UserId::serial)
-private val offsetDateTimeAdapter = columnAdapter(OffsetDateTime::parse, OffsetDateTime::toString)
 
 private inline fun <A : Any, B> columnAdapter(
     crossinline decode: (databaseValue: B) -> A,
