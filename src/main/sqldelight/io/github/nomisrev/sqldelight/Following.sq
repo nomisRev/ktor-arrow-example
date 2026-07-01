@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS following(
     PRIMARY KEY (followed_id, follower_id)
 );
 
+CREATE INDEX IF NOT EXISTS following_follower_id_idx ON following(follower_id);
+
 select:
 SELECT followed_id, follower_id
 FROM following
@@ -20,7 +22,8 @@ VALUES (:followedId, :followerId);
 
 insertByUsername:
 INSERT INTO following(followed_id, follower_id)
-VALUES ((SELECT id FROM users WHERE users.username=:username), :followerId);
+VALUES ((SELECT id FROM users WHERE users.username=:username), :followerId)
+ON CONFLICT (followed_id, follower_id) DO NOTHING;
 
 delete:
 DELETE FROM following

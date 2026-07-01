@@ -61,7 +61,6 @@ class UserPersistence(
         return Pair(userId, UserInfo(email, username, bio, image))
     }
 
-    /** Select a User by its [UserId] */
     context(_: Raise<UserNotFound>)
     fun select(userId: UserId): UserInfo {
         val userInfo =
@@ -92,8 +91,23 @@ class UserPersistence(
         return ensureNotNull(profileInfo) { UserNotFound("username=$username") }
     }
 
-    fun isFollowing(followedId: UserId, followerId: UserId): Boolean =
-        followingQueries.select(followedId.serial, followerId.serial).executeAsOneOrNull() != null
+    fun selectAuthorProfiles(
+        viewerId: UserId?,
+        authorIds: Collection<UserId>,
+    ): Map<UserId, Profile> =
+        if (authorIds.isEmpty()) emptyMap()
+        else
+            usersQueries
+                .selectProfilesByViewer(viewerId?.serial ?: NO_USER, authorIds.distinct()) {
+                    id,
+                    username,
+                    bio,
+                    image,
+                    following ->
+                    id to Profile(username, bio, image, following > 0)
+                }
+                .executeAsList()
+                .toMap()
 
     private fun toProfile(username: String, bio: String, image: String, following: Int): Profile =
         Profile(username, bio, image, following > 0)
@@ -164,6 +178,11 @@ class UserPersistence(
         }
 
     private fun generateSalt(): ByteArray = UUID.randomUUID().toString().toByteArray()
+
+    private companion object {
+        /** Sentinel id that never matches a real user, used to represent "no current user". */
+        const val NO_USER = -1L
+    }
 
     private fun generateKey(password: String, salt: ByteArray): ByteArray {
         val spec = PBEKeySpec(password.toCharArray(), salt, defaultIterations, defaultKeyLength)

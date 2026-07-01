@@ -4,10 +4,7 @@ CREATE TABLE IF NOT EXISTS favorites(
     PRIMARY KEY (article_id, user_id)
 );
 
-favoriteCount:
-SELECT COUNT(user_id)
-FROM favorites
-WHERE article_id = :articleId;
+CREATE INDEX IF NOT EXISTS favorites_user_id_idx ON favorites(user_id);
 
 insert:
 INSERT INTO favorites(article_id, user_id)
@@ -18,7 +15,20 @@ delete:
 DELETE FROM favorites
 WHERE article_id = :articleId AND user_id = :userId;
 
-isFavorite:
-SELECT article_id
+-- Combines the favorite count and "is this favorited by :userId" flag that used to be
+-- two separate round trips into a single aggregate query. Pass -1 as :userId when there
+-- is no current user; no row will ever match that id.
+selectFavoriteStats:
+SELECT COUNT(*) AS favorite_count, (bool_or(user_id = :userId) IS TRUE) AS favorited
 FROM favorites
-WHERE user_id = :userId AND article_id = :articleId;
+WHERE article_id = :articleId;
+
+-- Batched variant of selectFavoriteStats used to hydrate a whole page of articles in a
+-- single round trip instead of per-article queries. Articles without any favorites are
+-- simply absent from the result and default to (count = 0, favorited = false) in code.
+-- Pass -1 as :userId when there is no current user; no row will ever match that id.
+selectFavoriteStatsForArticles:
+SELECT article_id, COUNT(*) AS favorite_count, (bool_or(user_id = :userId) IS TRUE) AS favorited
+FROM favorites
+WHERE article_id IN :articleIds
+GROUP BY article_id;

@@ -8,6 +8,11 @@ class TagPersistence(
 ) {
     fun selectTags(): List<String> = tags.selectTags().executeAsList()
 
-    fun selectTagsOfArticle(articleId: ArticleId): List<String> =
-        tags.selectTagsOfArticle(articleId).executeAsList()
+    fun selectTagsOfArticles(articleIds: Collection<ArticleId>): Map<ArticleId, List<String>> {
+        if (articleIds.isEmpty()) return emptyMap()
+        return tags
+            .selectTagsOfArticles(articleIds.distinct()) { articleId, tag -> articleId to tag }
+            .executeAsList()
+            .groupBy({ it.first }, { it.second })
+    }
 }

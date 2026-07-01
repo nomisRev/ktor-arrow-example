@@ -13,6 +13,12 @@ CREATE TABLE IF NOT EXISTS articles(
     updatedAt TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Postgres does not auto-index foreign key columns. author_id is used to filter/join
+-- in feed, author and profile listings, always ordered by createdAt.
+CREATE INDEX IF NOT EXISTS articles_author_id_created_at_idx ON articles(author_id, createdAt DESC);
+-- Supports the unfiltered listing (selectAllArticles), which orders by createdAt only.
+CREATE INDEX IF NOT EXISTS articles_created_at_idx ON articles(createdAt DESC);
+
 amountOfArticleForAuthor:
 SELECT COUNT(id)
 FROM articles
@@ -25,12 +31,12 @@ WHERE author_id = :authorId
 ORDER BY createdAt DESC
 LIMIT :limit OFFSET :offset;
 
+-- Combines the article page and its total count (via a window function) into a single
+-- round trip instead of running the filtered query twice (once for rows, once for COUNT).
 selectFeedArticles:
-SELECT
-articles.id AS article__id, articles.slug AS article__slug, articles.title AS article__title, articles.description AS article__description, articles.body AS article__body, articles.author_id AS article__author_id, articles.createdAt AS article__createdAt, articles.updatedAt AS article__updatedAt
+SELECT id, slug, title, description, body, author_id, createdAt, updatedAt, COUNT(*) OVER() AS full_count
 FROM articles
-INNER JOIN users ON articles.author_id = users.id
-WHERE articles.author_id IN (
+WHERE author_id IN (
     SELECT following.followed_id
     FROM following
     WHERE following.follower_id = :user_id
@@ -47,12 +53,7 @@ SET title = COALESCE(:title, title),
 WHERE slug = :slug
 RETURNING id, slug, title, description, body, author_id, createdAt, updatedAt;
 
-insertAndGetId:
-INSERT INTO articles(slug, title, description, body, author_id)
-VALUES (:slug, :title, :description, :body, :authorId)
-RETURNING id;
-
-insertAndGet:
+insertAndReturn:
 INSERT INTO articles(slug, title, description, body, author_id)
 VALUES (:slug, :title, :description, :body, :authorId)
 RETURNING id, createdAt, updatedAt;
@@ -66,8 +67,7 @@ slugExists:
 SELECT EXISTS(
   SELECT 1
   FROM articles
-  WHERE slug= :slug
-  LIMIT 1
+  WHERE slug = :slug
 );
 
 delete:
@@ -75,17 +75,13 @@ DELETE FROM articles
 WHERE id = :articleId;
 
 selectAllArticles:
-SELECT id, slug, title, description, body, author_id, createdAt, updatedAt
+SELECT id, slug, title, description, body, author_id, createdAt, updatedAt, COUNT(*) OVER() AS full_count
 FROM articles
 ORDER BY createdAt DESC
 LIMIT :limit OFFSET :offset;
-
-countAllArticles:
-SELECT COUNT(id)
-FROM articles;
 
 selectArticlesByAuthor:
-SELECT id, slug, title, description, body, author_id, createdAt, updatedAt
+SELECT id, slug, title, description, body, author_id, createdAt, updatedAt, COUNT(*) OVER() AS full_count
 FROM articles
 WHERE author_id IN (
     SELECT id
@@ -94,18 +90,9 @@ WHERE author_id IN (
 )
 ORDER BY createdAt DESC
 LIMIT :limit OFFSET :offset;
-
-countArticlesByAuthor:
-SELECT COUNT(id)
-FROM articles
-WHERE author_id IN (
-    SELECT id
-    FROM users
-    WHERE username = :username
-);
 
 selectArticlesByTag:
-SELECT id, slug, title, description, body, author_id, createdAt, updatedAt
+SELECT id, slug, title, description, body, author_id, createdAt, updatedAt, COUNT(*) OVER() AS full_count
 FROM articles
 WHERE id IN (
     SELECT article_id
@@ -114,18 +101,9 @@ WHERE id IN (
 )
 ORDER BY createdAt DESC
 LIMIT :limit OFFSET :offset;
-
-countArticlesByTag:
-SELECT COUNT(id)
-FROM articles
-WHERE id IN (
-    SELECT article_id
-    FROM tags
-    WHERE tag = :tag
-);
 
 selectArticlesFavoritedByUsername:
-SELECT id, slug, title, description, body, author_id, createdAt, updatedAt
+SELECT id, slug, title, description, body, author_id, createdAt, updatedAt, COUNT(*) OVER() AS full_count
 FROM articles
 WHERE id IN (
     SELECT article_id
@@ -138,25 +116,3 @@ WHERE id IN (
 )
 ORDER BY createdAt DESC
 LIMIT :limit OFFSET :offset;
-
-countArticlesFavoritedByUsername:
-SELECT COUNT(id)
-FROM articles
-WHERE id IN (
-    SELECT article_id
-    FROM favorites
-    WHERE user_id IN (
-        SELECT id
-        FROM users
-        WHERE username = :username
-    )
-);
-
-countFeedArticles:
-SELECT COUNT(id)
-FROM articles
-WHERE author_id IN (
-    SELECT following.followed_id
-    FROM following
-    WHERE following.follower_id = :user_id
-);

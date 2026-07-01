@@ -37,6 +37,22 @@ LEFT JOIN following
     AND following.follower_id = :viewerId
 WHERE users.username = :username;
 
+-- Batched profile lookup keyed by user id, used to hydrate the author profile (and
+-- "is the current user following this author" flag) for a page of articles in a single
+-- round trip instead of one selectById + one following-check per article. Pass -1 as
+-- :viewerId when there is no current user; no row will ever match that id.
+selectProfilesByViewer:
+SELECT users.id, users.username, users.bio, users.image,
+CASE
+    WHEN following.follower_id IS NULL THEN 0
+    ELSE 1
+END AS following
+FROM users
+LEFT JOIN following
+    ON users.id = following.followed_id
+    AND following.follower_id = :viewerId
+WHERE users.id IN :userIds;
+
 selectSecurityByEmail:
 SELECT id, username, salt, hashed_password, bio, image
 FROM users

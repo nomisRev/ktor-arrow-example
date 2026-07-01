@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS tags(
     PRIMARY KEY (article_id, tag)
 );
 
+CREATE INDEX IF NOT EXISTS tags_tag_idx ON tags(tag);
+
 selectTags:
 SELECT DISTINCT ON (tag) tag
 FROM tags;
@@ -14,6 +16,11 @@ selectTagsOfArticle:
 SELECT tag
 FROM tags
 WHERE article_id = :articleId;
+
+selectTagsOfArticles:
+SELECT article_id, tag
+FROM tags
+WHERE article_id IN :articleIds;
 
 selectArticleId:
 SELECT article_id

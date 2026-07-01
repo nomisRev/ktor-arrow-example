@@ -9,7 +9,6 @@ import io.github.nomisrev.DomainError
 import io.github.nomisrev.NotArticleAuthor
 import io.github.nomisrev.NotCommentAuthor
 import io.github.nomisrev.UserNotFound
-import io.github.nomisrev.profiles.Profile
 import io.github.nomisrev.sqldelight.Articles
 import io.github.nomisrev.sqldelight.Comments
 import io.github.nomisrev.tags.TagPersistence
@@ -57,32 +56,43 @@ class ArticleService(
                 articlePersistence.exists(slug).not()
             }
 
-        articlePersistence.create(
-            input.userId,
-            slug,
-            input.title,
-            input.description,
-            input.body,
-            input.tags,
-        )
+        val insertAndGet =
+            articlePersistence.create(
+                input.userId,
+                slug,
+                input.title,
+                input.description,
+                input.body,
+                input.tags,
+            )
 
-        return article(articlePersistence.findArticleBySlug(slug), input.userId)
+        val article =
+            Articles(
+                id = insertAndGet.id,
+                slug = slug.value,
+                title = input.title,
+                description = input.description,
+                body = input.body,
+                author_id = input.userId,
+                createdAt = insertAndGet.createdAt,
+                updatedAt = insertAndGet.updatedAt,
+            )
+
+        return article(article, input.userId)
     }
 
     context(_: Raise<UserNotFound>)
     fun getUserFeed(input: GetFeed): MultipleArticlesResponse {
-        val articles =
+        val result =
             articlePersistence.feed(
                 userId = input.userId,
                 limit = FeedLimit(input.limit),
                 offset = FeedOffset(input.offset),
             )
 
-        val articlesCount = articlePersistence.feedCount(input.userId).toInt()
-
         return MultipleArticlesResponse(
-            articles = articles.map { article(it, input.userId) },
-            articlesCount = articlesCount,
+            articles = articles(result.articles, input.userId),
+            articlesCount = result.articlesCount.toInt(),
         )
     }
 
@@ -101,7 +111,7 @@ class ArticleService(
             )
 
         return MultipleArticlesResponse(
-            articles = result.articles.map { article(it, input.currentUserId) },
+            articles = articles(result.articles, input.currentUserId),
             articlesCount = result.articlesCount.toInt(),
         )
     }
@@ -174,29 +184,41 @@ class ArticleService(
     }
 
     context(_: Raise<UserNotFound>)
-    private fun article(article: Articles, currentUserId: UserId?): Article {
-        val user = userPersistence.select(article.author_id)
+    private fun article(article: Articles, currentUserId: UserId?): Article =
+        articles(listOf(article), currentUserId).single()
 
-        val articleTags = tagPersistence.selectTagsOfArticle(article.id)
-        val favouriteCount = favouritePersistence.favoriteCount(article.id)
-        val favorited =
-            currentUserId != null && favouritePersistence.isFavorite(currentUserId, article.id)
+    context(_: Raise<UserNotFound>)
+    private fun articles(articleRows: List<Articles>, currentUserId: UserId?): List<Article> {
+        if (articleRows.isEmpty()) return emptyList()
 
-        val following =
-            currentUserId != null && userPersistence.isFollowing(article.author_id, currentUserId)
+        val articleIds = articleRows.map { it.id }
+        val authorIds = articleRows.map { it.author_id }
 
-        return Article(
-            article.id.serial,
-            article.slug,
-            article.title,
-            article.description,
-            article.body,
-            Profile(user.username, user.bio, user.image, following),
-            favorited,
-            favouriteCount,
-            article.createdAt,
-            article.updatedAt,
-            articleTags,
-        )
+        val profilesByAuthor = userPersistence.selectAuthorProfiles(currentUserId, authorIds)
+        val tagsByArticle = tagPersistence.selectTagsOfArticles(articleIds)
+        val favoriteStatsByArticle = favouritePersistence.favoriteStats(currentUserId, articleIds)
+
+        return articleRows.map { row ->
+            val profile =
+                ensureNotNull(profilesByAuthor[row.author_id]) {
+                    UserNotFound("userId=${row.author_id}")
+                }
+            val stats =
+                favoriteStatsByArticle[row.id] ?: FavoriteStats(count = 0, favorited = false)
+
+            Article(
+                row.id.serial,
+                row.slug,
+                row.title,
+                row.description,
+                row.body,
+                profile,
+                stats.favorited,
+                stats.count,
+                row.createdAt,
+                row.updatedAt,
+                tagsByArticle[row.id].orEmpty(),
+            )
+        }
     }
 }
