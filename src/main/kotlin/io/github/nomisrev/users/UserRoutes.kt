@@ -1,13 +1,11 @@
 @file:Suppress("MatchingDeclarationName")
 
-package io.github.nomisrev.routes
+package io.github.nomisrev.users
 
+import io.github.nomisrev.Api
+import io.github.nomisrev.auth.JwtService
 import io.github.nomisrev.auth.jwtAuth
-import io.github.nomisrev.service.JwtService
-import io.github.nomisrev.service.Login
-import io.github.nomisrev.service.RegisterUser
-import io.github.nomisrev.service.Update
-import io.github.nomisrev.service.UserService
+import io.github.nomisrev.route
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.routing.Route
 import kotlinx.serialization.Serializable

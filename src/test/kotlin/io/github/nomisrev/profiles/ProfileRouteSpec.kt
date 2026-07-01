@@ -1,14 +1,16 @@
-package io.github.nomisrev.routes
+package io.github.nomisrev.profiles
 
 import arrow.core.raise.either
-import io.github.nomisrev.routes.Api.Profiles
-import io.github.nomisrev.routes.Api.Profiles.Username
-import io.github.nomisrev.routes.Api.Profiles.Username.Follow
-import io.github.nomisrev.routes.Api.Profiles.Username.Follow.add
-import io.github.nomisrev.routes.Api.Profiles.Username.Follow.remove
-import io.github.nomisrev.routes.Api.Profiles.Username.get
-import io.github.nomisrev.service.RegisterUser
+import io.github.nomisrev.Api
+import io.github.nomisrev.Api.Profiles
+import io.github.nomisrev.Api.Profiles.Username
+import io.github.nomisrev.Api.Profiles.Username.Follow
+import io.github.nomisrev.Api.Profiles.Username.Follow.add
+import io.github.nomisrev.Api.Profiles.Username.Follow.remove
+import io.github.nomisrev.Api.Profiles.Username.get
+import io.github.nomisrev.GenericErrorModel
 import io.github.nomisrev.userFixture
+import io.github.nomisrev.users.RegisterUser
 import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.StringSpec

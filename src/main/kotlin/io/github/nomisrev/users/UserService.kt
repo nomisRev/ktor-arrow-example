@@ -1,13 +1,12 @@
-package io.github.nomisrev.service
+package io.github.nomisrev.users
 
 import arrow.core.raise.context.Raise
 import arrow.core.raise.context.ensure
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.EmptyUpdate
 import io.github.nomisrev.UserNotFound
+import io.github.nomisrev.auth.JwtService
 import io.github.nomisrev.auth.JwtToken
-import io.github.nomisrev.repo.UserId
-import io.github.nomisrev.repo.UserPersistence
 import io.github.nomisrev.validate
 
 data class RegisterUser(val username: String, val email: String, val password: String)

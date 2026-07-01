@@ -1,4 +1,4 @@
-package io.github.nomisrev.service
+package io.github.nomisrev.articles
 
 import arrow.core.raise.context.Raise
 import arrow.core.raise.context.ensure
@@ -9,20 +9,12 @@ import io.github.nomisrev.DomainError
 import io.github.nomisrev.NotArticleAuthor
 import io.github.nomisrev.NotCommentAuthor
 import io.github.nomisrev.UserNotFound
-import io.github.nomisrev.repo.ArticleId
-import io.github.nomisrev.repo.ArticlePersistence
-import io.github.nomisrev.repo.FavouritePersistence
-import io.github.nomisrev.repo.TagPersistence
-import io.github.nomisrev.repo.UserId
-import io.github.nomisrev.repo.UserPersistence
-import io.github.nomisrev.routes.Article
-import io.github.nomisrev.routes.Comment
-import io.github.nomisrev.routes.FeedLimit
-import io.github.nomisrev.routes.FeedOffset
-import io.github.nomisrev.routes.MultipleArticlesResponse
-import io.github.nomisrev.routes.Profile
+import io.github.nomisrev.profiles.Profile
 import io.github.nomisrev.sqldelight.Articles
 import io.github.nomisrev.sqldelight.Comments
+import io.github.nomisrev.tags.TagPersistence
+import io.github.nomisrev.users.UserId
+import io.github.nomisrev.users.UserPersistence
 import java.time.OffsetDateTime
 
 data class CreateArticle(

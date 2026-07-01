@@ -4,8 +4,7 @@ package io.github.nomisrev.auth
 
 import arrow.core.Either
 import arrow.core.raise.recover
-import io.github.nomisrev.repo.UserId
-import io.github.nomisrev.service.JwtService
+import io.github.nomisrev.users.UserId
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.auth.HttpAuthHeader
 import io.ktor.server.application.ApplicationCall

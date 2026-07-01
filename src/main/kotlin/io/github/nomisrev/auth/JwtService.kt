@@ -1,4 +1,4 @@
-package io.github.nomisrev.service
+package io.github.nomisrev.auth
 
 import arrow.core.raise.context.Raise
 import arrow.core.raise.context.bind
@@ -12,10 +12,9 @@ import io.github.nefilim.kjwt.sign
 import io.github.nomisrev.DomainError
 import io.github.nomisrev.JwtGeneration
 import io.github.nomisrev.JwtInvalid
-import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.env.Env
-import io.github.nomisrev.repo.UserId
-import io.github.nomisrev.repo.UserPersistence
+import io.github.nomisrev.users.UserId
+import io.github.nomisrev.users.UserPersistence
 import java.time.Clock
 import java.time.Instant
 import kotlin.time.toJavaDuration

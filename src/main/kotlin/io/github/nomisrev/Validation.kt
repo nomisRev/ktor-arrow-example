@@ -12,18 +12,18 @@ import arrow.core.raise.context.accumulating
 import arrow.core.raise.context.ensureOrAccumulate
 import arrow.core.raise.context.mapOrAccumulate
 import arrow.core.raise.context.withError
-import io.github.nomisrev.repo.UserId
-import io.github.nomisrev.routes.ArticleResource
-import io.github.nomisrev.routes.ArticlesResource
-import io.github.nomisrev.routes.FeedLimit
-import io.github.nomisrev.routes.FeedOffset
-import io.github.nomisrev.routes.NewArticle
-import io.github.nomisrev.routes.NewComment
-import io.github.nomisrev.service.GetArticles
-import io.github.nomisrev.service.GetFeed
-import io.github.nomisrev.service.Login
-import io.github.nomisrev.service.RegisterUser
-import io.github.nomisrev.service.Update
+import io.github.nomisrev.articles.ArticleResource
+import io.github.nomisrev.articles.ArticlesResource
+import io.github.nomisrev.articles.FeedLimit
+import io.github.nomisrev.articles.FeedOffset
+import io.github.nomisrev.articles.GetArticles
+import io.github.nomisrev.articles.GetFeed
+import io.github.nomisrev.articles.NewArticle
+import io.github.nomisrev.articles.NewComment
+import io.github.nomisrev.users.Login
+import io.github.nomisrev.users.RegisterUser
+import io.github.nomisrev.users.Update
+import io.github.nomisrev.users.UserId
 
 sealed interface InvalidField {
     val errors: NonEmptyList<String>
@@ -69,26 +69,26 @@ private fun Login.validated(): Login = accumulate {
 }
 
 context(_: Raise<IncorrectInput>)
-fun RegisterUser.validate(): RegisterUser = withError(::IncorrectInput) { validated() }
-
-context(_: Raise<NonEmptyList<InvalidField>>)
-private fun RegisterUser.validated(): RegisterUser = accumulate {
-    val username by accumulating { username.validUsername() }
-    val email by accumulating { email.validEmail() }
-    val password by accumulating { password.validPassword() }
-    RegisterUser(username, email, password)
-}
+fun RegisterUser.validate(): RegisterUser =
+    withError(::IncorrectInput) {
+        accumulate {
+            val username by accumulating { username.validUsername() }
+            val email by accumulating { email.validEmail() }
+            val password by accumulating { password.validPassword() }
+            RegisterUser(username, email, password)
+        }
+    }
 
 context(_: Raise<IncorrectInput>)
-fun Update.validate(): Update = withError(::IncorrectInput) { validated() }
-
-context(_: Raise<NonEmptyList<InvalidField>>)
-private fun Update.validated(): Update = accumulate {
-    val username by accumulating { username?.validUsername() }
-    val email by accumulating { email?.validEmail() }
-    val password by accumulating { password?.validPassword() }
-    Update(userId, username, email, password, bio, image)
-}
+fun Update.validate(): Update =
+    withError(::IncorrectInput) {
+        accumulate {
+            val username by accumulating { username?.validUsername() }
+            val email by accumulating { email?.validEmail() }
+            val password by accumulating { password?.validPassword() }
+            Update(userId, username, email, password, bio, image)
+        }
+    }
 
 private const val MIN_PASSWORD_LENGTH = 8
 private const val MAX_PASSWORD_LENGTH = 100
@@ -182,16 +182,16 @@ private fun String.looksLikeEmail(): String = also {
 }
 
 context(_: Raise<IncorrectInput>)
-fun NewArticle.validate(): NewArticle = withError(::IncorrectInput) { validated() }
-
-context(_: Raise<NonEmptyList<InvalidField>>)
-private fun NewArticle.validated(): NewArticle = accumulate {
-    val title by accumulating { title.validTitle() }
-    val description by accumulating { description.validDescription() }
-    val body by accumulating { body.validBody() }
-    val tagList by accumulating { tagList.validTags().toList() }
-    NewArticle(title, description, body, tagList)
-}
+fun NewArticle.validate(): NewArticle =
+    withError(::IncorrectInput) {
+        accumulate {
+            val title by accumulating { title.validTitle() }
+            val description by accumulating { description.validDescription() }
+            val body by accumulating { body.validBody() }
+            val tagList by accumulating { tagList.validTags().toList() }
+            NewArticle(title, description, body, tagList)
+        }
+    }
 
 context(_: Raise<IncorrectInput>)
 fun NewComment.validate(): NewComment = withError(::IncorrectInput) { validated() }
@@ -238,29 +238,27 @@ fun Int.validFeedLimit(): FeedLimit =
 
 context(_: Raise<IncorrectInput>)
 fun ArticleResource.Feed.validate(userId: UserId): GetFeed =
-    withError(::IncorrectInput) { validated(userId) }
-
-context(_: Raise<NonEmptyList<InvalidField>>)
-private fun ArticleResource.Feed.validated(userId: UserId): GetFeed = accumulate {
-    val offset by accumulating { offsetParam.validFeedOffset() }
-    val limit by accumulating { limitParam.validFeedLimit() }
-    GetFeed(userId, limit.limit, offset.offset)
-}
+    withError(::IncorrectInput) {
+        accumulate {
+            val offset by accumulating { offsetParam.validFeedOffset() }
+            val limit by accumulating { limitParam.validFeedLimit() }
+            GetFeed(userId, limit.limit, offset.offset)
+        }
+    }
 
 context(_: Raise<IncorrectInput>)
 fun ArticlesResource.validate(currentUserId: UserId?): GetArticles =
-    withError(::IncorrectInput) { validated(currentUserId) }
-
-context(_: Raise<NonEmptyList<InvalidField>>)
-private fun ArticlesResource.validated(currentUserId: UserId?): GetArticles = accumulate {
-    val offset by accumulating { offsetParam.validFeedOffset() }
-    val limit by accumulating { limitParam.validFeedLimit() }
-    GetArticles(
-        limit = limit.limit,
-        offset = offset.offset,
-        author = author,
-        favorited = favorited,
-        tag = tag,
-        currentUserId = currentUserId,
-    )
-}
+    withError(::IncorrectInput) {
+        accumulate {
+            val offset by accumulating { offsetParam.validFeedOffset() }
+            val limit by accumulating { limitParam.validFeedLimit() }
+            GetArticles(
+                limit = limit.limit,
+                offset = offset.offset,
+                author = author,
+                favorited = favorited,
+                tag = tag,
+                currentUserId = currentUserId,
+            )
+        }
+    }

@@ -7,13 +7,13 @@ import arrow.fx.coroutines.autoCloseable
 import arrow.fx.coroutines.closeable
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import io.github.nomisrev.repo.ArticleId
-import io.github.nomisrev.repo.UserId
+import io.github.nomisrev.articles.ArticleId
 import io.github.nomisrev.sqldelight.Articles
 import io.github.nomisrev.sqldelight.Comments
 import io.github.nomisrev.sqldelight.SqlDelight
 import io.github.nomisrev.sqldelight.Tags
 import io.github.nomisrev.sqldelight.Users
+import io.github.nomisrev.users.UserId
 import java.time.OffsetDateTime
 import javax.sql.DataSource
 

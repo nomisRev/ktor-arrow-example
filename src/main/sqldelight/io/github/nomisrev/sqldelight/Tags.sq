@@ -1,4 +1,4 @@
-import io.github.nomisrev.repo.ArticleId;
+import io.github.nomisrev.articles.ArticleId;
 
 CREATE TABLE IF NOT EXISTS tags(
     article_id BIGINT AS ArticleId REFERENCES articles(id) ON DELETE CASCADE NOT NULL,

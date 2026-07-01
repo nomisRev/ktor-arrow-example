@@ -1,4 +1,4 @@
-package io.github.nomisrev.repo
+package io.github.nomisrev.users
 
 import arrow.core.raise.catch
 import arrow.core.raise.context.Raise
@@ -9,8 +9,7 @@ import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.UserError
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.UsernameAlreadyExists
-import io.github.nomisrev.routes.Profile
-import io.github.nomisrev.service.UserInfo
+import io.github.nomisrev.profiles.Profile
 import io.github.nomisrev.sqldelight.FollowingQueries
 import io.github.nomisrev.sqldelight.UsersQueries
 import java.util.UUID

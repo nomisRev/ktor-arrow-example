@@ -1,4 +1,4 @@
-package io.github.nomisrev.service
+package io.github.nomisrev.users
 
 import arrow.core.nonEmptyListOf
 import arrow.core.raise.either
@@ -12,7 +12,6 @@ import io.github.nomisrev.InvalidUsername
 import io.github.nomisrev.SuspendFun
 import io.github.nomisrev.UsernameAlreadyExists
 import io.github.nomisrev.auth.JwtToken
-import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.userFixture
 import io.github.nomisrev.withTestDependencies
 import io.kotest.assertions.arrow.core.shouldBeLeft

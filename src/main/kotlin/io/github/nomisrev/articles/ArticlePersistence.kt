@@ -1,14 +1,11 @@
-package io.github.nomisrev.repo
+package io.github.nomisrev.articles
 
 import arrow.core.raise.context.Raise
 import arrow.core.raise.context.ensureNotNull
 import io.github.nomisrev.ArticleBySlugNotFound
-import io.github.nomisrev.routes.Comment
-import io.github.nomisrev.routes.FeedLimit
-import io.github.nomisrev.routes.FeedOffset
-import io.github.nomisrev.routes.Profile
-import io.github.nomisrev.service.Slug
+import io.github.nomisrev.profiles.Profile
 import io.github.nomisrev.sqldelight.*
+import io.github.nomisrev.users.UserId
 import java.time.OffsetDateTime
 
 @JvmInline value class ArticleId(val serial: Long)

@@ -1,4 +1,4 @@
-package io.github.nomisrev.service
+package io.github.nomisrev.articles
 
 import arrow.core.Either
 import arrow.core.flatMap
@@ -9,8 +9,9 @@ import io.github.nomisrev.DomainError
 import io.github.nomisrev.SuspendFun
 import io.github.nomisrev.articleFixture
 import io.github.nomisrev.auth.JwtToken
-import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.userFixture
+import io.github.nomisrev.users.RegisterUser
+import io.github.nomisrev.users.UserId
 import io.github.nomisrev.withTestDependencies
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.arrow.core.shouldBeSome

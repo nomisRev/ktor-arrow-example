@@ -1,7 +1,7 @@
 package io.github.nomisrev.env
 
-import io.github.nomisrev.routes.LoginUser
-import io.github.nomisrev.routes.UserWrapper
+import io.github.nomisrev.users.LoginUser
+import io.github.nomisrev.users.UserWrapper
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application

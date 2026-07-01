@@ -1,16 +1,15 @@
 @file:Suppress("MatchingDeclarationName")
 
-package io.github.nomisrev.routes
+package io.github.nomisrev.articles
 
+import io.github.nomisrev.Api
+import io.github.nomisrev.auth.JwtService
 import io.github.nomisrev.auth.jwtAuth
 import io.github.nomisrev.auth.optionalJwtAuth
-import io.github.nomisrev.repo.UserId
-import io.github.nomisrev.service.ArticleService
-import io.github.nomisrev.service.CreateArticle
-import io.github.nomisrev.service.JwtService
-import io.github.nomisrev.service.Slug
-import io.github.nomisrev.service.UpdateArticleInput
-import io.github.nomisrev.service.UserService
+import io.github.nomisrev.profiles.Profile
+import io.github.nomisrev.route
+import io.github.nomisrev.users.UserId
+import io.github.nomisrev.users.UserService
 import io.github.nomisrev.validate
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
@@ -23,9 +22,6 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import opensavvy.spine.api.DynamicResource
-import opensavvy.spine.api.RootResource as SpineRootResource
-import opensavvy.spine.api.StaticResource
 import opensavvy.spine.server.respond
 
 @Serializable data class ArticleWrapper<T : Any>(val article: T)
@@ -104,135 +100,6 @@ data class ArticlesResource(
 
     data class Comments(val slug: String) {
         data class Id(val id: Long)
-    }
-}
-
-object Api : SpineRootResource("api") {
-    object Tags : StaticResource<Api>("tags", Api) {
-        val list by
-            get()
-                .response<TagsResponse>()
-                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-    }
-
-    object Articles : StaticResource<Api>("articles", Api) {
-        val list by
-            get()
-                .response<MultipleArticlesResponse>()
-                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-
-        val create by
-            post()
-                .request<ArticleWrapper<NewArticle>>()
-                .response<SingleArticleResponse>()
-                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-
-        object Slug : DynamicResource<Articles>("slug", Articles) {
-            val get by
-                get()
-                    .response<SingleArticleResponse>()
-                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-
-            val update by
-                put()
-                    .request<ArticleWrapper<UpdateArticle>>()
-                    .response<ArticleResponse>()
-                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-
-            val delete by
-                delete()
-                    .response<Unit>()
-                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-
-            object Favorite : StaticResource<Slug>("favorite", Slug) {
-                val add by
-                    post()
-                        .response<SingleArticleResponse>()
-                        .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-
-                val remove by
-                    delete()
-                        .response<SingleArticleResponse>()
-                        .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-            }
-
-            object Comments : StaticResource<Slug>("comments", Slug) {
-                val create by
-                    post()
-                        .request<CommentWrapper<NewComment>>()
-                        .response<SingleCommentResponse>()
-                        .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-
-                val list by
-                    get()
-                        .response<MultipleCommentsResponse>()
-                        .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-
-                object Id : DynamicResource<Comments>("id", Comments) {
-                    val delete by
-                        delete()
-                            .response<Unit>()
-                            .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-                }
-            }
-        }
-    }
-
-    object Article : StaticResource<Api>("article", Api) {
-        val feed by
-            get("feed")
-                .response<MultipleArticlesResponse>()
-                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-    }
-
-    object Profiles : StaticResource<Api>("profiles", Api) {
-        object Username : DynamicResource<Profiles>("username", Profiles) {
-            val get by
-                get()
-                    .response<Profile>()
-                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-
-            object Follow : StaticResource<Username>("follow", Username) {
-                val add by
-                    post()
-                        .response<ProfileWrapper<Profile>>()
-                        .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-
-                val remove by
-                    delete()
-                        .response<ProfileWrapper<Profile>>()
-                        .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-            }
-        }
-    }
-
-    object Users : StaticResource<Api>("users", Api) {
-        val register by
-            post()
-                .request<UserWrapper<NewUser>>()
-                .response<UserWrapper<User>>()
-                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-
-        object Login : StaticResource<Users>("login", Users) {
-            val authenticate by
-                post()
-                    .request<UserWrapper<LoginUser>>()
-                    .response<UserWrapper<User>>()
-                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-        }
-    }
-
-    object CurrentUser : StaticResource<Api>("user", Api) {
-        val get by
-            get()
-                .response<UserWrapper<User>>()
-                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-
-        val update by
-            put()
-                .request<UserWrapper<UpdateUser>>()
-                .response<UserWrapper<User>>()
-                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
     }
 }
 

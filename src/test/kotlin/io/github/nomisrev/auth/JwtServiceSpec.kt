@@ -1,13 +1,13 @@
-package io.github.nomisrev.service
+package io.github.nomisrev.auth
 
 import arrow.core.raise.either
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
 import io.github.nomisrev.JwtInvalid
 import io.github.nomisrev.SuspendFun
-import io.github.nomisrev.auth.JwtToken
-import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.userFixture
+import io.github.nomisrev.users.RegisterUser
+import io.github.nomisrev.users.UserId
 import io.github.nomisrev.withTestDependencies
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight

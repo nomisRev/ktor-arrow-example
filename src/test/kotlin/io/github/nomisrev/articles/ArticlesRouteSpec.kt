@@ -1,16 +1,17 @@
-package io.github.nomisrev.routes
+package io.github.nomisrev.articles
 
 import arrow.core.raise.either
+import io.github.nomisrev.Api
+import io.github.nomisrev.Api.Articles
+import io.github.nomisrev.Api.Articles.Slug
+import io.github.nomisrev.Api.Articles.Slug.Comments
+import io.github.nomisrev.Api.Articles.Slug.Comments.create
+import io.github.nomisrev.Api.Articles.Slug.Comments.list
+import io.github.nomisrev.Api.Articles.Slug.get
+import io.github.nomisrev.GenericErrorModel
 import io.github.nomisrev.articleFixture
-import io.github.nomisrev.routes.Api.Articles
-import io.github.nomisrev.routes.Api.Articles.Slug
-import io.github.nomisrev.routes.Api.Articles.Slug.Comments
-import io.github.nomisrev.routes.Api.Articles.Slug.Comments.create
-import io.github.nomisrev.routes.Api.Articles.Slug.Comments.list
-import io.github.nomisrev.routes.Api.Articles.Slug.get
-import io.github.nomisrev.service.CreateArticle
-import io.github.nomisrev.service.RegisterUser
 import io.github.nomisrev.userFixture
+import io.github.nomisrev.users.RegisterUser
 import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.StringSpec

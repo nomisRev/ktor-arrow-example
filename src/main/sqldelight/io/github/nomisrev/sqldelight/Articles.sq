@@ -1,5 +1,5 @@
-import io.github.nomisrev.repo.ArticleId;
-import io.github.nomisrev.repo.UserId;
+import io.github.nomisrev.articles.ArticleId;
+import io.github.nomisrev.users.UserId;
 import java.time.OffsetDateTime;
 
 CREATE TABLE IF NOT EXISTS articles(

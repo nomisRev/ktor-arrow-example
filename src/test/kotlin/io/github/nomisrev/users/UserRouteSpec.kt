@@ -1,14 +1,15 @@
-package io.github.nomisrev.routes
+package io.github.nomisrev.users
 
 import arrow.core.raise.either
-import io.github.nomisrev.routes.Api.CurrentUser
-import io.github.nomisrev.routes.Api.CurrentUser.get
-import io.github.nomisrev.routes.Api.CurrentUser.update
-import io.github.nomisrev.routes.Api.Users
-import io.github.nomisrev.routes.Api.Users.Login
-import io.github.nomisrev.routes.Api.Users.Login.authenticate
-import io.github.nomisrev.routes.Api.Users.register
-import io.github.nomisrev.service.RegisterUser
+import io.github.nomisrev.Api
+import io.github.nomisrev.Api.CurrentUser
+import io.github.nomisrev.Api.CurrentUser.get
+import io.github.nomisrev.Api.CurrentUser.update
+import io.github.nomisrev.Api.Users
+import io.github.nomisrev.Api.Users.Login
+import io.github.nomisrev.Api.Users.Login.authenticate
+import io.github.nomisrev.Api.Users.register
+import io.github.nomisrev.GenericErrorModel
 import io.github.nomisrev.userFixture
 import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight

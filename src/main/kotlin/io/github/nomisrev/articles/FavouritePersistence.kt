@@ -1,6 +1,7 @@
-package io.github.nomisrev.repo
+package io.github.nomisrev.articles
 
 import io.github.nomisrev.sqldelight.FavoritesQueries
+import io.github.nomisrev.users.UserId
 
 class FavouritePersistence(
     private val favouriteQueries: FavoritesQueries,

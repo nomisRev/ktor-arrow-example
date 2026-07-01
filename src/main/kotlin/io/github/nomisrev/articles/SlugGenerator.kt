@@ -1,4 +1,4 @@
-package io.github.nomisrev.service
+package io.github.nomisrev.articles
 
 import arrow.core.raise.context.Raise
 import arrow.core.raise.context.ensure
