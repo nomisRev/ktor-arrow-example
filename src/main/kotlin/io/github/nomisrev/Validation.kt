@@ -235,30 +235,3 @@ fun Int.validFeedLimit(): FeedLimit =
             FeedLimit(this@validFeedLimit)
         }
     }
-
-context(_: Raise<IncorrectInput>)
-fun ArticleResource.Feed.validate(userId: UserId): GetFeed =
-    withError(::IncorrectInput) {
-        accumulate {
-            val offset by accumulating { offsetParam.validFeedOffset() }
-            val limit by accumulating { limitParam.validFeedLimit() }
-            GetFeed(userId, limit.limit, offset.offset)
-        }
-    }
-
-context(_: Raise<IncorrectInput>)
-fun ArticlesResource.validate(currentUserId: UserId?): GetArticles =
-    withError(::IncorrectInput) {
-        accumulate {
-            val offset by accumulating { offsetParam.validFeedOffset() }
-            val limit by accumulating { limitParam.validFeedLimit() }
-            GetArticles(
-                limit = limit.limit,
-                offset = offset.offset,
-                author = author,
-                favorited = favorited,
-                tag = tag,
-                currentUserId = currentUserId,
-            )
-        }
-    }

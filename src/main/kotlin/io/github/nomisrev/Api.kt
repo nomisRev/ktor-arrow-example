@@ -2,7 +2,9 @@ package io.github.nomisrev
 
 import io.github.nomisrev.articles.ArticleResponse
 import io.github.nomisrev.articles.ArticleWrapper
+import io.github.nomisrev.articles.ArticlesParameters
 import io.github.nomisrev.articles.CommentWrapper
+import io.github.nomisrev.articles.FeedParameters
 import io.github.nomisrev.articles.MultipleArticlesResponse
 import io.github.nomisrev.articles.MultipleCommentsResponse
 import io.github.nomisrev.articles.NewArticle
@@ -34,6 +36,7 @@ object Api : SpineRootResource("api") {
     object Articles : StaticResource<Api>("articles", Api) {
         val list by
             get()
+                .parameters(::ArticlesParameters)
                 .response<MultipleArticlesResponse>()
                 .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
 
@@ -41,6 +44,12 @@ object Api : SpineRootResource("api") {
             post()
                 .request<ArticleWrapper<NewArticle>>()
                 .response<SingleArticleResponse>()
+                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+
+        val feed by
+            get("feed")
+                .parameters(::FeedParameters)
+                .response<MultipleArticlesResponse>()
                 .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
 
         object Slug : DynamicResource<Articles>("slug", Articles) {
@@ -92,13 +101,6 @@ object Api : SpineRootResource("api") {
                 }
             }
         }
-    }
-
-    object Article : StaticResource<Api>("article", Api) {
-        val feed by
-            get("feed")
-                .response<MultipleArticlesResponse>()
-                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
     }
 
     object Profiles : StaticResource<Api>("profiles", Api) {

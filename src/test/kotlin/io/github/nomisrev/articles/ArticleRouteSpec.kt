@@ -2,10 +2,10 @@ package io.github.nomisrev.articles
 
 import arrow.core.raise.either
 import io.github.nomisrev.Api
-import io.github.nomisrev.Api.Article
-import io.github.nomisrev.Api.Article.feed
 import io.github.nomisrev.Api.Articles
 import io.github.nomisrev.Api.Articles.create
+import io.github.nomisrev.Api.Articles.feed
+import io.github.nomisrev.Api.Articles.list
 import io.github.nomisrev.GenericErrorModel
 import io.github.nomisrev.articleFixture
 import io.github.nomisrev.userFixture
@@ -36,9 +36,9 @@ class ArticleRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    request(endpoint = Api / Article / feed) {
+                    request(endpoint = Api / Articles / feed) {
                         url {
-                            parameters.append("offsetParam", "0")
+                            parameters.append("offset", "0")
                         }
                         contentType(ContentType.Application.Json)
                         bearerAuth(token.value)
@@ -62,10 +62,10 @@ class ArticleRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    request(Api / Article / feed) {
+                    request(Api / Articles / feed) {
                         url {
-                            parameters.append("offsetParam", "0")
-                            parameters.append("limitParam", "5")
+                            parameters.append("offset", "0")
+                            parameters.append("limit", "5")
                         }
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
@@ -89,9 +89,9 @@ class ArticleRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    request(Api / Article / feed) {
+                    request(Api / Articles / feed) {
                         url {
-                            parameters.append("offsetParam", "-1")
+                            parameters.append("offset", "-1")
                         }
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
@@ -117,10 +117,10 @@ class ArticleRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    request(Api / Article / feed) {
+                    request(Api / Articles / feed) {
                         url {
-                            parameters.append("offsetParam", "0")
-                            parameters.append("limitParam", "0")
+                            parameters.append("offset", "0")
+                            parameters.append("limit", "0")
                         }
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
@@ -146,10 +146,10 @@ class ArticleRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    request(Api / Article / feed) {
+                    request(Api / Articles / feed) {
                         url {
-                            parameters.append("offsetParam", "-1")
-                            parameters.append("limitParam", "0")
+                            parameters.append("offset", "-1")
+                            parameters.append("limit", "0")
                         }
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
@@ -163,6 +163,47 @@ class ArticleRouteSpec :
                             "feed limit: too small, minimum is 1, and found 0",
                         )
                 )
+            }
+        }
+
+        "article list accepts OpenAPI offset and limit query parameters" {
+            withServer { dependencies ->
+                val user = userFixture()
+                val token =
+                    either {
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
+                        .shouldBeRight()
+                val userId =
+                    either { dependencies.jwtService.verifyJwtToken(token) }.shouldBeRight()
+                val article = articleFixture()
+                val created =
+                    either {
+                            dependencies.articleService.createArticle(
+                                CreateArticle(
+                                    userId,
+                                    article.title,
+                                    article.description,
+                                    article.body,
+                                    article.tags,
+                                )
+                            )
+                        }
+                        .shouldBeRight()
+
+                val response =
+                    request(Api / Articles / list) {
+                        url {
+                            parameters.append("offset", "0")
+                            parameters.append("limit", "1")
+                        }
+                    }
+
+                val body = response.bodyOrThrow()
+                assert(body.articlesCount == 1)
+                assert(body.articles.single().slug == created.slug)
             }
         }
 
