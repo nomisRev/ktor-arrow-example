@@ -5,8 +5,9 @@ import arrow.core.raise.context.ensure
 import com.github.slugify.Slugify
 import io.github.nomisrev.CannotGenerateSlug
 import kotlin.random.Random
+import kotlinx.serialization.Serializable
 
-@JvmInline value class Slug(val value: String)
+@Serializable @JvmInline value class Slug(val value: String)
 
 fun interface SlugGenerator {
     /**

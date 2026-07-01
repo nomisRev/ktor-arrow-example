@@ -9,7 +9,6 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.github.nomisrev.articles.ArticleId
 import io.github.nomisrev.sqldelight.Articles
-import io.github.nomisrev.sqldelight.Comments
 import io.github.nomisrev.sqldelight.SqlDelight
 import io.github.nomisrev.sqldelight.Tags
 import io.github.nomisrev.sqldelight.Users
@@ -33,13 +32,7 @@ suspend fun ResourceScope.sqlDelight(dataSource: DataSource): SqlDelight {
     SqlDelight.Schema.create(driver)
     return SqlDelight(
         driver,
-        Articles.Adapter(
-            articleIdAdapter,
-            userIdAdapter,
-            offsetDateTimeAdapter,
-            offsetDateTimeAdapter,
-        ),
-        Comments.Adapter(offsetDateTimeAdapter, offsetDateTimeAdapter),
+        Articles.Adapter(articleIdAdapter, userIdAdapter),
         Tags.Adapter(articleIdAdapter),
         Users.Adapter(userIdAdapter),
     )

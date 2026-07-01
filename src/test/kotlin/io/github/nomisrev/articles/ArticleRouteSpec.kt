@@ -36,10 +36,12 @@ class ArticleRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    request(endpoint = Api / Articles / feed) {
-                        url {
-                            parameters.append("offset", "0")
-                        }
+                    request(
+                        endpoint = Api / Articles / feed,
+                        parameters = {
+                            offset = 0
+                        },
+                    ) {
                         contentType(ContentType.Application.Json)
                         bearerAuth(token.value)
                     }
@@ -62,11 +64,13 @@ class ArticleRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    request(Api / Articles / feed) {
-                        url {
-                            parameters.append("offset", "0")
-                            parameters.append("limit", "5")
-                        }
+                    request(
+                        Api / Articles / feed,
+                        parameters = {
+                            offset = 0
+                            limit = 5
+                        },
+                    ) {
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
                     }
@@ -89,10 +93,12 @@ class ArticleRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    request(Api / Articles / feed) {
-                        url {
-                            parameters.append("offset", "-1")
-                        }
+                    request(
+                        Api / Articles / feed,
+                        parameters = {
+                            offset = -1
+                        },
+                    ) {
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
                     }
@@ -117,11 +123,13 @@ class ArticleRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    request(Api / Articles / feed) {
-                        url {
-                            parameters.append("offset", "0")
-                            parameters.append("limit", "0")
-                        }
+                    request(
+                        Api / Articles / feed,
+                        parameters = {
+                            offset = 0
+                            limit = 0
+                        },
+                    ) {
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
                     }
@@ -146,11 +154,13 @@ class ArticleRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    request(Api / Articles / feed) {
-                        url {
-                            parameters.append("offset", "-1")
-                            parameters.append("limit", "0")
-                        }
+                    request(
+                        Api / Articles / feed,
+                        parameters = {
+                            offset = -1
+                            limit = 0
+                        },
+                    ) {
                         bearerAuth(token.value)
                         contentType(ContentType.Application.Json)
                     }
@@ -194,12 +204,13 @@ class ArticleRouteSpec :
                         .shouldBeRight()
 
                 val response =
-                    request(Api / Articles / list) {
-                        url {
-                            parameters.append("offset", "0")
-                            parameters.append("limit", "1")
-                        }
-                    }
+                    request(
+                        Api / Articles / list,
+                        parameters = {
+                            offset = 0
+                            limit = 1
+                        },
+                    )
 
                 val body = response.bodyOrThrow()
                 assert(body.articlesCount == 1)
@@ -240,7 +251,7 @@ class ArticleRouteSpec :
                 assert(created.article.description == article.description)
                 assert(created.article.body == article.body)
                 assert(created.article.favoritesCount == 0L)
-                assert(created.article.favorited == false)
+                assert(!created.article.favorited)
                 assert(created.article.author.username == user.username)
                 assert(created.article.tagList.toSet() == article.tags)
                 assert(response.httpResponse.status == HttpStatusCode.Created)
@@ -280,9 +291,9 @@ class ArticleRouteSpec :
                 assert(created.article.description == article.description)
                 assert(created.article.body == article.body)
                 assert(created.article.favoritesCount == 0L)
-                assert(created.article.favorited == false)
+                assert(!created.article.favorited)
                 assert(created.article.author.username == user.username)
-                assert(created.article.tagList.size == 0)
+                assert(created.article.tagList.isEmpty())
                 assert(response.httpResponse.status == HttpStatusCode.Created)
             }
         }

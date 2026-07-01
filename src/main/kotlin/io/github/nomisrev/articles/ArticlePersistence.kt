@@ -6,7 +6,6 @@ import io.github.nomisrev.ArticleBySlugNotFound
 import io.github.nomisrev.profiles.Profile
 import io.github.nomisrev.sqldelight.*
 import io.github.nomisrev.users.UserId
-import java.time.OffsetDateTime
 
 @JvmInline value class ArticleId(val serial: Long)
 
@@ -27,26 +26,22 @@ class ArticlePersistence(
         title: String,
         description: String,
         body: String,
-        createdAt: OffsetDateTime,
-        updatedAt: OffsetDateTime,
         tags: Set<String>,
-    ): ArticleId = articles.transactionWithResult {
-        val articleId =
+    ): InsertAndGet = articles.transactionWithResult {
+        val insertAndGet =
             articles
-                .insertAndGetId(
+                .insertAndGet(
                     slug.value,
                     title,
                     description,
                     body,
                     authorId,
-                    createdAt,
-                    updatedAt,
                 )
                 .executeAsOne()
 
-        tags.forEach { tag -> tagsQueries.insert(articleId, tag) }
+        tags.forEach { tag -> tagsQueries.insert(insertAndGet.id, tag) }
 
-        articleId
+        insertAndGet
     }
 
     fun exists(slug: Slug): Boolean = articles.slugExists(slug.value).executeAsOne()
@@ -138,7 +133,7 @@ class ArticlePersistence(
     ): Articles {
         val article =
             articles
-                .update(title, description, body, OffsetDateTime.now(), slug.value) {
+                .update(title, description, body, slug.value) {
                     articleId,
                     slug,
                     title,
@@ -173,15 +168,12 @@ class ArticlePersistence(
         userId: UserId,
         comment: String,
         articleId: ArticleId,
-        createdAt: OffsetDateTime,
     ): Comments = comments.transactionWithResult {
         comments
             .insertAndGetComment(
                 article_id = articleId.serial,
                 body = comment,
                 author = userId.serial,
-                createdAt = createdAt,
-                updatedAt = createdAt,
             ) { id, articleId, body, author, createdAt, updatedAt ->
                 Comments(
                     id = id,
@@ -197,16 +189,8 @@ class ArticlePersistence(
 
     fun findCommentsForSlug(slug: Slug): List<Comment> =
         comments
-            .selectForSlug(slug.value) {
-                commentId,
-                articleId,
-                body,
-                author,
-                createdAt,
-                updatedAt,
-                username,
-                bio,
-                image ->
+            .selectForSlug(slug.value) { commentId, body, createdAt, updatedAt, username, bio, image
+                ->
                 Comment(
                     commentId,
                     createdAt,

@@ -1,6 +1,6 @@
 import io.github.nomisrev.articles.ArticleId;
 import io.github.nomisrev.users.UserId;
-import java.time.OffsetDateTime;
+import kotlin.time.Instant;
 
 CREATE TABLE IF NOT EXISTS articles(
     id BIGSERIAL AS ArticleId PRIMARY KEY,
@@ -9,8 +9,8 @@ CREATE TABLE IF NOT EXISTS articles(
     description VARCHAR(255) NOT NULL,
     body TEXT NOT NULL,
     author_id BIGINT AS UserId REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-    createdAt VARCHAR(50) AS OffsetDateTime NOT NULL,
-    updatedAt VARCHAR(50) AS OffsetDateTime NOT NULL
+    createdAt TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updatedAt TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 amountOfArticleForAuthor:
@@ -44,14 +44,19 @@ UPDATE articles
 SET title = COALESCE(:title, title), 
     description = COALESCE(:description, description), 
     body = COALESCE(:body, body),
-    updatedAt = :updatedAt
+    updatedAt = NOW()
 WHERE slug = :slug
 RETURNING id, slug, title, description, body, author_id, createdAt, updatedAt;
 
 insertAndGetId:
-INSERT INTO articles(slug, title, description, body, author_id, createdAt, updatedAt)
-VALUES (:slug, :title, :description, :body, :authorId, :createdAt, :updatedAt)
+INSERT INTO articles(slug, title, description, body, author_id)
+VALUES (:slug, :title, :description, :body, :authorId)
 RETURNING id;
+
+insertAndGet:
+INSERT INTO articles(slug, title, description, body, author_id)
+VALUES (:slug, :title, :description, :body, :authorId)
+RETURNING id, createdAt, updatedAt;
 
 selectBySlug:
 SELECT id, slug, title, description, body, author_id, createdAt, updatedAt

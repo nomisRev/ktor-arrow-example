@@ -15,7 +15,6 @@ import io.github.nomisrev.sqldelight.Comments
 import io.github.nomisrev.tags.TagPersistence
 import io.github.nomisrev.users.UserId
 import io.github.nomisrev.users.UserPersistence
-import java.time.OffsetDateTime
 
 data class CreateArticle(
     val userId: UserId,
@@ -58,25 +57,20 @@ class ArticleService(
                 articlePersistence.exists(slug).not()
             }
 
-        val createdAt = OffsetDateTime.now()
-        val articleId =
-            articlePersistence
-                .create(
-                    input.userId,
-                    slug,
-                    input.title,
-                    input.description,
-                    input.body,
-                    createdAt,
-                    createdAt,
-                    input.tags,
-                )
-                .serial
+        val insertAndGet =
+            articlePersistence.create(
+                input.userId,
+                slug,
+                input.title,
+                input.description,
+                input.body,
+                input.tags,
+            )
 
         val user = userPersistence.select(input.userId)
 
         return Article(
-            articleId,
+            insertAndGet.id.serial,
             slug.value,
             input.title,
             input.description,
@@ -84,8 +78,8 @@ class ArticleService(
             Profile(user.username, user.bio, user.image, false),
             false,
             0,
-            createdAt,
-            createdAt,
+            insertAndGet.createdAt,
+            insertAndGet.updatedAt,
             input.tags.toList(),
         )
     }
@@ -166,7 +160,6 @@ class ArticleService(
             userId,
             comment,
             ArticleId(article.articleId),
-            OffsetDateTime.now(),
         )
     }
 

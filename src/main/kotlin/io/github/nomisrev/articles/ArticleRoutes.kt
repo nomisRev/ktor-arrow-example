@@ -35,8 +35,7 @@ import opensavvy.spine.api.provideDelegate
 import opensavvy.spine.api.setValue
 import opensavvy.spine.server.respond
 
-@Serializable
-data class ArticleWrapper<T : Any>(val article: T)
+@Serializable data class ArticleWrapper<T : Any>(val article: T)
 
 @Serializable
 data class Article(
@@ -53,28 +52,20 @@ data class Article(
     val tagList: List<String>,
 )
 
-@Serializable
-data class SingleArticleResponse(val article: Article)
+@Serializable data class SingleArticleResponse(val article: Article)
 
 @Serializable
 data class MultipleArticlesResponse(val articles: List<Article>, val articlesCount: Int)
 
-@JvmInline
-@Serializable
-value class FeedOffset(val offset: Int)
+@JvmInline @Serializable value class FeedOffset(val offset: Int)
 
-@JvmInline
-@Serializable
-value class FeedLimit(val limit: Int)
+@JvmInline @Serializable value class FeedLimit(val limit: Int)
 
-@Serializable
-data class CommentWrapper<T : Any>(val comment: T)
+@Serializable data class CommentWrapper<T : Any>(val comment: T)
 
-@Serializable
-data class NewComment(val body: String)
+@Serializable data class NewComment(val body: String)
 
-@Serializable
-data class SingleCommentResponse(val comment: Comment)
+@Serializable data class SingleCommentResponse(val comment: Comment)
 
 @Serializable
 data class Comment(
@@ -85,8 +76,7 @@ data class Comment(
     val author: Profile,
 )
 
-@Serializable
-data class MultipleCommentsResponse(val comments: List<Comment>)
+@Serializable data class MultipleCommentsResponse(val comments: List<Comment>)
 
 @Serializable
 data class NewArticle(
@@ -111,20 +101,21 @@ class ArticlesParameters(data: ParameterStorage) : Parameters(data) {
     var limit: Int by parameter(default = 20)
 
     context(_: Raise<IncorrectInput>)
-    fun validate(currentUserId: UserId?): GetArticles = withError(::IncorrectInput) {
-        accumulate {
-            val offset by accumulating { offset.validFeedOffset() }
-            val limit by accumulating { limit.validFeedLimit() }
-            GetArticles(
-                limit = limit.limit,
-                offset = offset.offset,
-                author = author,
-                favorited = favorited,
-                tag = tag,
-                currentUserId = currentUserId,
-            )
+    fun validate(currentUserId: UserId?): GetArticles =
+        withError(::IncorrectInput) {
+            accumulate {
+                val offset by accumulating { offset.validFeedOffset() }
+                val limit by accumulating { limit.validFeedLimit() }
+                GetArticles(
+                    limit = limit.limit,
+                    offset = offset.offset,
+                    author = author,
+                    favorited = favorited,
+                    tag = tag,
+                    currentUserId = currentUserId,
+                )
+            }
         }
-    }
 }
 
 class FeedParameters(data: ParameterStorage) : Parameters(data) {
