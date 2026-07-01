@@ -78,4 +78,7 @@ dependencies {
 
 kotlin {
   jvmToolchain(21)
+  compilerOptions {
+    optIn.add("arrow.core.raise.ExperimentalRaiseAccumulateApi")
+  }
 }
