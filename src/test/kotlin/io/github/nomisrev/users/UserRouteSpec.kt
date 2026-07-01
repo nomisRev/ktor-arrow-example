@@ -16,9 +16,7 @@ import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.StringSpec
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
-import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
 import opensavvy.spine.api.div
 import opensavvy.spine.client.request
 
