@@ -55,9 +55,11 @@ dependencies {
   implementation(ktorLibs.serialization.kotlinx.json)
   implementation(ktorLibs.server.netty)
   implementation(ktorLibs.server.defaultHeaders)
-  implementation(ktorLibs.server.resources)
   implementation(ktorLibs.server.cors)
   implementation(ktorLibs.server.contentNegotiation)
+  implementation(libs.spine.api)
+  implementation(libs.spine.server)
+  implementation(libs.spine.server.arrow)
   implementation(ktorLibs.server.auth)
   implementation(libs.kjwt.core)
   implementation(libs.logback.classic)
@@ -68,7 +70,7 @@ dependencies {
   implementation(libs.bundles.cohort)
 
   implementation(ktorLibs.client.contentNegotiation)
-  implementation(ktorLibs.client.resources)
+  testImplementation(libs.spine.client)
   testImplementation(libs.testcontainers.postgresql)
   testImplementation(libs.ktor.server.tests)
   testImplementation(libs.bundles.kotest)
@@ -76,4 +78,7 @@ dependencies {
 
 kotlin {
   jvmToolchain(21)
+  compilerOptions {
+    optIn.add("arrow.core.raise.ExperimentalRaiseAccumulateApi")
+  }
 }

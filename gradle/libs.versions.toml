@@ -16,6 +16,7 @@ spotless = "8.8.0"
 sqldelight = "2.3.2"
 testcontainers = "1.21.4"
 version-catalog-update = "1.1.0"
+spine = "0.11.0"
 
 [libraries]
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
@@ -40,6 +41,10 @@ slugify = { module = "com.github.slugify:slugify", version.ref = "slugify" }
 sqldelight-jdbc = { module = "app.cash.sqldelight:jdbc-driver", version.ref = "sqldelight" }
 sqldelight-postgresql = { module = "app.cash.sqldelight:postgresql-dialect", version.ref = "sqldelight" }
 testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
+spine-api = { module = "dev.opensavvy.spine:api", version.ref = "spine" }
+spine-server = { module = "dev.opensavvy.spine:server", version.ref = "spine" }
+spine-server-arrow =  { module = "dev.opensavvy.spine:server-arrow", version.ref = "spine" }
+spine-client =  { module = "dev.opensavvy.spine:client", version.ref = "spine" }
 
 [bundles]
 arrow = [

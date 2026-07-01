@@ -1,6 +1,7 @@
-package io.github.nomisrev.service
+package io.github.nomisrev.users
 
 import arrow.core.nonEmptyListOf
+import arrow.core.raise.either
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
 import io.github.nomisrev.EmptyUpdate
@@ -11,7 +12,6 @@ import io.github.nomisrev.InvalidUsername
 import io.github.nomisrev.SuspendFun
 import io.github.nomisrev.UsernameAlreadyExists
 import io.github.nomisrev.auth.JwtToken
-import io.github.nomisrev.repo.UserId
 import io.github.nomisrev.userFixture
 import io.github.nomisrev.withTestDependencies
 import io.kotest.assertions.arrow.core.shouldBeLeft
@@ -28,7 +28,9 @@ class UserServiceSpec :
                 "username cannot be empty" {
                     val validEmail = "valid@domain.com"
                     val res = withTestDependencies { dependencies ->
-                        dependencies.userService.register(RegisterUser("", validEmail, validPw))
+                        either {
+                            dependencies.userService.register(RegisterUser("", validEmail, validPw))
+                        }
                     }
                     val errors =
                         nonEmptyListOf("Cannot be blank", "is too short (minimum is 1 characters)")
@@ -40,7 +42,11 @@ class UserServiceSpec :
                     val validEmail = "valid@domain.com"
                     val name = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                     val res = withTestDependencies { dependencies ->
-                        dependencies.userService.register(RegisterUser(name, validEmail, validPw))
+                        either {
+                            dependencies.userService.register(
+                                RegisterUser(name, validEmail, validPw)
+                            )
+                        }
                     }
                     val errors = nonEmptyListOf("is too long (maximum is 25 characters)")
                     val expected = IncorrectInput(InvalidUsername(errors))
@@ -50,7 +56,11 @@ class UserServiceSpec :
                 "email cannot be empty" {
                     val validUsername = userFixture().username
                     val res = withTestDependencies { dependencies ->
-                        dependencies.userService.register(RegisterUser(validUsername, "", validPw))
+                        either {
+                            dependencies.userService.register(
+                                RegisterUser(validUsername, "", validPw)
+                            )
+                        }
                     }
                     val errors = nonEmptyListOf("Cannot be blank", "'' is invalid email")
                     val expected = IncorrectInput(InvalidEmail(errors))
@@ -61,9 +71,11 @@ class UserServiceSpec :
                     val validUsername = userFixture().username
                     val email = "${(0..340).joinToString("") { "A" }}@domain.com"
                     val res = withTestDependencies { dependencies ->
-                        dependencies.userService.register(
-                            RegisterUser(validUsername, email, validPw)
-                        )
+                        either {
+                            dependencies.userService.register(
+                                RegisterUser(validUsername, email, validPw)
+                            )
+                        }
                     }
                     val errors = nonEmptyListOf("is too long (maximum is 350 characters)")
                     val expected = IncorrectInput(InvalidEmail(errors))
@@ -74,9 +86,11 @@ class UserServiceSpec :
                     val validUsername = userFixture().username
                     val email = "AAAA"
                     val res = withTestDependencies { dependencies ->
-                        dependencies.userService.register(
-                            RegisterUser(validUsername, email, validPw)
-                        )
+                        either {
+                            dependencies.userService.register(
+                                RegisterUser(validUsername, email, validPw)
+                            )
+                        }
                     }
                     val errors = nonEmptyListOf("'$email' is invalid email")
                     val expected = IncorrectInput(InvalidEmail(errors))
@@ -87,9 +101,11 @@ class UserServiceSpec :
                     val validUsername = userFixture().username
                     val validEmail = "valid@domain.com"
                     val res = withTestDependencies { dependencies ->
-                        dependencies.userService.register(
-                            RegisterUser(validUsername, validEmail, "")
-                        )
+                        either {
+                            dependencies.userService.register(
+                                RegisterUser(validUsername, validEmail, "")
+                            )
+                        }
                     }
                     val errors =
                         nonEmptyListOf("Cannot be blank", "is too short (minimum is 8 characters)")
@@ -102,9 +118,11 @@ class UserServiceSpec :
                     val validEmail = "valid@domain.com"
                     val password = (0..100).joinToString("") { "A" }
                     val res = withTestDependencies { dependencies ->
-                        dependencies.userService.register(
-                            RegisterUser(validUsername, validEmail, password)
-                        )
+                        either {
+                            dependencies.userService.register(
+                                RegisterUser(validUsername, validEmail, password)
+                            )
+                        }
                     }
                     val errors = nonEmptyListOf("is too long (maximum is 100 characters)")
                     val expected = IncorrectInput(InvalidPassword(errors))
@@ -114,8 +132,11 @@ class UserServiceSpec :
                 "All valid returns a token" {
                     withTestDependencies { dependencies ->
                         val user = userFixture(password = validPw)
-                        dependencies.userService
-                            .register(RegisterUser(user.username, user.email, user.password))
+                        either {
+                                dependencies.userService.register(
+                                    RegisterUser(user.username, user.email, user.password)
+                                )
+                            }
                             .shouldBeRight()
                     }
                 }
@@ -123,14 +144,18 @@ class UserServiceSpec :
                 "Register twice results in" {
                     withTestDependencies { dependencies ->
                         val user = userFixture(password = validPw)
-                        dependencies.userService
-                            .register(RegisterUser(user.username, user.email, user.password))
+                        either {
+                                dependencies.userService.register(
+                                    RegisterUser(user.username, user.email, user.password)
+                                )
+                            }
                             .shouldBeRight()
-                        val res =
+
+                        either {
                             dependencies.userService.register(
                                 RegisterUser(user.username, user.email, user.password)
                             )
-                        res shouldBeLeft UsernameAlreadyExists(user.username)
+                        } shouldBeLeft UsernameAlreadyExists(user.username)
                     }
                 }
             }
@@ -139,7 +164,7 @@ class UserServiceSpec :
             {
                 "email cannot be empty" {
                     val res = withTestDependencies { dependencies ->
-                        dependencies.userService.login(Login("", validPw))
+                        either { dependencies.userService.login(Login("", validPw)) }
                     }
                     val errors = nonEmptyListOf("Cannot be blank", "'' is invalid email")
                     val expected = IncorrectInput(InvalidEmail(errors))
@@ -149,7 +174,7 @@ class UserServiceSpec :
                 "email too long" {
                     val email = "${(0..340).joinToString("") { "A" }}@domain.com"
                     val res = withTestDependencies { dependencies ->
-                        dependencies.userService.login(Login(email, validPw))
+                        either { dependencies.userService.login(Login(email, validPw)) }
                     }
                     val errors = nonEmptyListOf("is too long (maximum is 350 characters)")
                     val expected = IncorrectInput(InvalidEmail(errors))
@@ -159,7 +184,7 @@ class UserServiceSpec :
                 "email is not valid" {
                     val email = "AAAA"
                     val res = withTestDependencies { dependencies ->
-                        dependencies.userService.login(Login(email, validPw))
+                        either { dependencies.userService.login(Login(email, validPw)) }
                     }
                     val errors = nonEmptyListOf("'$email' is invalid email")
                     val expected = IncorrectInput(InvalidEmail(errors))
@@ -169,7 +194,7 @@ class UserServiceSpec :
                 "password cannot be empty" {
                     val validEmail = "valid@domain.com"
                     val res = withTestDependencies { dependencies ->
-                        dependencies.userService.login(Login(validEmail, ""))
+                        either { dependencies.userService.login(Login(validEmail, "")) }
                     }
                     val errors =
                         nonEmptyListOf("Cannot be blank", "is too short (minimum is 8 characters)")
@@ -181,7 +206,7 @@ class UserServiceSpec :
                     val validEmail = "valid@domain.com"
                     val password = (0..100).joinToString("") { "A" }
                     val res = withTestDependencies { dependencies ->
-                        dependencies.userService.login(Login(validEmail, password))
+                        either { dependencies.userService.login(Login(validEmail, password)) }
                     }
                     val errors = nonEmptyListOf("is too long (maximum is 100 characters)")
                     val expected = IncorrectInput(InvalidPassword(errors))
@@ -191,13 +216,16 @@ class UserServiceSpec :
                 "All valid returns a token" {
                     withTestDependencies { dependencies ->
                         val user = userFixture(password = validPw)
-                        dependencies.userService.register(
-                            RegisterUser(user.username, user.email, user.password)
-                        )
                         val token =
-                            dependencies.userService
-                                .login(Login(user.email, user.password))
+                            either {
+                                    dependencies.userService.register(
+                                        RegisterUser(user.username, user.email, user.password)
+                                    )
+
+                                    dependencies.userService.login(Login(user.email, user.password))
+                                }
                                 .shouldBeRight()
+
                         token.first.value.shouldNotBeBlank()
                     }
                 }
@@ -209,13 +237,19 @@ class UserServiceSpec :
                     withTestDependencies { dependencies ->
                         val user = userFixture(password = validPw)
                         val token =
-                            dependencies.userService
-                                .register(RegisterUser(user.username, user.email, user.password))
+                            either {
+                                    dependencies.userService.register(
+                                        RegisterUser(user.username, user.email, user.password)
+                                    )
+                                }
                                 .shouldBeRight()
-                        val res =
+
+                        val res = either {
                             dependencies.userService.update(
                                 Update(token.id(), null, null, null, null, null)
                             )
+                        }
+
                         res shouldBeLeft
                             EmptyUpdate(
                                 "Cannot update user with ${token.id()} with only null values"

@@ -1,17 +1,15 @@
-import java.time.OffsetDateTime;
-
 CREATE TABLE IF NOT EXISTS comments(
     id BIGSERIAL PRIMARY KEY,
     article_id BIGINT REFERENCES articles(id) ON DELETE CASCADE NOT NULL,
     body TEXT NOT NULL,
     author BIGINT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-    createdAt VARCHAR(50) AS OffsetDateTime NOT NULL,
-    updatedAt VARCHAR(50) AS OffsetDateTime NOT NULL
+    createdAt TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updatedAt TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 insertAndGetComment:
-INSERT INTO comments(article_id, body, author, createdAt, updatedAt)
-VALUES (:article_id, :body, :author, :createdAt, :updatedAt)
+INSERT INTO comments(article_id, body, author)
+VALUES (:article_id, :body, :author)
 RETURNING id, article_id, body, author, createdAt, updatedAt;
 
 selectByArticleId:
@@ -30,7 +28,7 @@ WHERE id = :id AND author = :author_id
 RETURNING id;
 
 selectForSlug:
-SELECT comments.id AS comment__id, comments.article_id AS comment__articleId, comments.body AS comment__body, comments.author AS comment__author, comments.createdAt AS comment__createdAt, comments.updatedAt  AS comment__updatedAt,
+SELECT comments.id AS comment__id, comments.body AS comment__body, comments.createdAt AS comment__createdAt, comments.updatedAt  AS comment__updatedAt,
 users.username AS author__username, users.bio AS author__bio, users.image AS author__image
 FROM comments
 INNER JOIN articles ON comments.article_id = articles.id

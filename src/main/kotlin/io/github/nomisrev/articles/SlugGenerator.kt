@@ -1,27 +1,27 @@
-package io.github.nomisrev.service
+package io.github.nomisrev.articles
 
-import arrow.core.Either
-import arrow.core.raise.Raise
-import arrow.core.raise.either
-import arrow.core.raise.ensure
+import arrow.core.raise.context.Raise
+import arrow.core.raise.context.ensure
 import com.github.slugify.Slugify
 import io.github.nomisrev.CannotGenerateSlug
 import kotlin.random.Random
+import kotlinx.serialization.Serializable
 
-@JvmInline value class Slug(val value: String)
+@Serializable @JvmInline value class Slug(val value: String)
 
 fun interface SlugGenerator {
     /**
      * Generates a unique slug by title and a uniqueness check. If a unique slug could not be
-     * generated then [CannotGenerateSlug] is returned
+     * generated then [CannotGenerateSlug] is raised.
      *
      * @param verifyUnique Allows checking uniqueness with some business rules. i.e. check database
      *   that slug is actually unique for domain.
      */
+    context(_: Raise<CannotGenerateSlug>)
     suspend fun generateSlug(
         title: String,
         verifyUnique: suspend (Slug) -> Boolean,
-    ): Either<CannotGenerateSlug, Slug>
+    ): Slug
 }
 
 fun slugifyGenerator(
@@ -36,7 +36,8 @@ fun slugifyGenerator(
         private fun makeUnique(slug: String): String =
             "${slug}_${random.nextInt(minRandomSuffix, maxRandomSuffix)}"
 
-        private tailrec suspend fun Raise<CannotGenerateSlug>.recursiveGen(
+        context(_: Raise<CannotGenerateSlug>)
+        private tailrec suspend fun recursiveGen(
             title: String,
             verifyUnique: suspend (Slug) -> Boolean,
             maxAttempts: Int,
@@ -52,10 +53,9 @@ fun slugifyGenerator(
             return if (isUnique) slug else recursiveGen(title, verifyUnique, maxAttempts - 1, false)
         }
 
+        context(_: Raise<CannotGenerateSlug>)
         override suspend fun generateSlug(
             title: String,
             verifyUnique: suspend (Slug) -> Boolean,
-        ): Either<CannotGenerateSlug, Slug> = either {
-            recursiveGen(title, verifyUnique, defaultMaxAttempts, true)
-        }
+        ): Slug = recursiveGen(title, verifyUnique, defaultMaxAttempts, true)
     }

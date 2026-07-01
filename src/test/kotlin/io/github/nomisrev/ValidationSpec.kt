@@ -2,18 +2,18 @@ package io.github.nomisrev
 
 import arrow.core.nonEmptyListOf
 import arrow.core.raise.either
-import io.github.nomisrev.repo.UserId
-import io.github.nomisrev.routes.ArticleResource
-import io.github.nomisrev.routes.ArticlesResource
-import io.github.nomisrev.routes.FeedLimit
-import io.github.nomisrev.routes.FeedOffset
-import io.github.nomisrev.routes.NewArticle
-import io.github.nomisrev.routes.NewComment
-import io.github.nomisrev.service.GetArticles
-import io.github.nomisrev.service.GetFeed
-import io.github.nomisrev.service.Login
-import io.github.nomisrev.service.RegisterUser
-import io.github.nomisrev.service.Update
+import io.github.nomisrev.articles.ArticlesParameters
+import io.github.nomisrev.articles.FeedLimit
+import io.github.nomisrev.articles.FeedOffset
+import io.github.nomisrev.articles.FeedParameters
+import io.github.nomisrev.articles.GetArticles
+import io.github.nomisrev.articles.GetFeed
+import io.github.nomisrev.articles.NewArticle
+import io.github.nomisrev.articles.NewComment
+import io.github.nomisrev.users.Login
+import io.github.nomisrev.users.RegisterUser
+import io.github.nomisrev.users.Update
+import io.github.nomisrev.users.UserId
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.FreeSpec
@@ -129,7 +129,13 @@ class ValidationSpec :
 
         "feed accumulates offset and limit errors" {
             val userId = UserId(1)
-            val input = ArticleResource.Feed(offsetParam = -1, limitParam = 0)
+            val input =
+                FeedParameters(
+                    mutableMapOf(
+                        "offset" to listOf("-1"),
+                        "limit" to listOf("0"),
+                    )
+                )
 
             either { input.validate(userId) } shouldBeLeft
                 IncorrectInput(
@@ -141,7 +147,13 @@ class ValidationSpec :
         }
 
         "articles accumulates offset and limit errors" {
-            val input = ArticlesResource(offsetParam = -1, limitParam = 0)
+            val input =
+                ArticlesParameters(
+                    mutableMapOf(
+                        "offset" to listOf("-1"),
+                        "limit" to listOf("0"),
+                    )
+                )
 
             either { input.validate(currentUserId = null) } shouldBeLeft
                 IncorrectInput(
@@ -165,11 +177,24 @@ class ValidationSpec :
 
             val userId = UserId(42)
             either {
-                ArticleResource.Feed(offsetParam = 2, limitParam = 3).validate(userId)
+                FeedParameters(
+                        mutableMapOf(
+                            "offset" to listOf("2"),
+                            "limit" to listOf("3"),
+                        )
+                    )
+                    .validate(userId)
             } shouldBeRight GetFeed(userId = userId, limit = 3, offset = 2)
 
             either {
-                ArticlesResource(tag = "kotlin", offsetParam = 4, limitParam = 5).validate(userId)
+                ArticlesParameters(
+                        mutableMapOf(
+                            "tag" to listOf("kotlin"),
+                            "offset" to listOf("4"),
+                            "limit" to listOf("5"),
+                        )
+                    )
+                    .validate(userId)
             } shouldBeRight
                 GetArticles(
                     limit = 5,

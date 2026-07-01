@@ -1,10 +1,10 @@
-package io.github.nomisrev.service
+package io.github.nomisrev.articles
 
+import arrow.core.raise.either
 import io.github.nomisrev.CannotGenerateSlug
 import io.github.nomisrev.SuspendFun
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
-import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import kotlin.random.Random
@@ -19,9 +19,8 @@ class SlugGeneratorSpec :
                     val slugGenerator = slugifyGenerator(seed)
 
                     val title = "Test Title ${Random.nextInt(1000, 9999)}"
-                    val result = slugGenerator.generateSlug(title) { true }
+                    val slug = either { slugGenerator.generateSlug(title) { true } }.shouldBeRight()
 
-                    val slug = result.shouldBeRight()
                     slug.value shouldContain "test_title"
                     slug.value shouldNotContain " "
                 }
@@ -32,12 +31,15 @@ class SlugGeneratorSpec :
                     val title = "Test Title ${Random.nextInt(1000, 9999)}"
 
                     // First attempt not unique, second attempt is unique
-                    val result =
-                        slugGenerator.generateSlug(title) { slug ->
-                            slug.value == title.lowercase().replace(' ', '_') // First attempt fails
-                        }
+                    val slug =
+                        either {
+                                slugGenerator.generateSlug(title) { slug ->
+                                    slug.value ==
+                                        title.lowercase().replace(' ', '_') // First attempt fails
+                                }
+                            }
+                            .shouldBeRight()
 
-                    val slug = result.shouldBeRight()
                     slug.value shouldContain "test_title"
                     slug.value shouldContain "_" // Should have a suffix
                 }
@@ -48,17 +50,17 @@ class SlugGeneratorSpec :
                     val title = "Test Title ${Random.nextInt(1000, 9999)}"
 
                     // All attempts fail
-                    val result = slugGenerator.generateSlug(title) { false }
-
-                    result shouldBeLeft
-                        CannotGenerateSlug("Failed to generate unique slug from $title")
+                    either { slugGenerator.generateSlug(title) { false } }
+                        .shouldBeLeft(
+                            CannotGenerateSlug("Failed to generate unique slug from $title")
+                        )
                 }
 
                 "should handle special characters in title" {
                     val slugGenerator = slugifyGenerator(seed)
 
                     val title = "Special @#$%^&*() Title ${Random.nextInt(1000, 9999)}"
-                    val result = slugGenerator.generateSlug(title) { true }
+                    val result = either { slugGenerator.generateSlug(title) { true } }
 
                     val slug = result.shouldBeRight()
                     slug.value shouldContain "special_title"
@@ -71,10 +73,7 @@ class SlugGeneratorSpec :
                     val slugGenerator = slugifyGenerator(seed)
 
                     val title = ""
-                    val result = slugGenerator.generateSlug(title) { true }
-
-                    val slug = result.shouldBeRight()
-                    slug.value shouldBe ""
+                    either { slugGenerator.generateSlug(title) { true } }.shouldBeRight(Slug(""))
                 }
 
                 "should handle very long title" {
@@ -82,7 +81,7 @@ class SlugGeneratorSpec :
 
                     val title =
                         "Very Long Title " + "x".repeat(200) + " ${Random.nextInt(1000, 9999)}"
-                    val result = slugGenerator.generateSlug(title) { true }
+                    val result = either { slugGenerator.generateSlug(title) { true } }
 
                     val slug = result.shouldBeRight()
                     slug.value shouldContain "very_long_title"

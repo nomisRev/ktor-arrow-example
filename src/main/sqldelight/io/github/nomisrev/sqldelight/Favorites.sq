@@ -11,7 +11,8 @@ WHERE article_id = :articleId;
 
 insert:
 INSERT INTO favorites(article_id, user_id)
-VALUES (:articleId, :userId);
+VALUES (:articleId, :userId)
+ON CONFLICT (article_id, user_id) DO NOTHING;
 
 delete:
 DELETE FROM favorites
