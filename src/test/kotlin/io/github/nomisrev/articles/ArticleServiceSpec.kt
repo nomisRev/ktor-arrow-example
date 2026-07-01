@@ -6,6 +6,7 @@ import arrow.core.raise.either
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
 import io.github.nomisrev.DomainError
+import io.github.nomisrev.NotArticleAuthor
 import io.github.nomisrev.SuspendFun
 import io.github.nomisrev.articleFixture
 import io.github.nomisrev.auth.JwtToken
@@ -13,6 +14,7 @@ import io.github.nomisrev.userFixture
 import io.github.nomisrev.users.RegisterUser
 import io.github.nomisrev.users.UserId
 import io.github.nomisrev.withTestDependencies
+import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.arrow.core.shouldBeSome
 
@@ -156,6 +158,113 @@ class ArticleServiceSpec :
 
                         assert(feed.articlesCount == 1)
                         assert(feed.articles.single().slug == createdFollowedArticle.slug)
+                    }
+                }
+            }
+
+        "updateArticle" -
+            {
+                "allows the article author to update their own article" {
+                    withTestDependencies { dependencies ->
+                        val author = userFixture()
+                        val authorId =
+                            either {
+                                    dependencies.userService.register(
+                                        RegisterUser(author.username, author.email, author.password)
+                                    )
+                                }
+                                .shouldHaveUserId()
+                                .let(::UserId)
+
+                        val article = articleFixture()
+                        val created =
+                            either {
+                                    dependencies.articleService.createArticle(
+                                        CreateArticle(
+                                            authorId,
+                                            article.title,
+                                            article.description,
+                                            article.body,
+                                            article.tags,
+                                        )
+                                    )
+                                }
+                                .shouldBeRight()
+
+                        val updated =
+                            either {
+                                    dependencies.articleService.updateArticle(
+                                        UpdateArticleInput(
+                                            slug = Slug(created.slug),
+                                            userId = authorId,
+                                            title = "updated-title",
+                                            description = "updated description",
+                                            body = "updated body",
+                                        )
+                                    )
+                                }
+                                .shouldBeRight()
+
+                        assert(updated.slug == created.slug)
+                        assert(updated.title == "updated-title")
+                        assert(updated.description == "updated description")
+                        assert(updated.body == "updated body")
+                        assert(updated.author.username == author.username)
+                    }
+                }
+
+                "rejects users who are not the article author" {
+                    withTestDependencies { dependencies ->
+                        val author = userFixture()
+                        val authorId =
+                            either {
+                                    dependencies.userService.register(
+                                        RegisterUser(author.username, author.email, author.password)
+                                    )
+                                }
+                                .shouldHaveUserId()
+                                .let(::UserId)
+
+                        val nonAuthor = userFixture()
+                        val nonAuthorId =
+                            either {
+                                    dependencies.userService.register(
+                                        RegisterUser(
+                                            nonAuthor.username,
+                                            nonAuthor.email,
+                                            nonAuthor.password,
+                                        )
+                                    )
+                                }
+                                .shouldHaveUserId()
+                                .let(::UserId)
+
+                        val article = articleFixture()
+                        val created =
+                            either {
+                                    dependencies.articleService.createArticle(
+                                        CreateArticle(
+                                            authorId,
+                                            article.title,
+                                            article.description,
+                                            article.body,
+                                            article.tags,
+                                        )
+                                    )
+                                }
+                                .shouldBeRight()
+
+                        either {
+                            dependencies.articleService.updateArticle(
+                                UpdateArticleInput(
+                                    slug = Slug(created.slug),
+                                    userId = nonAuthorId,
+                                    title = "updated-title",
+                                    description = null,
+                                    body = null,
+                                )
+                            )
+                        } shouldBeLeft NotArticleAuthor(nonAuthorId.serial, created.slug)
                     }
                 }
             }

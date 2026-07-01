@@ -116,7 +116,7 @@ class ArticleService(
     fun updateArticle(input: UpdateArticleInput): Article {
         val article = articlePersistence.findArticleBySlug(input.slug)
 
-        ensure(article.author_id != input.userId) {
+        ensure(article.author_id == input.userId) {
             NotArticleAuthor(input.userId.serial, input.slug.value)
         }
 
