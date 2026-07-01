@@ -162,9 +162,7 @@ class ProfileRouteSpec :
                     .shouldBeRight()
 
                 val response =
-                    request(Api / Profiles / Username(user.username) / get) {
-                        contentType(ContentType.Application.Json)
-                    }
+                    request(Api / Profiles / Username(user.username) / get)
 
                 response.httpResponse.status shouldBe HttpStatusCode.OK
                 with(response.bodyOrThrow()) {
@@ -181,9 +179,7 @@ class ProfileRouteSpec :
                 val invalidUsername = userFixture().username
 
                 val response =
-                    request(Api / Profiles / Username(invalidUsername) / get) {
-                        contentType(ContentType.Application.Json)
-                    }
+                    request(Api / Profiles / Username(invalidUsername) / get)
 
                 response.httpResponse.status shouldBe HttpStatusCode.UnprocessableEntity
                 response.httpResponse.body<GenericErrorModel>().errors.body shouldBe
@@ -194,9 +190,7 @@ class ProfileRouteSpec :
         "Get profile by username missing username" {
             withServer {
                 val response =
-                    request(Api / Profiles / Username("%20") / get) {
-                        contentType(ContentType.Application.Json)
-                    }
+                    request(Api / Profiles / Username("%20") / get)
 
                 response.httpResponse.status shouldBe HttpStatusCode.UnprocessableEntity
                 response.httpResponse.body<GenericErrorModel>().errors.body shouldBe
@@ -209,9 +203,7 @@ class ProfileRouteSpec :
             .config(enabled = false) {
                 withServer {
                     val response =
-                        request(Api / Profiles / Username(" ") / get) {
-                            contentType(ContentType.Application.Json)
-                        }
+                        request(Api / Profiles / Username(" ") / get)
 
                     response.httpResponse.status shouldBe HttpStatusCode.UnprocessableEntity
                     response.httpResponse.body<GenericErrorModel>().errors.body shouldBe

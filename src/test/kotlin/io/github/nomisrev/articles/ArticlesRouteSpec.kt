@@ -193,7 +193,6 @@ class ArticlesRouteSpec :
                         Api / Articles / Slug(created.slug) / Comments / create,
                         CommentWrapper(NewComment(comment)),
                     ) {
-                        contentType(ContentType.Application.Json)
                         bearerAuth(token.value)
                     }
 
@@ -237,7 +236,6 @@ class ArticlesRouteSpec :
                         Api / Articles / Slug(created.slug) / Comments / create,
                         CommentWrapper(NewComment(comment)),
                     ) {
-                        contentType(ContentType.Application.Json)
                         bearerAuth("invalid token")
                     }
 
@@ -278,7 +276,6 @@ class ArticlesRouteSpec :
                         Api / Articles / Slug(created.slug) / Comments / create,
                         CommentWrapper(NewComment("")),
                     ) {
-                        contentType(ContentType.Application.Json)
                         bearerAuth(token.value)
                     }
 

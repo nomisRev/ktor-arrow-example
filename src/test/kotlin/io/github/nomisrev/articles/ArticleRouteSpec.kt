@@ -42,7 +42,6 @@ class ArticleRouteSpec :
                             offset = 0
                         },
                     ) {
-                        contentType(ContentType.Application.Json)
                         bearerAuth(token.value)
                     }
 
@@ -72,7 +71,6 @@ class ArticleRouteSpec :
                         },
                     ) {
                         bearerAuth(token.value)
-                        contentType(ContentType.Application.Json)
                     }
 
                 val body = response.bodyOrThrow()
@@ -100,7 +98,6 @@ class ArticleRouteSpec :
                         },
                     ) {
                         bearerAuth(token.value)
-                        contentType(ContentType.Application.Json)
                     }
 
                 assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
@@ -131,7 +128,6 @@ class ArticleRouteSpec :
                         },
                     ) {
                         bearerAuth(token.value)
-                        contentType(ContentType.Application.Json)
                     }
 
                 assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
@@ -162,7 +158,6 @@ class ArticleRouteSpec :
                         },
                     ) {
                         bearerAuth(token.value)
-                        contentType(ContentType.Application.Json)
                     }
 
                 assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
@@ -243,7 +238,6 @@ class ArticleRouteSpec :
                         ),
                     ) {
                         bearerAuth(token.value)
-                        contentType(ContentType.Application.Json)
                     }
 
                 val created = response.bodyOrThrow()
@@ -283,7 +277,6 @@ class ArticleRouteSpec :
                         ),
                     ) {
                         bearerAuth(token.value)
-                        contentType(ContentType.Application.Json)
                     }
 
                 val created = response.bodyOrThrow()
@@ -318,7 +311,6 @@ class ArticleRouteSpec :
                         ),
                     ) {
                         bearerAuth(token.value)
-                        contentType(ContentType.Application.Json)
                     }
 
                 assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
@@ -343,7 +335,6 @@ class ArticleRouteSpec :
                         ArticleWrapper(NewArticle(article.title, "", article.body, emptyList())),
                     ) {
                         bearerAuth(token.value)
-                        contentType(ContentType.Application.Json)
                     }
 
                 assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
@@ -370,7 +361,6 @@ class ArticleRouteSpec :
                         ),
                     ) {
                         bearerAuth(token.value)
-                        contentType(ContentType.Application.Json)
                     }
 
                 assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
@@ -391,9 +381,7 @@ class ArticleRouteSpec :
                                 emptyList(),
                             )
                         ),
-                    ) {
-                        contentType(ContentType.Application.Json)
-                    }
+                    )
 
                 assert(response.httpResponse.status == HttpStatusCode.Unauthorized)
             }

@@ -31,9 +31,7 @@ class UserRouteSpec :
                     request(
                         Api / Users / register,
                         UserWrapper(NewUser(user.username, user.email, user.password)),
-                    ) {
-                        contentType(ContentType.Application.Json)
-                    }
+                    )
 
                 assert(response.httpResponse.status == HttpStatusCode.Created)
                 with(response.httpResponse.body<UserWrapper<User>>().user) {
@@ -59,9 +57,7 @@ class UserRouteSpec :
                     request(
                         Api / Users / Login / authenticate,
                         UserWrapper(LoginUser(user.email, user.password)),
-                    ) {
-                        contentType(ContentType.Application.Json)
-                    }
+                    )
 
                 assert(response.httpResponse.status == HttpStatusCode.OK)
                 with(response.httpResponse.body<UserWrapper<User>>().user) {
@@ -115,7 +111,6 @@ class UserRouteSpec :
                         UserWrapper(UpdateUser(username = newUsername)),
                     ) {
                         bearerAuth(expected.value)
-                        contentType(ContentType.Application.Json)
                     }
 
                 assert(response.httpResponse.status == HttpStatusCode.OK)
@@ -147,7 +142,6 @@ class UserRouteSpec :
                         UserWrapper(UpdateUser(email = invalidEmail)),
                     ) {
                         bearerAuth(token.value)
-                        contentType(ContentType.Application.Json)
                     }
 
                 assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
