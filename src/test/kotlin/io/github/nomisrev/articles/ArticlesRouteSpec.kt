@@ -34,7 +34,7 @@ class ArticlesRouteSpec :
                 assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
                 assert(
                     response.httpResponse.body<GenericErrorModel>().errors.body ==
-                        listOf("Article by slug slug not found")
+                            listOf("Article by slug slug not found")
                 )
             }
         }
@@ -42,20 +42,16 @@ class ArticlesRouteSpec :
         "Can get an article by slug" {
             withServer { dependencies ->
                 val user = userFixture()
-                val token =
-                    either {
+                either {
+                    val token =
                             dependencies.userService.register(
                                 RegisterUser(user.username, user.email, user.password)
                             )
-                        }
-                        .shouldBeRight()
 
-                val userId =
-                    either { dependencies.jwtService.verifyJwtToken(token) }.shouldBeRight()
+                    val userId = dependencies.jwtService.verifyJwtToken(token)
 
-                val article = articleFixture()
-                val created =
-                    either {
+                    val article = articleFixture()
+                    val created =
                             dependencies.articleService.createArticle(
                                 CreateArticle(
                                     userId,
@@ -65,80 +61,70 @@ class ArticlesRouteSpec :
                                     article.tags,
                                 )
                             )
-                        }
-                        .shouldBeRight()
 
-                val response = request(Api / Articles / Slug(created.slug) / get)
+                    val response = request(Api / Articles / Slug(created.slug) / get)
 
-                val bodyOrThrow = response.bodyOrThrow()
-                with(bodyOrThrow.article) {
-                    assert(articleId == created.articleId)
-                    assert(slug == created.slug)
-                    assert(title == created.title)
-                    assert(description == created.description)
-                    assert(body == created.body)
-                    assert(author == created.author)
-                    assert(favorited == created.favorited)
-                    assert(favoritesCount == created.favoritesCount)
-                    assert(createdAt == created.createdAt)
-                    assert(updatedAt == created.updatedAt)
-                    assert(tagList.toSet() == created.tagList.toSet())
-                }
+                    val bodyOrThrow = response.bodyOrThrow()
+                    with(bodyOrThrow.article) {
+                        assert(articleId == created.articleId)
+                        assert(slug == created.slug)
+                        assert(title == created.title)
+                        assert(description == created.description)
+                        assert(body == created.body)
+                        assert(author == created.author)
+                        assert(favorited == created.favorited)
+                        assert(favoritesCount == created.favoritesCount)
+                        assert(createdAt == created.createdAt)
+                        assert(updatedAt == created.updatedAt)
+                        assert(tagList.toSet() == created.tagList.toSet())
+                    }
+                }.shouldBeRight()
             }
         }
 
         "authenticated article reads return viewer specific metadata" {
             withServer { dependencies ->
                 val author = userFixture()
-                val authorToken =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(author.username, author.email, author.password)
-                            )
-                        }
-                        .shouldBeRight()
-                val authorId =
-                    either { dependencies.jwtService.verifyJwtToken(authorToken) }.shouldBeRight()
-
-                val viewer = userFixture()
-                val viewerToken =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(viewer.username, viewer.email, viewer.password)
-                            )
-                        }
-                        .shouldBeRight()
-                val viewerId =
-                    either { dependencies.jwtService.verifyJwtToken(viewerToken) }.shouldBeRight()
-
-                val article = articleFixture()
-                val created =
-                    either {
-                            dependencies.articleService.createArticle(
-                                CreateArticle(
-                                    authorId,
-                                    article.title,
-                                    article.description,
-                                    article.body,
-                                    article.tags,
-                                )
-                            )
-                        }
-                        .shouldBeRight()
-
-                either { dependencies.userPersistence.followProfile(author.username, viewerId) }
-                    .shouldBeRight()
-                either {
-                        dependencies.articleService.favoriteArticle(
-                            io.github.nomisrev.articles.Slug(created.slug),
-                            viewerId,
+                val response = either {
+                    val authorToken =
+                        dependencies.userService.register(
+                            RegisterUser(author.username, author.email, author.password)
                         )
-                    }
-                    .shouldBeRight()
 
-                val response = request(Api / Articles / Slug(created.slug) / get) {
-                    bearerAuth(viewerToken.value)
-                }
+                    val authorId =
+                        dependencies.jwtService.verifyJwtToken(authorToken)
+
+                    val viewer = userFixture()
+                    val viewerToken =
+                        dependencies.userService.register(
+                            RegisterUser(viewer.username, viewer.email, viewer.password)
+                        )
+
+                    val viewerId =
+                        dependencies.jwtService.verifyJwtToken(viewerToken)
+
+                    val article = articleFixture()
+                    val created =
+                        dependencies.articleService.createArticle(
+                            CreateArticle(
+                                authorId,
+                                article.title,
+                                article.description,
+                                article.body,
+                                article.tags,
+                            )
+                        )
+
+                    dependencies.userPersistence.followProfile(author.username, viewerId)
+                    dependencies.articleService.favoriteArticle(
+                        io.github.nomisrev.articles.Slug(created.slug),
+                        viewerId,
+                    )
+
+                    request(Api / Articles / Slug(created.slug) / get) {
+                        bearerAuth(viewerToken.value)
+                    }
+                }.shouldBeRight()
 
                 val body: SingleArticleResponse = response.bodyOrThrow()
                 with(body.article) {
@@ -152,35 +138,31 @@ class ArticlesRouteSpec :
         "can get comments for an article by slug when authenticated" {
             withServer { dependencies ->
                 val user = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
-                val userId =
-                    either { dependencies.jwtService.verifyJwtToken(token) }.shouldBeRight()
+                val response = either {
+                    val token =
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    val userId =
+                        dependencies.jwtService.verifyJwtToken(token)
 
-                val article = articleFixture()
-                val created =
-                    either {
-                            dependencies.articleService.createArticle(
-                                CreateArticle(
-                                    userId,
-                                    article.title,
-                                    article.description,
-                                    article.body,
-                                    article.tags,
-                                )
+                    val article = articleFixture()
+                    val created =
+                        dependencies.articleService.createArticle(
+                            CreateArticle(
+                                userId,
+                                article.title,
+                                article.description,
+                                article.body,
+                                article.tags,
                             )
-                        }
-                        .shouldBeRight()
+                        )
 
-                val response =
+
                     request(Api / Articles / Slug(created.slug) / Comments / list) {
                         bearerAuth(token.value)
                     }
+                }.shouldBeRight()
 
                 val body = response.bodyOrThrow()
                 assert(body.comments == emptyList<Comment>())
@@ -190,32 +172,28 @@ class ArticlesRouteSpec :
         "can get comments for an article when not authenticated" {
             withServer { dependencies ->
                 val user = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
-                val userId =
-                    either { dependencies.jwtService.verifyJwtToken(token) }.shouldBeRight()
+                val response = either {
+                    val token =
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    val userId =
+                        dependencies.jwtService.verifyJwtToken(token)
 
-                val article = articleFixture()
-                val created =
-                    either {
-                            dependencies.articleService.createArticle(
-                                CreateArticle(
-                                    userId,
-                                    article.title,
-                                    article.description,
-                                    article.body,
-                                    article.tags,
-                                )
+                    val article = articleFixture()
+                    val created =
+                        dependencies.articleService.createArticle(
+                            CreateArticle(
+                                userId,
+                                article.title,
+                                article.description,
+                                article.body,
+                                article.tags,
                             )
-                        }
-                        .shouldBeRight()
+                        )
 
-                val response = request(Api / Articles / Slug(created.slug) / Comments / list)
+                    request(Api / Articles / Slug(created.slug) / Comments / list)
+                }.shouldBeRight()
 
                 val body = response.bodyOrThrow()
                 assert(body.comments == emptyList<Comment>())
@@ -225,82 +203,73 @@ class ArticlesRouteSpec :
         "Can add a comment to an article" {
             withServer { dependencies ->
                 val user = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
+                either {
+                    val token =
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    val userId =
+                        dependencies.jwtService.verifyJwtToken(token)
+
+                    val comment = "This is a comment ${user.username}"
+                    val article = articleFixture()
+                    val created =
+                        dependencies.articleService.createArticle(
+                            CreateArticle(
+                                userId,
+                                article.title,
+                                article.description,
+                                article.body,
+                                article.tags,
                             )
+                        )
+
+                    val response =
+                        request(
+                            Api / Articles / Slug(created.slug) / Comments / create,
+                            CommentWrapper(NewComment(comment)),
+                        ) {
+                            bearerAuth(token.value)
                         }
-                        .shouldBeRight()
-                val userId =
-                    either { dependencies.jwtService.verifyJwtToken(token) }.shouldBeRight()
 
-                val comment = "This is a comment ${user.username}"
-                val article = articleFixture()
-                val created =
-                    either {
-                            dependencies.articleService.createArticle(
-                                CreateArticle(
-                                    userId,
-                                    article.title,
-                                    article.description,
-                                    article.body,
-                                    article.tags,
-                                )
-                            )
-                        }
-                        .shouldBeRight()
-
-                val response =
-                    request(
-                        Api / Articles / Slug(created.slug) / Comments / create,
-                        CommentWrapper(NewComment(comment)),
-                    ) {
-                        bearerAuth(token.value)
-                    }
-
-                val body = response.bodyOrThrow()
-                assert(body.comment.body == comment)
-                assert(body.comment.author.username == user.username)
+                    val body = response.bodyOrThrow()
+                    assert(body.comment.body == comment)
+                    assert(body.comment.author.username == user.username)
+                }.shouldBeRight()
             }
         }
 
         "Can not add a comment to an article with invalid token" {
             withServer { dependencies ->
                 val user = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
-                val userId =
-                    either { dependencies.jwtService.verifyJwtToken(token) }.shouldBeRight()
+                val response = either {
+                    val token =
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    val userId =
+                        dependencies.jwtService.verifyJwtToken(token)
 
-                val comment = "This is a comment"
-                val article = articleFixture()
-                val created =
-                    either {
-                            dependencies.articleService.createArticle(
-                                CreateArticle(
-                                    userId,
-                                    article.title,
-                                    article.description,
-                                    article.body,
-                                    article.tags,
-                                )
+                    val comment = "This is a comment"
+                    val article = articleFixture()
+                    val created =
+                        dependencies.articleService.createArticle(
+                            CreateArticle(
+                                userId,
+                                article.title,
+                                article.description,
+                                article.body,
+                                article.tags,
                             )
-                        }
-                        .shouldBeRight()
+                        )
 
-                val response =
                     request(
                         Api / Articles / Slug(created.slug) / Comments / create,
                         CommentWrapper(NewComment(comment)),
                     ) {
                         bearerAuth("invalid token")
                     }
+                }.shouldBeRight()
 
                 assert(response.httpResponse.status == HttpStatusCode.Unauthorized)
             }
@@ -309,38 +278,34 @@ class ArticlesRouteSpec :
         "Can not add a comment to an article with empty body" {
             withServer { dependencies ->
                 val user = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
-                val userId =
-                    either { dependencies.jwtService.verifyJwtToken(token) }.shouldBeRight()
+                val response = either {
+                    val token =
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    val userId =
+                        dependencies.jwtService.verifyJwtToken(token)
 
-                val article = articleFixture()
-                val created =
-                    either {
-                            dependencies.articleService.createArticle(
-                                CreateArticle(
-                                    userId,
-                                    article.title,
-                                    article.description,
-                                    article.body,
-                                    article.tags,
-                                )
+                    val article = articleFixture()
+                    val created =
+                        dependencies.articleService.createArticle(
+                            CreateArticle(
+                                userId,
+                                article.title,
+                                article.description,
+                                article.body,
+                                article.tags,
                             )
-                        }
-                        .shouldBeRight()
+                        )
 
-                val response =
+
                     request(
                         Api / Articles / Slug(created.slug) / Comments / create,
                         CommentWrapper(NewComment("")),
                     ) {
                         bearerAuth(token.value)
                     }
+                }.shouldBeRight()
 
                 assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
             }

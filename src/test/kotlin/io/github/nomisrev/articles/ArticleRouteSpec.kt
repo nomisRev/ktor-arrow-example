@@ -29,10 +29,10 @@ class ArticleRouteSpec :
                 val user = userFixture()
                 val token =
                     either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    }
                         .shouldBeRight()
 
                 val response =
@@ -56,10 +56,10 @@ class ArticleRouteSpec :
                 val user = userFixture()
                 val token =
                     either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    }
                         .shouldBeRight()
 
                 val response =
@@ -84,10 +84,10 @@ class ArticleRouteSpec :
                 val user = userFixture()
                 val token =
                     either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    }
                         .shouldBeRight()
 
                 val response =
@@ -103,7 +103,7 @@ class ArticleRouteSpec :
                 assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
                 assert(
                     response.httpResponse.body<GenericErrorModel>().errors.body ==
-                        listOf("feed offset: too small, minimum is 0, and found -1")
+                            listOf("feed offset: too small, minimum is 0, and found -1")
                 )
             }
         }
@@ -113,10 +113,10 @@ class ArticleRouteSpec :
                 val user = userFixture()
                 val token =
                     either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    }
                         .shouldBeRight()
 
                 val response =
@@ -133,7 +133,7 @@ class ArticleRouteSpec :
                 assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
                 assert(
                     response.httpResponse.body<GenericErrorModel>().errors.body ==
-                        listOf("feed limit: too small, minimum is 1, and found 0")
+                            listOf("feed limit: too small, minimum is 1, and found 0")
                 )
             }
         }
@@ -143,10 +143,10 @@ class ArticleRouteSpec :
                 val user = userFixture()
                 val token =
                     either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    }
                         .shouldBeRight()
 
                 val response =
@@ -163,10 +163,10 @@ class ArticleRouteSpec :
                 assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
                 assert(
                     response.httpResponse.body<GenericErrorModel>().errors.body ==
-                        listOf(
-                            "feed offset: too small, minimum is 0, and found -1",
-                            "feed limit: too small, minimum is 1, and found 0",
-                        )
+                            listOf(
+                                "feed offset: too small, minimum is 0, and found -1",
+                                "feed limit: too small, minimum is 1, and found 0",
+                            )
                 )
             }
         }
@@ -176,26 +176,26 @@ class ArticleRouteSpec :
                 val user = userFixture()
                 val token =
                     either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    }
                         .shouldBeRight()
                 val userId =
                     either { dependencies.jwtService.verifyJwtToken(token) }.shouldBeRight()
                 val article = articleFixture()
                 val created =
                     either {
-                            dependencies.articleService.createArticle(
-                                CreateArticle(
-                                    userId,
-                                    article.title,
-                                    article.description,
-                                    article.body,
-                                    article.tags,
-                                )
+                        dependencies.articleService.createArticle(
+                            CreateArticle(
+                                userId,
+                                article.title,
+                                article.description,
+                                article.body,
+                                article.tags,
                             )
-                        }
+                        )
+                    }
                         .shouldBeRight()
 
                 val response =
@@ -216,61 +216,50 @@ class ArticleRouteSpec :
         "article list returns viewer specific metadata" {
             withServer { dependencies ->
                 val author = userFixture()
-                val authorToken =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(author.username, author.email, author.password)
+                either {
+                    val authorToken =
+                        dependencies.userService.register(
+                            RegisterUser(author.username, author.email, author.password)
+                        )
+                    val authorId = dependencies.jwtService.verifyJwtToken(authorToken)
+
+                    val viewer = userFixture()
+                    val viewerToken =
+                        dependencies.userService.register(
+                            RegisterUser(viewer.username, viewer.email, viewer.password)
+                        )
+                    val viewerId =
+                        dependencies.jwtService.verifyJwtToken(viewerToken)
+
+                    val article = articleFixture()
+                    val created =
+                        dependencies.articleService.createArticle(
+                            CreateArticle(
+                                authorId,
+                                article.title,
+                                article.description,
+                                article.body,
+                                article.tags,
                             )
-                        }
-                        .shouldBeRight()
-                val authorId =
-                    either { dependencies.jwtService.verifyJwtToken(authorToken) }.shouldBeRight()
+                        )
 
-                val viewer = userFixture()
-                val viewerToken =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(viewer.username, viewer.email, viewer.password)
-                            )
-                        }
-                        .shouldBeRight()
-                val viewerId =
-                    either { dependencies.jwtService.verifyJwtToken(viewerToken) }.shouldBeRight()
+                    dependencies.userPersistence.followProfile(author.username, viewerId)
+                    dependencies.articleService.favoriteArticle(Slug(created.slug), viewerId)
 
-                val article = articleFixture()
-                val created =
-                    either {
-                            dependencies.articleService.createArticle(
-                                CreateArticle(
-                                    authorId,
-                                    article.title,
-                                    article.description,
-                                    article.body,
-                                    article.tags,
-                                )
-                            )
-                        }
-                        .shouldBeRight()
-
-                either { dependencies.userPersistence.followProfile(author.username, viewerId) }
-                    .shouldBeRight()
-                either { dependencies.articleService.favoriteArticle(Slug(created.slug), viewerId) }
-                    .shouldBeRight()
-
-                val response =
-                    request(
+                    val response = request(
                         endpoint = Api / Articles / list,
                         parameters = {},
                     ) {
                         bearerAuth(viewerToken.value)
                     }
 
-                val body: MultipleArticlesResponse = response.bodyOrThrow()
-                val articleResponse = body.articles.single()
-                assert(articleResponse.slug == created.slug)
-                assert(articleResponse.favorited)
-                assert(articleResponse.favoritesCount == 1L)
-                assert(articleResponse.author.following)
+                    val body: MultipleArticlesResponse = response.bodyOrThrow()
+                    val articleResponse = body.articles.single()
+                    assert(articleResponse.slug == created.slug)
+                    assert(articleResponse.favorited)
+                    assert(articleResponse.favoritesCount == 1L)
+                    assert(articleResponse.author.following)
+                }.shouldBeRight()
             }
         }
 
@@ -279,10 +268,10 @@ class ArticleRouteSpec :
                 val user = userFixture()
                 val token =
                     either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    }
                         .shouldBeRight()
                 val article = articleFixture()
 
@@ -318,10 +307,10 @@ class ArticleRouteSpec :
                 val user = userFixture()
                 val token =
                     either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    }
                         .shouldBeRight()
                 val article = articleFixture()
 
@@ -357,10 +346,10 @@ class ArticleRouteSpec :
                 val user = userFixture()
                 val token =
                     either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    }
                         .shouldBeRight()
                 val article = articleFixture()
 
@@ -383,10 +372,10 @@ class ArticleRouteSpec :
                 val user = userFixture()
                 val token =
                     either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    }
                         .shouldBeRight()
                 val article = articleFixture()
 
@@ -407,10 +396,10 @@ class ArticleRouteSpec :
                 val user = userFixture()
                 val token =
                     either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    }
                         .shouldBeRight()
                 val article = articleFixture()
 

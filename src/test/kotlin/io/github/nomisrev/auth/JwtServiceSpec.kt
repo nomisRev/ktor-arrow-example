@@ -19,92 +19,79 @@ import io.kotest.matchers.types.shouldBeInstanceOf
 class JwtServiceSpec :
     SuspendFun({
         "generateJwtToken" -
-            {
-                "should generate a valid JWT token for a user ID" {
-                    withTestDependencies { dependencies ->
-                        val user = userFixture()
-                        val token =
-                            either {
+                {
+                    "should generate a valid JWT token for a user ID" {
+                        withTestDependencies { dependencies ->
+                            val user = userFixture()
+                            val jwtToken = either {
+                                val token =
                                     dependencies.userService.register(
                                         RegisterUser(user.username, user.email, user.password)
                                     )
-                                }
-                                .shouldBeRight()
 
-                        val userId =
-                            JWT.decodeT(token.value, JWSHMAC512Algorithm)
-                                .map { it.claimValueAsLong("id").shouldBeSome() }
-                                .shouldBeRight()
+                                val userId =
+                                    JWT.decodeT(token.value, JWSHMAC512Algorithm)
+                                        .map { it.claimValueAsLong("id").shouldBeSome() }
+                                        .bind()
 
-                        val result = either {
-                            dependencies.jwtService.generateJwtToken(UserId(userId))
+                                dependencies.jwtService.generateJwtToken(UserId(userId))
+                            }.shouldBeRight()
+                            jwtToken.value.shouldNotBeBlank()
                         }
-
-                        val jwtToken = result.shouldBeRight()
-                        jwtToken.value.shouldNotBeBlank()
                     }
-                }
 
-                "should be able to verify the generated token" {
-                    withTestDependencies { dependencies ->
-                        val user = userFixture()
-                        val token =
+                    "should be able to verify the generated token" {
+                        withTestDependencies { dependencies ->
+                            val user = userFixture()
                             either {
-                                    dependencies.userService.register(
-                                        RegisterUser(user.username, user.email, user.password)
+                                val token = dependencies.userService.register(
+                                    RegisterUser(
+                                        user.username,
+                                        user.email,
+                                        user.password
                                     )
-                                }
-                                .shouldBeRight()
+                                )
 
-                        val userId =
-                            JWT.decodeT(token.value, JWSHMAC512Algorithm)
-                                .map { it.claimValueAsLong("id").shouldBeSome() }
-                                .shouldBeRight()
+                                val userId =
+                                    JWT.decodeT(token.value, JWSHMAC512Algorithm)
+                                        .map { it.claimValueAsLong("id").shouldBeSome() }
+                                        .bind()
 
-                        val generatedToken =
-                            either { dependencies.jwtService.generateJwtToken(UserId(userId)) }
-                                .shouldBeRight()
+                                val generatedToken = dependencies.jwtService.generateJwtToken(UserId(userId))
+                                val resultUserId = dependencies.jwtService.verifyJwtToken(generatedToken)
 
-                        val verifiedUserId = either {
-                            dependencies.jwtService.verifyJwtToken(generatedToken)
+                                resultUserId shouldBe UserId(userId)
+                            }.shouldBeRight()
                         }
-
-                        val resultUserId = verifiedUserId.shouldBeRight()
-                        resultUserId shouldBe UserId(userId)
                     }
                 }
-            }
 
         "verifyJwtToken" -
-            {
-                "should return the user ID for a valid token" {
-                    withTestDependencies { dependencies ->
-                        val user = userFixture()
-                        val token =
+                {
+                    "should return the user ID for a valid token" {
+                        withTestDependencies { dependencies ->
+                            val user = userFixture()
                             either {
+                                val token =
                                     dependencies.userService.register(
                                         RegisterUser(user.username, user.email, user.password)
                                     )
-                                }
-                                .shouldBeRight()
 
-                        val userId = either { dependencies.jwtService.verifyJwtToken(token) }
-
-                        userId.shouldBeRight()
+                                dependencies.jwtService.verifyJwtToken(token)
+                            }.shouldBeRight()
+                        }
                     }
-                }
 
-                "should return JwtInvalid for an invalid token" {
-                    withTestDependencies { dependencies ->
-                        val error =
-                            either {
+                    "should return JwtInvalid for an invalid token" {
+                        withTestDependencies { dependencies ->
+                            val error =
+                                either {
                                     dependencies.jwtService.verifyJwtToken(
                                         JwtToken("invalid.token.value")
                                     )
-                                }
-                                .shouldBeLeft()
-                        error.shouldBeInstanceOf<JwtInvalid>()
+                                }.shouldBeLeft()
+                            error.shouldBeInstanceOf<JwtInvalid>()
+                        }
                     }
                 }
-            }
     })

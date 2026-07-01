@@ -81,8 +81,15 @@ class UserPersistence(
     }
 
     context(_: Raise<UserNotFound>)
-    fun selectProfile(username: String): Profile {
-        val profileInfo = usersQueries.selectProfile(username, ::toProfile).executeAsOneOrNull()
+    fun selectProfile(username: String, viewerId: UserId? = null): Profile {
+        val profileInfo =
+            when (viewerId) {
+                null -> usersQueries.selectProfile(username, ::toProfile).executeAsOneOrNull()
+                else ->
+                    usersQueries
+                        .selectProfileByViewer(viewerId.serial, username, ::toProfile)
+                        .executeAsOneOrNull()
+            }
         return ensureNotNull(profileInfo) { UserNotFound("username=$username") }
     }
 

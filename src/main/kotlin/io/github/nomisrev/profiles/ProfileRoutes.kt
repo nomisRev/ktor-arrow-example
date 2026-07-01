@@ -7,6 +7,7 @@ import io.github.nomisrev.Api
 import io.github.nomisrev.MissingParameter
 import io.github.nomisrev.auth.JwtService
 import io.github.nomisrev.auth.jwtAuth
+import io.github.nomisrev.auth.optionalJwtAuth
 import io.github.nomisrev.route
 import io.github.nomisrev.users.UserPersistence
 import io.ktor.server.routing.Route
@@ -25,9 +26,12 @@ data class Profile(
 
 fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtService) {
     route(Api.Profiles.Username.get) {
-        val username = idOf(Api.Profiles.Username)
-        ensure(username.isNotBlank()) { MissingParameter("username cannot be null or blank") }
-        respond(userPersistence.selectProfile(username))
+        optionalJwtAuth(jwtService) { context ->
+            val username = idOf(Api.Profiles.Username)
+            ensure(username.isNotBlank()) { MissingParameter("username cannot be null or blank") }
+            val profile = userPersistence.selectProfile(username, context?.userId)
+            respond(profile)
+        }
     }
 
     route(Api.Profiles.Username.Follow.add) {

@@ -1,6 +1,7 @@
 package io.github.nomisrev.tags
 
 import arrow.core.flatMap
+import arrow.core.raise.context.bind
 import arrow.core.raise.either
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
@@ -37,27 +38,26 @@ class TagRouteSpec :
                 val user = userFixture()
                 val userId =
                     either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
+                        dependencies.userService.register(
+                            RegisterUser(user.username, user.email, user.password)
+                        )
+                    }
                         .flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
                         .map { it.claimValueAsLong("id").shouldBeSome() }
                         .shouldBeRight()
 
                 val article = articleFixture()
                 either {
-                        dependencies.articleService.createArticle(
-                            CreateArticle(
-                                UserId(userId),
-                                article.title,
-                                article.description,
-                                article.body,
-                                article.tags,
-                            )
+                    dependencies.articleService.createArticle(
+                        CreateArticle(
+                            UserId(userId),
+                            article.title,
+                            article.description,
+                            article.body,
+                            article.tags,
                         )
-                    }
-                    .shouldBeRight()
+                    )
+                }.shouldBeRight()
 
                 val response = request(Api / Tags / list)
 

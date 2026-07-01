@@ -21,13 +21,20 @@ FROM users
 WHERE username = :username;
 
 selectProfile:
+SELECT users.username, users.bio, users.image, 0 AS following
+FROM users
+WHERE users.username = :username;
+
+selectProfileByViewer:
 SELECT users.username, users.bio, users.image,
 CASE
     WHEN following.follower_id IS NULL THEN 0
     ELSE 1
 END AS following
 FROM users
-LEFT JOIN following ON CAST(users.id AS BIGINT) = following.followed_id
+LEFT JOIN following
+    ON CAST(users.id AS BIGINT) = following.followed_id
+    AND following.follower_id = :viewerId
 WHERE users.username = :username;
 
 selectSecurityByEmail:
