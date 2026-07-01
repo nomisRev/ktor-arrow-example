@@ -38,7 +38,9 @@ class UserService(
     context(_: Raise<DomainError>)
     fun update(input: Update): UserInfo {
         val (userId, username, email, password, bio, image) = input.validate()
-        ensure(email != null || username != null || bio != null || image != null) {
+        ensure(
+            email != null || username != null || password != null || bio != null || image != null
+        ) {
             EmptyUpdate("Cannot update user with $userId with only null values")
         }
         return repo.update(userId, email, username, password, bio, image)

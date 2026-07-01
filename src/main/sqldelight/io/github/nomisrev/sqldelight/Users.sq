@@ -54,13 +54,12 @@ RETURNING id;
 
 update:
 UPDATE users
-SET email = :email, username = :username, hashed_password = :hashed_password, bio = :bio, image = :image
-WHERE id = :userId;
-
--- 
--- UPDATE users SET
---    email = COALESCE(:email, email),
---    username = COALESCE(:username, username),
---    hashed_password = COALESCE(:hashed_password, hashed_password),
---    bio = COALESCE(:bio, bio),
---    image = COALESCE(:image, image)
+SET
+    email = COALESCE(:email, email),
+    username = COALESCE(:username, username),
+    salt = COALESCE(:salt, salt),
+    hashed_password = COALESCE(:hashed_password, hashed_password),
+    bio = COALESCE(:bio, bio),
+    image = COALESCE(:image, image)
+WHERE id = :userId
+RETURNING email, username, bio, image;

@@ -4,11 +4,13 @@ import arrow.core.nonEmptyListOf
 import arrow.core.raise.either
 import io.github.nefilim.kjwt.JWSHMAC512Algorithm
 import io.github.nefilim.kjwt.JWT
+import io.github.nomisrev.EmailAlreadyExists
 import io.github.nomisrev.EmptyUpdate
 import io.github.nomisrev.IncorrectInput
 import io.github.nomisrev.InvalidEmail
 import io.github.nomisrev.InvalidPassword
 import io.github.nomisrev.InvalidUsername
+import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.SuspendFun
 import io.github.nomisrev.UsernameAlreadyExists
 import io.github.nomisrev.auth.JwtToken
@@ -141,21 +143,41 @@ class UserServiceSpec :
                     }
                 }
 
-                "Register twice results in" {
+                "Register with duplicate username results in" {
                     withTestDependencies { dependencies ->
-                        val user = userFixture(password = validPw)
+                        val first = userFixture(password = validPw)
+                        val second = userFixture(password = validPw)
                         either {
                                 dependencies.userService.register(
-                                    RegisterUser(user.username, user.email, user.password)
+                                    RegisterUser(first.username, first.email, first.password)
                                 )
                             }
                             .shouldBeRight()
 
                         either {
                             dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
+                                RegisterUser(first.username, second.email, second.password)
                             )
-                        } shouldBeLeft UsernameAlreadyExists(user.username)
+                        } shouldBeLeft UsernameAlreadyExists(first.username)
+                    }
+                }
+
+                "Register with duplicate email results in" {
+                    withTestDependencies { dependencies ->
+                        val first = userFixture(password = validPw)
+                        val second = userFixture(password = validPw)
+                        either {
+                                dependencies.userService.register(
+                                    RegisterUser(first.username, first.email, first.password)
+                                )
+                            }
+                            .shouldBeRight()
+
+                        either {
+                            dependencies.userService.register(
+                                RegisterUser(second.username, first.email, second.password)
+                            )
+                        } shouldBeLeft EmailAlreadyExists(first.email)
                     }
                 }
             }
@@ -254,6 +276,42 @@ class UserServiceSpec :
                             EmptyUpdate(
                                 "Cannot update user with ${token.id()} with only null values"
                             )
+                    }
+                }
+
+                "Update password rotates credentials and keeps public profile data" {
+                    withTestDependencies { dependencies ->
+                        val user = userFixture(password = validPw)
+                        val token =
+                            either {
+                                    dependencies.userService.register(
+                                        RegisterUser(user.username, user.email, user.password)
+                                    )
+                                }
+                                .shouldBeRight()
+                        val newPassword = "987654321"
+
+                        val updated =
+                            either {
+                                    dependencies.userService.update(
+                                        Update(token.id(), null, null, newPassword, null, null)
+                                    )
+                                }
+                                .shouldBeRight()
+
+                        assert(updated.email == user.email)
+                        assert(updated.username == user.username)
+                        assert(updated.bio == "")
+                        assert(updated.image == "")
+
+                        either {
+                            dependencies.userService.login(Login(user.email, user.password))
+                        } shouldBeLeft PasswordNotMatched
+
+                        either {
+                                dependencies.userService.login(Login(user.email, newPassword))
+                            }
+                            .shouldBeRight()
                     }
                 }
             }

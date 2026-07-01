@@ -56,11 +56,7 @@ class ArticlePersistence(
                 articleBody,
                 articleAuthorId,
                 articleCreatedAt,
-                articleUpdatedAt,
-                _,
-                _,
-                _,
-                _ ->
+                articleUpdatedAt ->
                 Articles(
                     id = articleId,
                     slug = articleSlug,

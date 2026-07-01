@@ -5,6 +5,7 @@ import arrow.core.raise.context.Raise
 import arrow.core.raise.context.ensure
 import arrow.core.raise.context.ensureNotNull
 import arrow.core.raise.context.raise
+import io.github.nomisrev.EmailAlreadyExists
 import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.UserError
 import io.github.nomisrev.UserNotFound
@@ -44,9 +45,7 @@ class UserPersistence(
                 )
                 .executeAsOne()
         }) { e: PSQLException ->
-            if (e.sqlState == PSQLState.UNIQUE_VIOLATION.state)
-                raise(UsernameAlreadyExists(username))
-            else throw e
+            raiseUniqueViolation(e, username, email)
         }
     }
 
@@ -100,7 +99,7 @@ class UserPersistence(
         Profile(username, bio, image, following > 0)
 
     @Suppress("LongParameterList")
-    context(_: Raise<UserNotFound>)
+    context(_: Raise<UserError>)
     fun update(
         userId: UserId,
         email: String?,
@@ -109,25 +108,29 @@ class UserPersistence(
         bio: String?,
         image: String?,
     ): UserInfo {
-        val info = usersQueries.transactionWithResult {
-            usersQueries.selectById(userId).executeAsOneOrNull()?.let {
-                (oldEmail, oldUsername, salt, oldPassword, oldBio, oldImage) ->
-                val newPassword = password?.let { generateKey(it, salt) } ?: oldPassword
-                val newEmail = email ?: oldEmail
-                val newUsername = username ?: oldUsername
-                val newBio = bio ?: oldBio
-                val newImage = image ?: oldImage
-                usersQueries.update(
-                    newEmail,
-                    newUsername,
-                    newPassword,
-                    newBio,
-                    newImage,
-                    userId,
-                )
-                UserInfo(newEmail, newUsername, newBio, newImage)
-            }
+        val passwordUpdate = password?.let {
+            val salt = generateSalt()
+            salt to generateKey(it, salt)
         }
+
+        val info =
+            catch({
+                usersQueries
+                    .update(
+                        email = email,
+                        username = username,
+                        salt = passwordUpdate?.first,
+                        hashed_password = passwordUpdate?.second,
+                        bio = bio,
+                        image = image,
+                        userId = userId,
+                        mapper = ::UserInfo,
+                    )
+                    .executeAsOneOrNull()
+            }) { e: PSQLException ->
+                raiseUniqueViolation(e, username, email)
+            }
+
         return ensureNotNull(info) { UserNotFound("userId=$userId") }
     }
 
@@ -146,6 +149,18 @@ class UserPersistence(
             if (e.sqlState == PSQLState.NOT_NULL_VIOLATION.state)
                 raise(UserNotFound("username=$followedUsername"))
             else throw e
+        }
+
+    context(_: Raise<UserError>)
+    private fun raiseUniqueViolation(
+        exception: PSQLException,
+        username: String?,
+        email: String?,
+    ): Nothing =
+        when (exception.serverErrorMessage?.constraint) {
+            "users_username_key" -> raise(UsernameAlreadyExists(username.orEmpty()))
+            "users_email_key" -> raise(EmailAlreadyExists(email.orEmpty()))
+            else -> throw exception
         }
 
     private fun generateSalt(): ByteArray = UUID.randomUUID().toString().toByteArray()
