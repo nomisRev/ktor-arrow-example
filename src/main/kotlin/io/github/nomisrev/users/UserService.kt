@@ -56,7 +56,4 @@ class UserService(
 
     context(_: Raise<UserNotFound>)
     fun getUser(userId: UserId): UserInfo = repo.select(userId)
-
-    context(_: Raise<UserNotFound>)
-    fun getUser(username: String): UserInfo = repo.select(username)
 }

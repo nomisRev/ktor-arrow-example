@@ -3,8 +3,10 @@
 package io.github.nomisrev.users
 
 import io.github.nomisrev.Api
-import io.github.nomisrev.auth.JwtService
-import io.github.nomisrev.auth.jwtAuth
+import io.github.nomisrev.auth.JwtConfig
+import io.github.nomisrev.auth.JwtContext
+import io.github.nomisrev.auth.authenticateWith
+import io.github.nomisrev.auth.principal
 import io.github.nomisrev.route
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.routing.Route
@@ -35,7 +37,7 @@ data class User(
 
 @Serializable data class LoginUser(val email: String, val password: String)
 
-fun Route.userRoutes(userService: UserService, jwtService: JwtService) {
+fun Route.userRoutes(userService: UserService, jwtService: JwtConfig<JwtContext>) {
     route(Api.Users.register) {
         val (username, email, password) = body.user
         val token = userService.register(RegisterUser(username, email, password))
@@ -48,18 +50,39 @@ fun Route.userRoutes(userService: UserService, jwtService: JwtService) {
         respond(UserWrapper(User(email, token.value, info.username, info.bio, info.image)))
     }
 
-    route(Api.CurrentUser.get) {
-        jwtAuth(jwtService) { (token, userId) ->
-            val info = userService.getUser(userId)
-            respond(UserWrapper(User(info.email, token.value, info.username, info.bio, info.image)))
+    authenticateWith(jwtService) {
+        route(Api.CurrentUser.get) {
+            val info = userService.getUser(call.principal.userId)
+            respond(
+                UserWrapper(
+                    User(
+                        info.email,
+                        call.principal.token.value,
+                        info.username,
+                        info.bio,
+                        info.image,
+                    )
+                )
+            )
         }
-    }
 
-    route(Api.CurrentUser.update) {
-        jwtAuth(jwtService) { (token, userId) ->
+        route(Api.CurrentUser.update) {
             val (email, username, password, bio, image) = body.user
-            val info = userService.update(Update(userId, username, email, password, bio, image))
-            respond(UserWrapper(User(info.email, token.value, info.username, info.bio, info.image)))
+            val info =
+                userService.update(
+                    Update(call.principal.userId, username, email, password, bio, image)
+                )
+            respond(
+                UserWrapper(
+                    User(
+                        info.email,
+                        call.principal.token.value,
+                        info.username,
+                        info.bio,
+                        info.image,
+                    )
+                )
+            )
         }
     }
 }

@@ -8,6 +8,8 @@ import io.github.nomisrev.articles.ArticleService
 import io.github.nomisrev.articles.FavouritePersistence
 import io.github.nomisrev.articles.SlugGenerator
 import io.github.nomisrev.articles.slugifyGenerator
+import io.github.nomisrev.auth.JwtConfig
+import io.github.nomisrev.auth.JwtContext
 import io.github.nomisrev.auth.JwtService
 import io.github.nomisrev.tags.TagPersistence
 import io.github.nomisrev.users.UserPersistence
@@ -15,7 +17,7 @@ import io.github.nomisrev.users.UserService
 
 class Dependencies(
     val userService: UserService,
-    val jwtService: JwtService,
+    val jwtService: JwtConfig<JwtContext>,
     val articleService: ArticleService,
     val healthCheck: HealthCheckRegistry,
     val tagPersistence: TagPersistence,
@@ -46,7 +48,7 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
 
     return Dependencies(
         userService = userService,
-        jwtService = jwtService,
+        jwtService = jwtService.config,
         articleService =
             ArticleService(
                 slugGenerator,

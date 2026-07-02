@@ -1,10 +1,18 @@
 package io.github.nomisrev
 
+import arrow.core.raise.context.Raise
+import arrow.core.raise.context.bind
+import arrow.core.raise.context.ensureNotNull
+import arrow.core.raise.context.withError
 import arrow.fx.coroutines.resourceScope
+import io.github.nefilim.kjwt.JWSHMAC512Algorithm
+import io.github.nefilim.kjwt.JWT
+import io.github.nomisrev.auth.JwtToken
 import io.github.nomisrev.env.Dependencies
 import io.github.nomisrev.env.Env
 import io.github.nomisrev.env.dependencies
 import io.github.nomisrev.env.kotlinXSerializersModule
+import io.github.nomisrev.users.UserId
 import io.kotest.extensions.testcontainers.toDataSource
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -89,3 +97,16 @@ private fun testEnv(postgres: PostgreSQLContainer<*>, schema: String): Env =
 
 private fun String.withCurrentSchema(schema: String): String =
     if (contains("?")) "$this&currentSchema=$schema" else "$this?currentSchema=$schema"
+
+context(_: Raise<JwtInvalid>)
+fun verifyJwtToken(token: JwtToken): UserId {
+    val jwt =
+        withError({ JwtInvalid(it.toString()) }) {
+            JWT.decodeT(token.value, JWSHMAC512Algorithm).bind()
+        }
+    val id =
+        ensureNotNull(jwt.claimValueAsLong("id").getOrNull()) {
+            JwtInvalid("id missing from JWT Token")
+        }
+    return UserId(id)
+}

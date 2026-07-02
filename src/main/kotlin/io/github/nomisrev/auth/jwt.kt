@@ -2,62 +2,62 @@
 
 package io.github.nomisrev.auth
 
-import arrow.core.Either
-import arrow.core.raise.recover
+import com.auth0.jwt.interfaces.JWTVerifier
 import io.github.nomisrev.users.UserId
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.auth.HttpAuthHeader
 import io.ktor.server.application.ApplicationCall
-import io.ktor.server.auth.parseAuthorizationHeader
-import io.ktor.server.response.respond
-import opensavvy.spine.api.FailureSpec
-import opensavvy.spine.api.Parameters
-import opensavvy.spine.server.TypedResponseScope
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.jwt.JWTCredential
+import io.ktor.server.auth.principal
+import io.ktor.server.routing.Route
 
 /**
- * TODO: This will be deprecated and made obsolete by Ktor Typed Auth Check
+ * TODO: This is a tiny layer that mimics the new Ktor Typed DSL will be removed when it is released
  *   https://github.com/ktorio/ktor-klip/pull/6 for details
  */
+class JwtConfig<T>(
+    val verifier: JWTVerifier,
+    val validate: suspend ApplicationCall.(JWTCredential) -> T?,
+) {
+    val name: String = "JWT"
+
+    fun orAnonymous(): JwtConfig<T?> = this as JwtConfig<T?>
+}
+
+interface AuthenticateContext<T> {
+    fun principal(call: ApplicationCall): T
+}
+
+context(ctx: AuthenticateContext<T>)
+val <T> ApplicationCall.principal: T
+    get() = ctx.principal(this)
+
+inline fun <reified T : Any> Route.authenticateWith(
+    jwt: JwtConfig<T>,
+    crossinline block: context(AuthenticateContext<T>) Route.() -> Unit,
+): Route =
+    authenticate(jwt.name) {
+        block.invoke(
+            object : AuthenticateContext<T> {
+                override fun principal(call: ApplicationCall): T = call.principal<T>()!!
+            },
+            this,
+        )
+    }
+
+@JvmName("authenticateOptionallyWith")
+inline fun <reified T : Any> Route.authenticateWith(
+    jwt: JwtConfig<T?>,
+    crossinline block: context(AuthenticateContext<T?>) Route.() -> Unit,
+): Route =
+    authenticate(jwt.name, optional = true) {
+        block.invoke(
+            object : AuthenticateContext<T?> {
+                override fun principal(call: ApplicationCall): T? = call.principal<T>()
+            },
+            this,
+        )
+    }
+
 @JvmInline value class JwtToken(val value: String)
 
 data class JwtContext(val token: JwtToken, val userId: UserId)
-
-suspend inline fun <A : Any, B : Any, C : FailureSpec, D : Parameters> TypedResponseScope<
-    A,
-    B,
-    C,
-    D,
->
-    .optionalJwtAuth(
-    jwtService: JwtService,
-    crossinline body: suspend TypedResponseScope<A, B, C, D>.(JwtContext?) -> Unit,
-) {
-    call.jwtToken()?.let { token ->
-        recover({
-            val userId = jwtService.verifyJwtToken(JwtToken(token))
-            body(this@optionalJwtAuth, JwtContext(JwtToken(token), userId))
-        }) { error ->
-            call.respond(error)
-        }
-    } ?: body(this, null)
-}
-
-suspend inline fun <A : Any, B : Any, C : FailureSpec, D : Parameters> TypedResponseScope<
-    A,
-    B,
-    C,
-    D,
->
-    .jwtAuth(
-    jwtService: JwtService,
-    crossinline body: suspend TypedResponseScope<A, B, C, D>.(JwtContext) -> Unit,
-) {
-    optionalJwtAuth(jwtService) { context ->
-        context?.let { body(this, it) } ?: call.respond(HttpStatusCode.Unauthorized)
-    }
-}
-
-fun ApplicationCall.jwtToken(): String? =
-    Either.catch { (request.parseAuthorizationHeader() as? HttpAuthHeader.Single) }
-        .getOrNull()
-        ?.blob

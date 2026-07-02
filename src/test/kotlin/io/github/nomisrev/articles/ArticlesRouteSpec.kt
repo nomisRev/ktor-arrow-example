@@ -19,6 +19,7 @@ import io.github.nomisrev.GenericErrorModel
 import io.github.nomisrev.articleFixture
 import io.github.nomisrev.userFixture
 import io.github.nomisrev.users.RegisterUser
+import io.github.nomisrev.verifyJwtToken
 import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.StringSpec
@@ -53,7 +54,7 @@ class ArticlesRouteSpec :
                                 RegisterUser(user.username, user.email, user.password)
                             )
 
-                        val userId = dependencies.jwtService.verifyJwtToken(token)
+                        val userId = verifyJwtToken(token)
 
                         val article = articleFixture()
                         val created =
@@ -98,7 +99,7 @@ class ArticlesRouteSpec :
                                     RegisterUser(author.username, author.email, author.password)
                                 )
 
-                            val authorId = dependencies.jwtService.verifyJwtToken(authorToken)
+                            val authorId = verifyJwtToken(authorToken)
 
                             val viewer = userFixture()
                             val viewerToken =
@@ -106,7 +107,7 @@ class ArticlesRouteSpec :
                                     RegisterUser(viewer.username, viewer.email, viewer.password)
                                 )
 
-                            val viewerId = dependencies.jwtService.verifyJwtToken(viewerToken)
+                            val viewerId = verifyJwtToken(viewerToken)
 
                             val article = articleFixture()
                             val created =
@@ -150,7 +151,7 @@ class ArticlesRouteSpec :
                             dependencies.userService.register(
                                 RegisterUser(author.username, author.email, author.password)
                             )
-                        val authorId = dependencies.jwtService.verifyJwtToken(token)
+                        val authorId = verifyJwtToken(token)
 
                         val article = articleFixture()
                         val created =
@@ -195,7 +196,7 @@ class ArticlesRouteSpec :
                                 dependencies.userService.register(
                                     RegisterUser(author.username, author.email, author.password)
                                 )
-                            val authorId = dependencies.jwtService.verifyJwtToken(authorToken)
+                            val authorId = verifyJwtToken(authorToken)
 
                             val viewerToken =
                                 dependencies.userService.register(
@@ -255,7 +256,7 @@ class ArticlesRouteSpec :
                                 dependencies.userService.register(
                                     RegisterUser(author.username, author.email, author.password)
                                 )
-                            val authorId = dependencies.jwtService.verifyJwtToken(authorToken)
+                            val authorId = verifyJwtToken(authorToken)
 
                             val viewerToken =
                                 dependencies.userService.register(
@@ -321,7 +322,7 @@ class ArticlesRouteSpec :
                                 dependencies.userService.register(
                                     RegisterUser(author.username, author.email, author.password)
                                 )
-                            val authorId = dependencies.jwtService.verifyJwtToken(authorToken)
+                            val authorId = verifyJwtToken(authorToken)
 
                             val viewerToken =
                                 dependencies.userService.register(
@@ -389,7 +390,7 @@ class ArticlesRouteSpec :
                                 dependencies.userService.register(
                                     RegisterUser(user.username, user.email, user.password)
                                 )
-                            val userId = dependencies.jwtService.verifyJwtToken(token)
+                            val userId = verifyJwtToken(token)
 
                             val article = articleFixture()
                             val created =
@@ -423,7 +424,7 @@ class ArticlesRouteSpec :
                                 dependencies.userService.register(
                                     RegisterUser(user.username, user.email, user.password)
                                 )
-                            val userId = dependencies.jwtService.verifyJwtToken(token)
+                            val userId = verifyJwtToken(token)
 
                             val article = articleFixture()
                             val created =
@@ -455,7 +456,7 @@ class ArticlesRouteSpec :
                             dependencies.userService.register(
                                 RegisterUser(user.username, user.email, user.password)
                             )
-                        val userId = dependencies.jwtService.verifyJwtToken(token)
+                        val userId = verifyJwtToken(token)
 
                         val article = articleFixture()
                         val created =
@@ -500,7 +501,7 @@ class ArticlesRouteSpec :
                             dependencies.userService.register(
                                 RegisterUser(user.username, user.email, user.password)
                             )
-                        val userId = dependencies.jwtService.verifyJwtToken(token)
+                        val userId = verifyJwtToken(token)
 
                         val article = articleFixture()
                         val created =
@@ -542,7 +543,7 @@ class ArticlesRouteSpec :
                             dependencies.userService.register(
                                 RegisterUser(user.username, user.email, user.password)
                             )
-                        val userId = dependencies.jwtService.verifyJwtToken(token)
+                        val userId = verifyJwtToken(token)
 
                         val comment = "This is a comment ${user.username}"
                         val article = articleFixture()
@@ -582,7 +583,7 @@ class ArticlesRouteSpec :
                                 dependencies.userService.register(
                                     RegisterUser(user.username, user.email, user.password)
                                 )
-                            val userId = dependencies.jwtService.verifyJwtToken(token)
+                            val userId = verifyJwtToken(token)
 
                             val comment = "This is a comment"
                             val article = articleFixture()
@@ -601,7 +602,7 @@ class ArticlesRouteSpec :
                                 Api / Articles / Slug(created.slug) / Comments / create,
                                 CommentWrapper(NewComment(comment)),
                             ) {
-                                bearerAuth("invalid token")
+                                bearerAuth("invalid-token")
                             }
                         }
                         .shouldBeRight()
@@ -619,7 +620,7 @@ class ArticlesRouteSpec :
                                 dependencies.userService.register(
                                     RegisterUser(user.username, user.email, user.password)
                                 )
-                            val userId = dependencies.jwtService.verifyJwtToken(token)
+                            val userId = verifyJwtToken(token)
 
                             val article = articleFixture()
                             val created =
@@ -655,7 +656,7 @@ class ArticlesRouteSpec :
                             dependencies.userService.register(
                                 RegisterUser(user.username, user.email, user.password)
                             )
-                        val userId = dependencies.jwtService.verifyJwtToken(token)
+                        val userId = verifyJwtToken(token)
 
                         val article = articleFixture()
                         val created =
@@ -712,7 +713,7 @@ class ArticlesRouteSpec :
                             dependencies.userService.register(
                                 RegisterUser(author.username, author.email, author.password)
                             )
-                        val authorId = dependencies.jwtService.verifyJwtToken(token)
+                        val authorId = verifyJwtToken(token)
 
                         val article = articleFixture()
                         val created =

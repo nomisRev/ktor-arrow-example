@@ -1,11 +1,15 @@
 package io.github.nomisrev.env
 
+import io.github.nomisrev.auth.JwtConfig
+import io.github.nomisrev.auth.JwtContext
 import io.github.nomisrev.users.LoginUser
 import io.github.nomisrev.users.UserWrapper
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.auth.authentication
+import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.maxAgeDuration
 import io.ktor.server.plugins.cors.routing.CORS
@@ -20,7 +24,7 @@ val kotlinXSerializersModule = SerializersModule {
     polymorphic(Any::class) { subclass(LoginUser::class, LoginUser.serializer()) }
 }
 
-fun Application.configure() {
+fun Application.configure(jwtConfig: JwtConfig<JwtContext>) {
     install(DefaultHeaders)
     install(ContentNegotiation) {
         json(
@@ -38,5 +42,11 @@ fun Application.configure() {
         anyMethod()
         allowNonSimpleContentTypes = true
         maxAgeDuration = 3.days
+    }
+    authentication {
+        jwt(jwtConfig.name) {
+            verifier(jwtConfig.verifier)
+            validate(jwtConfig.validate)
+        }
     }
 }

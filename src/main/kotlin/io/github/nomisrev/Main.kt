@@ -28,7 +28,7 @@ fun main() = SuspendApp {
 }
 
 fun Application.app(module: Dependencies) {
-    configure()
+    configure(module.jwtService)
     routing {
         userRoutes(module.userService, module.jwtService)
         tagRoutes(module.tagPersistence)

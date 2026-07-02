@@ -60,7 +60,7 @@ dependencies {
   implementation(libs.spine.api)
   implementation(libs.spine.server)
   implementation(libs.spine.server.arrow)
-  implementation(ktorLibs.server.auth)
+  implementation(ktorLibs.server.auth.jwt)
   implementation(libs.kjwt.core)
   implementation(libs.logback.classic)
   implementation(libs.sqldelight.jdbc)

@@ -10,9 +10,10 @@ import arrow.core.raise.context.withError
 import io.github.nomisrev.Api
 import io.github.nomisrev.IncorrectInput
 import io.github.nomisrev.MissingParameter
-import io.github.nomisrev.auth.JwtService
-import io.github.nomisrev.auth.jwtAuth
-import io.github.nomisrev.auth.optionalJwtAuth
+import io.github.nomisrev.auth.JwtConfig
+import io.github.nomisrev.auth.JwtContext
+import io.github.nomisrev.auth.authenticateWith
+import io.github.nomisrev.auth.principal
 import io.github.nomisrev.profiles.Profile
 import io.github.nomisrev.route
 import io.github.nomisrev.users.UserId
@@ -135,41 +136,37 @@ class FeedParameters(data: ParameterStorage) : Parameters(data) {
         }
 }
 
-fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) {
-    route(Api.Articles.list) {
-        optionalJwtAuth(jwtService) { context ->
-            val input = parameters.validate(context?.userId)
+fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtConfig<JwtContext>) {
+    authenticateWith(jwtService.orAnonymous()) {
+        route(Api.Articles.list) {
+            val input = parameters.validate(call.principal?.userId)
             val articles = articleService.getAllArticles(input)
             respond(articles)
         }
-    }
 
-    route(Api.Articles.feed) {
-        jwtAuth(jwtService) { (_, userId) ->
-            val input = parameters.validate(userId)
-            val feed = articleService.getUserFeed(input)
-            respond(feed)
-        }
-    }
-
-    route(Api.Articles.Slug.get) {
-        optionalJwtAuth(jwtService) { context ->
+        route(Api.Articles.Slug.get) {
             val article =
                 articleService.getArticleBySlug(
                     Slug(idOf(Api.Articles.Slug)),
-                    context?.userId,
+                    call.principal?.userId,
                 )
 
             respond(SingleArticleResponse(article))
         }
     }
 
-    route(Api.Articles.Slug.update) {
-        jwtAuth(jwtService) { (_, userId) ->
+    authenticateWith(jwtService) {
+        route(Api.Articles.feed) {
+            val input = parameters.validate(call.principal.userId)
+            val feed = articleService.getUserFeed(input)
+            respond(feed)
+        }
+
+        route(Api.Articles.Slug.update) {
             val input =
                 UpdateArticleInput(
                     slug = Slug(idOf(Api.Articles.Slug)),
-                    userId = userId,
+                    userId = call.principal.userId,
                     title = body.article.title,
                     description = body.article.description,
                     body = body.article.body,
@@ -178,36 +175,33 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
 
             respond(SingleArticleResponse(updatedArticle))
         }
-    }
 
-    route(Api.Articles.Slug.delete) {
-        jwtAuth(jwtService) { (_, userId) ->
-            articleService.deleteArticle(Slug(idOf(Api.Articles.Slug)), userId)
+        route(Api.Articles.Slug.delete) {
+            articleService.deleteArticle(Slug(idOf(Api.Articles.Slug)), call.principal.userId)
             respond(code = HttpStatusCode.OK)
         }
-    }
 
-    route(Api.Articles.Slug.Favorite.add) {
-        jwtAuth(jwtService) { (_, userId) ->
-            val article = articleService.favoriteArticle(Slug(idOf(Api.Articles.Slug)), userId)
+        route(Api.Articles.Slug.Favorite.add) {
+            val article =
+                articleService.favoriteArticle(Slug(idOf(Api.Articles.Slug)), call.principal.userId)
             respond(SingleArticleResponse(article))
         }
-    }
 
-    route(Api.Articles.Slug.Favorite.remove) {
-        jwtAuth(jwtService) { (_, userId) ->
-            val article = articleService.unfavoriteArticle(Slug(idOf(Api.Articles.Slug)), userId)
+        route(Api.Articles.Slug.Favorite.remove) {
+            val article =
+                articleService.unfavoriteArticle(
+                    Slug(idOf(Api.Articles.Slug)),
+                    call.principal.userId,
+                )
             respond(SingleArticleResponse(article))
         }
-    }
 
-    route(Api.Articles.create) {
-        jwtAuth(jwtService) { (_, userId) ->
+        route(Api.Articles.create) {
             val article = body.article.validate()
             val created =
                 articleService.createArticle(
                     CreateArticle(
-                        userId,
+                        call.principal.userId,
                         article.title,
                         article.description,
                         article.body,
@@ -222,15 +216,20 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtService) 
 fun Route.commentRoutes(
     userService: UserService,
     articleService: ArticleService,
-    jwtService: JwtService,
+    jwtService: JwtConfig<JwtContext>,
 ) {
-    route(Api.Articles.Slug.Comments.create) {
-        jwtAuth(jwtService) { (_, userId) ->
+    route(Api.Articles.Slug.Comments.list) {
+        val comments = articleService.getCommentsForSlug(Slug(idOf(Api.Articles.Slug)))
+        respond(MultipleCommentsResponse(comments))
+    }
+
+    authenticateWith(jwtService) {
+        route(Api.Articles.Slug.Comments.create) {
             val commentBody = body.comment.validate()
             val comments =
                 articleService.insertCommentForArticleSlug(
                     slug = Slug(idOf(Api.Articles.Slug)),
-                    userId = userId,
+                    userId = call.principal.userId,
                     comment = commentBody.body,
                 )
             val userProfile = userService.getUser(UserId(comments.author))
@@ -253,20 +252,13 @@ fun Route.commentRoutes(
                 )
             )
         }
-    }
 
-    route(Api.Articles.Slug.Comments.list) {
-        val comments = articleService.getCommentsForSlug(Slug(idOf(Api.Articles.Slug)))
-        respond(MultipleCommentsResponse(comments))
-    }
-
-    route(Api.Articles.Slug.Comments.Id.delete) {
-        jwtAuth(jwtService) { (_, userId) ->
+        route(Api.Articles.Slug.Comments.Id.delete) {
             val commentId =
                 ensureNotNull(idOf(Api.Articles.Slug.Comments.Id).toLongOrNull()) {
                     MissingParameter("commentId must be a number")
                 }
-            articleService.deleteComment(commentId = commentId, userId = userId)
+            articleService.deleteComment(commentId = commentId, userId = call.principal.userId)
             respond(code = HttpStatusCode.OK)
         }
     }
