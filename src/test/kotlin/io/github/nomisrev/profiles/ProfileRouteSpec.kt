@@ -1,6 +1,5 @@
 package io.github.nomisrev.profiles
 
-import arrow.core.raise.either
 import io.github.nomisrev.Api
 import io.github.nomisrev.Api.Profiles
 import io.github.nomisrev.Api.Profiles.Username
@@ -9,10 +8,9 @@ import io.github.nomisrev.Api.Profiles.Username.Follow.add
 import io.github.nomisrev.Api.Profiles.Username.Follow.remove
 import io.github.nomisrev.Api.Profiles.Username.get
 import io.github.nomisrev.GenericErrorModel
+import io.github.nomisrev.registerUser
 import io.github.nomisrev.userFixture
-import io.github.nomisrev.users.RegisterUser
 import io.github.nomisrev.withServer
-import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.call.*
@@ -26,29 +24,14 @@ class ProfileRouteSpec :
     StringSpec({
         "Can follow profile" {
             withServer { dependencies ->
-                val follower = userFixture()
+                val (_, token) = dependencies.registerUser()
                 val followed = userFixture()
+                dependencies.registerUser(followed)
 
                 val response =
-                    either {
-                            val token =
-                                dependencies.userService.register(
-                                    RegisterUser(
-                                        follower.username,
-                                        follower.email,
-                                        follower.password,
-                                    )
-                                )
-
-                            dependencies.userService.register(
-                                RegisterUser(followed.username, followed.email, followed.password)
-                            )
-
-                            request(Api / Profiles / Username(followed.username) / Follow / add) {
-                                bearerAuth(token.value)
-                            }
-                        }
-                        .shouldBeRight()
+                    request(Api / Profiles / Username(followed.username) / Follow / add) {
+                        bearerAuth(token.value)
+                    }
 
                 response.httpResponse.status shouldBe HttpStatusCode.OK
                 with(response.bodyOrThrow().profile) {
@@ -62,31 +45,14 @@ class ProfileRouteSpec :
 
         "Can unfollow profile" {
             withServer { dependencies ->
-                val follower = userFixture()
+                val (_, token) = dependencies.registerUser()
                 val followed = userFixture()
+                dependencies.registerUser(followed)
 
                 val response =
-                    either {
-                            val token =
-                                dependencies.userService.register(
-                                    RegisterUser(
-                                        follower.username,
-                                        follower.email,
-                                        follower.password,
-                                    )
-                                )
-
-                            dependencies.userService.register(
-                                RegisterUser(followed.username, followed.email, followed.password)
-                            )
-
-                            request(
-                                Api / Profiles / Username(followed.username) / Follow / remove
-                            ) {
-                                bearerAuth(token.value)
-                            }
-                        }
-                        .shouldBeRight()
+                    request(Api / Profiles / Username(followed.username) / Follow / remove) {
+                        bearerAuth(token.value)
+                    }
 
                 response.httpResponse.status shouldBe HttpStatusCode.OK
                 with(response.bodyOrThrow().profile) {
@@ -116,14 +82,7 @@ class ProfileRouteSpec :
 
         "Username invalid to follow" {
             withServer { dependencies ->
-                val follower = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(follower.username, follower.email, follower.password)
-                            )
-                        }
-                        .shouldBeRight()
+                val (_, token) = dependencies.registerUser()
 
                 val response =
                     request(Api / Profiles / Username(userFixture().username) / Follow / add) {
@@ -136,14 +95,7 @@ class ProfileRouteSpec :
 
         "Username invalid to unfollow" {
             withServer { dependencies ->
-                val follower = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(follower.username, follower.email, follower.password)
-                            )
-                        }
-                        .shouldBeRight()
+                val (_, token) = dependencies.registerUser()
 
                 val response =
                     request(Api / Profiles / Username(userFixture().username) / Follow / remove) {
@@ -156,14 +108,7 @@ class ProfileRouteSpec :
 
         "Get profile with no following" {
             withServer { dependencies ->
-                val user = userFixture()
-
-                either {
-                        dependencies.userService.register(
-                            RegisterUser(user.username, user.email, user.password)
-                        )
-                    }
-                    .shouldBeRight()
+                val (user) = dependencies.registerUser()
 
                 val response = request(Api / Profiles / Username(user.username) / get)
 
@@ -179,33 +124,18 @@ class ProfileRouteSpec :
 
         "Get profile shows following for current viewer" {
             withServer { dependencies ->
-                val follower = userFixture()
+                val (_, token) = dependencies.registerUser()
                 val followed = userFixture()
+                dependencies.registerUser(followed)
+
+                request(Api / Profiles / Username(followed.username) / Follow / add) {
+                    bearerAuth(token.value)
+                }
 
                 val response =
-                    either {
-                            val token =
-                                dependencies.userService.register(
-                                    RegisterUser(
-                                        follower.username,
-                                        follower.email,
-                                        follower.password,
-                                    )
-                                )
-
-                            dependencies.userService.register(
-                                RegisterUser(followed.username, followed.email, followed.password)
-                            )
-
-                            request(Api / Profiles / Username(followed.username) / Follow / add) {
-                                bearerAuth(token.value)
-                            }
-
-                            request(Api / Profiles / Username(followed.username) / get) {
-                                bearerAuth(token.value)
-                            }
-                        }
-                        .shouldBeRight()
+                    request(Api / Profiles / Username(followed.username) / get) {
+                        bearerAuth(token.value)
+                    }
 
                 response.httpResponse.status shouldBe HttpStatusCode.OK
                 with(response.bodyOrThrow().profile) {
@@ -217,39 +147,19 @@ class ProfileRouteSpec :
 
         "Get profile follow state is viewer specific" {
             withServer { dependencies ->
-                val follower = userFixture()
-                val viewer = userFixture()
+                val (_, followerToken) = dependencies.registerUser()
+                val (_, viewerToken) = dependencies.registerUser()
                 val followed = userFixture()
+                dependencies.registerUser(followed)
+
+                request(Api / Profiles / Username(followed.username) / Follow / add) {
+                    bearerAuth(followerToken.value)
+                }
 
                 val response =
-                    either {
-                            val followerToken =
-                                dependencies.userService.register(
-                                    RegisterUser(
-                                        follower.username,
-                                        follower.email,
-                                        follower.password,
-                                    )
-                                )
-
-                            val viewerToken =
-                                dependencies.userService.register(
-                                    RegisterUser(viewer.username, viewer.email, viewer.password)
-                                )
-
-                            dependencies.userService.register(
-                                RegisterUser(followed.username, followed.email, followed.password)
-                            )
-
-                            request(Api / Profiles / Username(followed.username) / Follow / add) {
-                                bearerAuth(followerToken.value)
-                            }
-
-                            request(Api / Profiles / Username(followed.username) / get) {
-                                bearerAuth(viewerToken.value)
-                            }
-                        }
-                        .shouldBeRight()
+                    request(Api / Profiles / Username(followed.username) / get) {
+                        bearerAuth(viewerToken.value)
+                    }
 
                 response.httpResponse.status shouldBe HttpStatusCode.OK
                 with(response.bodyOrThrow().profile) {

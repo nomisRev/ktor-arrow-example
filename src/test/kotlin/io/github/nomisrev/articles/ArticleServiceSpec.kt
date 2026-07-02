@@ -1,22 +1,14 @@
 package io.github.nomisrev.articles
 
-import arrow.core.Either
-import arrow.core.flatMap
 import arrow.core.raise.either
-import io.github.nefilim.kjwt.JWSHMAC512Algorithm
-import io.github.nefilim.kjwt.JWT
-import io.github.nomisrev.DomainError
 import io.github.nomisrev.NotArticleAuthor
 import io.github.nomisrev.SuspendFun
 import io.github.nomisrev.articleFixture
-import io.github.nomisrev.auth.JwtToken
+import io.github.nomisrev.registerUser
 import io.github.nomisrev.userFixture
-import io.github.nomisrev.users.RegisterUser
-import io.github.nomisrev.users.UserId
 import io.github.nomisrev.withTestDependencies
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
-import io.kotest.assertions.arrow.core.shouldBeSome
 
 class ArticleServiceSpec :
     SuspendFun({
@@ -24,27 +16,8 @@ class ArticleServiceSpec :
             {
                 "get empty user feed when the user follows nobody" {
                     withTestDependencies { dependencies ->
-                        val user = userFixture()
-                        val userId =
-                            either {
-                                    dependencies.userService.register(
-                                        RegisterUser(user.username, user.email, user.password)
-                                    )
-                                }
-                                .shouldHaveUserId()
-
-                        val otherUser = userFixture()
-                        val otherUserId =
-                            either {
-                                    dependencies.userService.register(
-                                        RegisterUser(
-                                            otherUser.username,
-                                            otherUser.email,
-                                            otherUser.password,
-                                        )
-                                    )
-                                }
-                                .shouldHaveUserId()
+                        val (_, _, userId) = dependencies.registerUser()
+                        val (_, _, otherUserId) = dependencies.registerUser()
 
                         val article = articleFixture()
 
@@ -52,7 +25,7 @@ class ArticleServiceSpec :
                             either {
                                     dependencies.articleService.createArticle(
                                         CreateArticle(
-                                            UserId(otherUserId),
+                                            otherUserId,
                                             article.title,
                                             article.description,
                                             article.body,
@@ -65,8 +38,7 @@ class ArticleServiceSpec :
                         val feed =
                             either {
                                     dependencies.articleService.getUserFeed(
-                                        input =
-                                            GetFeed(userId = UserId(userId), limit = 20, offset = 0)
+                                        input = GetFeed(userId = userId, limit = 20, offset = 0)
                                     )
                                 }
                                 .shouldBeRight()
@@ -77,43 +49,15 @@ class ArticleServiceSpec :
 
                 "get user feed when the user follows another user" {
                     withTestDependencies { dependencies ->
-                        val user = userFixture()
-                        val userId =
-                            either {
-                                    dependencies.userService.register(
-                                        RegisterUser(user.username, user.email, user.password)
-                                    )
-                                }
-                                .shouldHaveUserId()
+                        val (_, _, userId) = dependencies.registerUser()
                         val followed = userFixture()
-                        val followedId =
-                            either {
-                                    dependencies.userService.register(
-                                        RegisterUser(
-                                            followed.username,
-                                            followed.email,
-                                            followed.password,
-                                        )
-                                    )
-                                }
-                                .shouldHaveUserId()
-                        val unrelated = userFixture()
-                        val unrelatedId =
-                            either {
-                                    dependencies.userService.register(
-                                        RegisterUser(
-                                            unrelated.username,
-                                            unrelated.email,
-                                            unrelated.password,
-                                        )
-                                    )
-                                }
-                                .shouldHaveUserId()
+                        val (_, _, followedId) = dependencies.registerUser(followed)
+                        val (_, _, unrelatedId) = dependencies.registerUser()
 
                         either {
                                 dependencies.userPersistence.followProfile(
                                     followed.username,
-                                    UserId(userId),
+                                    userId,
                                 )
                             }
                             .shouldBeRight()
@@ -123,7 +67,7 @@ class ArticleServiceSpec :
                             either {
                                     dependencies.articleService.createArticle(
                                         CreateArticle(
-                                            UserId(followedId),
+                                            followedId,
                                             followedArticle.title,
                                             followedArticle.description,
                                             followedArticle.body,
@@ -137,7 +81,7 @@ class ArticleServiceSpec :
                         either {
                                 dependencies.articleService.createArticle(
                                     CreateArticle(
-                                        UserId(unrelatedId),
+                                        unrelatedId,
                                         unrelatedArticle.title,
                                         unrelatedArticle.description,
                                         unrelatedArticle.body,
@@ -150,8 +94,7 @@ class ArticleServiceSpec :
                         val feed =
                             either {
                                     dependencies.articleService.getUserFeed(
-                                        input =
-                                            GetFeed(userId = UserId(userId), limit = 20, offset = 0)
+                                        input = GetFeed(userId = userId, limit = 20, offset = 0)
                                     )
                                 }
                                 .shouldBeRight()
@@ -166,15 +109,7 @@ class ArticleServiceSpec :
             {
                 "allows the article author to update their own article" {
                     withTestDependencies { dependencies ->
-                        val author = userFixture()
-                        val authorId =
-                            either {
-                                    dependencies.userService.register(
-                                        RegisterUser(author.username, author.email, author.password)
-                                    )
-                                }
-                                .shouldHaveUserId()
-                                .let(::UserId)
+                        val (author, _, authorId) = dependencies.registerUser()
 
                         val article = articleFixture()
                         val created =
@@ -215,29 +150,8 @@ class ArticleServiceSpec :
 
                 "rejects users who are not the article author" {
                     withTestDependencies { dependencies ->
-                        val author = userFixture()
-                        val authorId =
-                            either {
-                                    dependencies.userService.register(
-                                        RegisterUser(author.username, author.email, author.password)
-                                    )
-                                }
-                                .shouldHaveUserId()
-                                .let(::UserId)
-
-                        val nonAuthor = userFixture()
-                        val nonAuthorId =
-                            either {
-                                    dependencies.userService.register(
-                                        RegisterUser(
-                                            nonAuthor.username,
-                                            nonAuthor.email,
-                                            nonAuthor.password,
-                                        )
-                                    )
-                                }
-                                .shouldHaveUserId()
-                                .let(::UserId)
+                        val (author, _, authorId) = dependencies.registerUser()
+                        val (_, _, nonAuthorId) = dependencies.registerUser()
 
                         val article = articleFixture()
                         val created =
@@ -269,8 +183,3 @@ class ArticleServiceSpec :
                 }
             }
     })
-
-fun Either<DomainError, JwtToken>.shouldHaveUserId() =
-    flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
-        .map { it.claimValueAsLong("id").shouldBeSome() }
-        .shouldBeRight()

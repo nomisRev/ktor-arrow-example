@@ -8,9 +8,8 @@ import io.github.nomisrev.Api.Articles.feed
 import io.github.nomisrev.Api.Articles.list
 import io.github.nomisrev.GenericErrorModel
 import io.github.nomisrev.articleFixture
+import io.github.nomisrev.registerUser
 import io.github.nomisrev.userFixture
-import io.github.nomisrev.users.RegisterUser
-import io.github.nomisrev.verifyJwtToken
 import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.StringSpec
@@ -25,14 +24,7 @@ class ArticleRouteSpec :
     StringSpec({
         "Check for empty feed" {
             withServer { dependencies ->
-                val user = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
+                val (_, token) = dependencies.registerUser()
 
                 val response =
                     request(
@@ -52,14 +44,7 @@ class ArticleRouteSpec :
 
         "ٰValidate correct both offset and limit value" {
             withServer { dependencies ->
-                val user = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
+                val (_, token) = dependencies.registerUser()
 
                 val response =
                     request(
@@ -80,14 +65,7 @@ class ArticleRouteSpec :
 
         "ٰValidate wrong offset value" {
             withServer { dependencies ->
-                val user = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
+                val (_, token) = dependencies.registerUser()
 
                 val response =
                     request(
@@ -109,14 +87,7 @@ class ArticleRouteSpec :
 
         "ٰValidate wrong limit value" {
             withServer { dependencies ->
-                val user = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
+                val (_, token) = dependencies.registerUser()
 
                 val response =
                     request(
@@ -139,14 +110,7 @@ class ArticleRouteSpec :
 
         "ٰValidate wrong both limit and value" {
             withServer { dependencies ->
-                val user = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
+                val (_, token) = dependencies.registerUser()
 
                 val response =
                     request(
@@ -172,15 +136,7 @@ class ArticleRouteSpec :
 
         "article list accepts OpenAPI offset and limit query parameters" {
             withServer { dependencies ->
-                val user = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
-                val userId = either { verifyJwtToken(token) }.shouldBeRight()
+                val (_, _, userId) = dependencies.registerUser()
                 val article = articleFixture()
                 val created =
                     either {
@@ -213,21 +169,9 @@ class ArticleRouteSpec :
 
         "article list returns viewer specific metadata" {
             withServer { dependencies ->
-                val author = userFixture()
+                val (author, _, authorId) = dependencies.registerUser()
+                val (_, viewerToken, viewerId) = dependencies.registerUser()
                 either {
-                        val authorToken =
-                            dependencies.userService.register(
-                                RegisterUser(author.username, author.email, author.password)
-                            )
-                        val authorId = verifyJwtToken(authorToken)
-
-                        val viewer = userFixture()
-                        val viewerToken =
-                            dependencies.userService.register(
-                                RegisterUser(viewer.username, viewer.email, viewer.password)
-                            )
-                        val viewerId = verifyJwtToken(viewerToken)
-
                         val article = articleFixture()
                         val created =
                             dependencies.articleService.createArticle(
@@ -264,33 +208,12 @@ class ArticleRouteSpec :
 
         "feed returns articles from followed authors" {
             withServer { dependencies ->
-                val reader = userFixture()
+                val (_, readerToken, readerId) = dependencies.registerUser()
                 val followed = userFixture()
-                val unrelated = userFixture()
+                val (_, _, followedId) = dependencies.registerUser(followed)
+                val (_, _, unrelatedId) = dependencies.registerUser()
 
                 either {
-                        val readerToken =
-                            dependencies.userService.register(
-                                RegisterUser(reader.username, reader.email, reader.password)
-                            )
-                        val readerId = verifyJwtToken(readerToken)
-
-                        val followedToken =
-                            dependencies.userService.register(
-                                RegisterUser(followed.username, followed.email, followed.password)
-                            )
-                        val followedId = verifyJwtToken(followedToken)
-
-                        val unrelatedToken =
-                            dependencies.userService.register(
-                                RegisterUser(
-                                    unrelated.username,
-                                    unrelated.email,
-                                    unrelated.password,
-                                )
-                            )
-                        val unrelatedId = verifyJwtToken(unrelatedToken)
-
                         dependencies.userPersistence.followProfile(followed.username, readerId)
 
                         val followedArticle = articleFixture()
@@ -338,25 +261,10 @@ class ArticleRouteSpec :
         "article list filters by author" {
             withServer { dependencies ->
                 val author = userFixture()
-                val otherAuthor = userFixture()
+                val (_, _, authorId) = dependencies.registerUser(author)
+                val (_, _, otherAuthorId) = dependencies.registerUser()
 
                 either {
-                        val authorToken =
-                            dependencies.userService.register(
-                                RegisterUser(author.username, author.email, author.password)
-                            )
-                        val authorId = verifyJwtToken(authorToken)
-
-                        val otherAuthorToken =
-                            dependencies.userService.register(
-                                RegisterUser(
-                                    otherAuthor.username,
-                                    otherAuthor.email,
-                                    otherAuthor.password,
-                                )
-                            )
-                        val otherAuthorId = verifyJwtToken(otherAuthorToken)
-
                         val article = articleFixture()
                         val created =
                             dependencies.articleService.createArticle(
@@ -400,21 +308,10 @@ class ArticleRouteSpec :
         "article list filters by author when authenticated" {
             withServer { dependencies ->
                 val author = userFixture()
-                val viewer = userFixture()
+                val (_, _, authorId) = dependencies.registerUser(author)
+                val (_, viewerToken, viewerId) = dependencies.registerUser()
 
                 either {
-                        val authorToken =
-                            dependencies.userService.register(
-                                RegisterUser(author.username, author.email, author.password)
-                            )
-                        val authorId = verifyJwtToken(authorToken)
-
-                        val viewerToken =
-                            dependencies.userService.register(
-                                RegisterUser(viewer.username, viewer.email, viewer.password)
-                            )
-                        val viewerId = verifyJwtToken(viewerToken)
-
                         val article = articleFixture()
                         val created =
                             dependencies.articleService.createArticle(
@@ -452,15 +349,9 @@ class ArticleRouteSpec :
 
         "article list filters by tag" {
             withServer { dependencies ->
-                val author = userFixture()
+                val (_, _, authorId) = dependencies.registerUser()
 
                 either {
-                        val token =
-                            dependencies.userService.register(
-                                RegisterUser(author.username, author.email, author.password)
-                            )
-                        val authorId = verifyJwtToken(token)
-
                         val created =
                             dependencies.articleService.createArticle(
                                 CreateArticle(
@@ -503,22 +394,11 @@ class ArticleRouteSpec :
 
         "article list filters by favorited username" {
             withServer { dependencies ->
-                val author = userFixture()
+                val (_, _, authorId) = dependencies.registerUser()
                 val viewer = userFixture()
+                val (_, _, viewerId) = dependencies.registerUser(viewer)
 
                 either {
-                        val authorToken =
-                            dependencies.userService.register(
-                                RegisterUser(author.username, author.email, author.password)
-                            )
-                        val authorId = verifyJwtToken(authorToken)
-
-                        val viewerToken =
-                            dependencies.userService.register(
-                                RegisterUser(viewer.username, viewer.email, viewer.password)
-                            )
-                        val viewerId = verifyJwtToken(viewerToken)
-
                         val article = articleFixture()
                         val created =
                             dependencies.articleService.createArticle(
@@ -553,22 +433,11 @@ class ArticleRouteSpec :
 
         "article list filters by favorited username when authenticated" {
             withServer { dependencies ->
-                val author = userFixture()
+                val (_, _, authorId) = dependencies.registerUser()
                 val viewer = userFixture()
+                val (_, viewerToken, viewerId) = dependencies.registerUser(viewer)
 
                 either {
-                        val authorToken =
-                            dependencies.userService.register(
-                                RegisterUser(author.username, author.email, author.password)
-                            )
-                        val authorId = verifyJwtToken(authorToken)
-
-                        val viewerToken =
-                            dependencies.userService.register(
-                                RegisterUser(viewer.username, viewer.email, viewer.password)
-                            )
-                        val viewerId = verifyJwtToken(viewerToken)
-
                         val article = articleFixture()
                         val created =
                             dependencies.articleService.createArticle(
@@ -606,14 +475,7 @@ class ArticleRouteSpec :
 
         "create article with tags" {
             withServer { dependencies ->
-                val user = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
+                val (user, token) = dependencies.registerUser()
                 val article = articleFixture()
 
                 val response =
@@ -645,14 +507,7 @@ class ArticleRouteSpec :
 
         "article without tags" {
             withServer { dependencies ->
-                val user = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
+                val (user, token) = dependencies.registerUser()
                 val article = articleFixture()
 
                 val response =
@@ -684,14 +539,7 @@ class ArticleRouteSpec :
 
         "body cannot be empty" {
             withServer { dependencies ->
-                val user = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
+                val (_, token) = dependencies.registerUser()
                 val article = articleFixture()
 
                 val response =
@@ -710,14 +558,7 @@ class ArticleRouteSpec :
 
         "description cannot be empty" {
             withServer { dependencies ->
-                val user = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
+                val (_, token) = dependencies.registerUser()
                 val article = articleFixture()
 
                 val response =
@@ -734,14 +575,7 @@ class ArticleRouteSpec :
 
         "title cannot be empty" {
             withServer { dependencies ->
-                val user = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
+                val (_, token) = dependencies.registerUser()
                 val article = articleFixture()
 
                 val response =

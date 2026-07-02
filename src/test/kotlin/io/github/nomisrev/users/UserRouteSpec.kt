@@ -1,6 +1,5 @@
 package io.github.nomisrev.users
 
-import arrow.core.raise.either
 import io.github.nomisrev.Api
 import io.github.nomisrev.Api.CurrentUser
 import io.github.nomisrev.Api.CurrentUser.get
@@ -10,9 +9,9 @@ import io.github.nomisrev.Api.Users.Login
 import io.github.nomisrev.Api.Users.Login.authenticate
 import io.github.nomisrev.Api.Users.register
 import io.github.nomisrev.GenericErrorModel
+import io.github.nomisrev.registerUser
 import io.github.nomisrev.userFixture
 import io.github.nomisrev.withServer
-import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.StringSpec
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
@@ -43,13 +42,7 @@ class UserRouteSpec :
 
         "Can log in a registered user" {
             withServer { dependencies ->
-                val user = userFixture()
-                either {
-                        dependencies.userService.register(
-                            RegisterUser(user.username, user.email, user.password)
-                        )
-                    }
-                    .shouldBeRight()
+                val (user) = dependencies.registerUser()
 
                 val response =
                     request(
@@ -69,14 +62,7 @@ class UserRouteSpec :
 
         "Can get current user" {
             withServer { dependencies ->
-                val user = userFixture()
-                val expected =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
+                val (user, expected) = dependencies.registerUser()
 
                 val response = request(Api / CurrentUser / get) { bearerAuth(expected.value) }
 
@@ -93,14 +79,7 @@ class UserRouteSpec :
 
         "Update user" {
             withServer { dependencies ->
-                val user = userFixture()
-                val expected =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
+                val (user, expected) = dependencies.registerUser()
                 val newUsername = "new-${user.username}"
 
                 val response =
@@ -124,14 +103,7 @@ class UserRouteSpec :
 
         "Update user invalid email" {
             withServer { dependencies ->
-                val user = userFixture()
-                val token =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .shouldBeRight()
+                val (_, token) = dependencies.registerUser()
                 val invalidEmail = "invalidEmail"
 
                 val response =

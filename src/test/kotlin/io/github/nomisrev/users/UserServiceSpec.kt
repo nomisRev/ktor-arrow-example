@@ -2,8 +2,6 @@ package io.github.nomisrev.users
 
 import arrow.core.nonEmptyListOf
 import arrow.core.raise.either
-import io.github.nefilim.kjwt.JWSHMAC512Algorithm
-import io.github.nefilim.kjwt.JWT
 import io.github.nomisrev.EmailAlreadyExists
 import io.github.nomisrev.EmptyUpdate
 import io.github.nomisrev.IncorrectInput
@@ -13,12 +11,11 @@ import io.github.nomisrev.InvalidUsername
 import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.SuspendFun
 import io.github.nomisrev.UsernameAlreadyExists
-import io.github.nomisrev.auth.JwtToken
+import io.github.nomisrev.registerUser
 import io.github.nomisrev.userFixture
 import io.github.nomisrev.withTestDependencies
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
-import io.kotest.assertions.arrow.core.shouldBeSome
 import io.kotest.matchers.string.shouldNotBeBlank
 
 class UserServiceSpec :
@@ -257,44 +254,30 @@ class UserServiceSpec :
             {
                 "Update with all null" {
                     withTestDependencies { dependencies ->
-                        val user = userFixture(password = validPw)
-                        val token =
-                            either {
-                                    dependencies.userService.register(
-                                        RegisterUser(user.username, user.email, user.password)
-                                    )
-                                }
-                                .shouldBeRight()
+                        val (user, _, userId) = dependencies.registerUser(userFixture(password = validPw))
 
                         val res = either {
                             dependencies.userService.update(
-                                Update(token.id(), null, null, null, null, null)
+                                Update(userId, null, null, null, null, null)
                             )
                         }
 
                         res shouldBeLeft
                             EmptyUpdate(
-                                "Cannot update user with ${token.id()} with only null values"
+                                "Cannot update user with $userId with only null values"
                             )
                     }
                 }
 
                 "Update password rotates credentials and keeps public profile data" {
                     withTestDependencies { dependencies ->
-                        val user = userFixture(password = validPw)
-                        val token =
-                            either {
-                                    dependencies.userService.register(
-                                        RegisterUser(user.username, user.email, user.password)
-                                    )
-                                }
-                                .shouldBeRight()
+                        val (user, _, userId) = dependencies.registerUser(userFixture(password = validPw))
                         val newPassword = "987654321"
 
                         val updated =
                             either {
                                     dependencies.userService.update(
-                                        Update(token.id(), null, null, newPassword, null, null)
+                                        Update(userId, null, null, newPassword, null, null)
                                     )
                                 }
                                 .shouldBeRight()
@@ -316,11 +299,3 @@ class UserServiceSpec :
                 }
             }
     })
-
-private fun JwtToken.id(): UserId =
-    JWT.decodeT(value, JWSHMAC512Algorithm)
-        .shouldBeRight { "JWToken $value should be valid JWT but found $it" }
-        .jwt
-        .claimValueAsLong("id")
-        .shouldBeSome { "JWTToken $value should have id but found None" }
-        .let(::UserId)

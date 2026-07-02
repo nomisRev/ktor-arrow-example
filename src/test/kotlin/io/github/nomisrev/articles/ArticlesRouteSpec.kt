@@ -17,9 +17,8 @@ import io.github.nomisrev.Api.Articles.Slug.get
 import io.github.nomisrev.Api.Articles.Slug.update as updateArticle
 import io.github.nomisrev.GenericErrorModel
 import io.github.nomisrev.articleFixture
+import io.github.nomisrev.registerUser
 import io.github.nomisrev.userFixture
-import io.github.nomisrev.users.RegisterUser
-import io.github.nomisrev.verifyJwtToken
 import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.StringSpec
@@ -47,15 +46,8 @@ class ArticlesRouteSpec :
 
         "Can get an article by slug" {
             withServer { dependencies ->
-                val user = userFixture()
+                val (_, _, userId) = dependencies.registerUser()
                 either {
-                        val token =
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-
-                        val userId = verifyJwtToken(token)
-
                         val article = articleFixture()
                         val created =
                             dependencies.articleService.createArticle(
@@ -91,24 +83,10 @@ class ArticlesRouteSpec :
 
         "authenticated article reads return viewer specific metadata" {
             withServer { dependencies ->
-                val author = userFixture()
+                val (author, _, authorId) = dependencies.registerUser()
+                val (_, viewerToken, viewerId) = dependencies.registerUser()
                 val response =
                     either {
-                            val authorToken =
-                                dependencies.userService.register(
-                                    RegisterUser(author.username, author.email, author.password)
-                                )
-
-                            val authorId = verifyJwtToken(authorToken)
-
-                            val viewer = userFixture()
-                            val viewerToken =
-                                dependencies.userService.register(
-                                    RegisterUser(viewer.username, viewer.email, viewer.password)
-                                )
-
-                            val viewerId = verifyJwtToken(viewerToken)
-
                             val article = articleFixture()
                             val created =
                                 dependencies.articleService.createArticle(
@@ -144,15 +122,9 @@ class ArticlesRouteSpec :
 
         "can update an article by slug" {
             withServer { dependencies ->
-                val author = userFixture()
+                val (author, token, authorId) = dependencies.registerUser()
 
                 either {
-                        val token =
-                            dependencies.userService.register(
-                                RegisterUser(author.username, author.email, author.password)
-                            )
-                        val authorId = verifyJwtToken(token)
-
                         val article = articleFixture()
                         val created =
                             dependencies.articleService.createArticle(
@@ -187,22 +159,11 @@ class ArticlesRouteSpec :
 
         "favoriting an article updates the response and persisted state" {
             withServer { dependencies ->
-                val author = userFixture()
-                val viewer = userFixture()
+                val (_, _, authorId) = dependencies.registerUser()
+                val (_, viewerToken) = dependencies.registerUser()
 
                 val (favoriteResponse, readResponse) =
                     either {
-                            val authorToken =
-                                dependencies.userService.register(
-                                    RegisterUser(author.username, author.email, author.password)
-                                )
-                            val authorId = verifyJwtToken(authorToken)
-
-                            val viewerToken =
-                                dependencies.userService.register(
-                                    RegisterUser(viewer.username, viewer.email, viewer.password)
-                                )
-
                             val article = articleFixture()
                             val created =
                                 dependencies.articleService.createArticle(
@@ -247,22 +208,11 @@ class ArticlesRouteSpec :
 
         "favoriting an already favorited article is idempotent" {
             withServer { dependencies ->
-                val author = userFixture()
-                val viewer = userFixture()
+                val (_, _, authorId) = dependencies.registerUser()
+                val (_, viewerToken) = dependencies.registerUser()
 
                 val (secondFavoriteResponse, readResponse) =
                     either {
-                            val authorToken =
-                                dependencies.userService.register(
-                                    RegisterUser(author.username, author.email, author.password)
-                                )
-                            val authorId = verifyJwtToken(authorToken)
-
-                            val viewerToken =
-                                dependencies.userService.register(
-                                    RegisterUser(viewer.username, viewer.email, viewer.password)
-                                )
-
                             val article = articleFixture()
                             val created =
                                 dependencies.articleService.createArticle(
@@ -313,22 +263,11 @@ class ArticlesRouteSpec :
 
         "unfavoriting an article updates the response and persisted state" {
             withServer { dependencies ->
-                val author = userFixture()
-                val viewer = userFixture()
+                val (_, _, authorId) = dependencies.registerUser()
+                val (_, viewerToken) = dependencies.registerUser()
 
                 val (unfavoriteResponse, readResponse) =
                     either {
-                            val authorToken =
-                                dependencies.userService.register(
-                                    RegisterUser(author.username, author.email, author.password)
-                                )
-                            val authorId = verifyJwtToken(authorToken)
-
-                            val viewerToken =
-                                dependencies.userService.register(
-                                    RegisterUser(viewer.username, viewer.email, viewer.password)
-                                )
-
                             val article = articleFixture()
                             val created =
                                 dependencies.articleService.createArticle(
@@ -383,15 +322,9 @@ class ArticlesRouteSpec :
 
         "can get comments for an article by slug when authenticated" {
             withServer { dependencies ->
-                val user = userFixture()
+                val (_, token, userId) = dependencies.registerUser()
                 val response =
                     either {
-                            val token =
-                                dependencies.userService.register(
-                                    RegisterUser(user.username, user.email, user.password)
-                                )
-                            val userId = verifyJwtToken(token)
-
                             val article = articleFixture()
                             val created =
                                 dependencies.articleService.createArticle(
@@ -417,15 +350,9 @@ class ArticlesRouteSpec :
 
         "can get comments for an article when not authenticated" {
             withServer { dependencies ->
-                val user = userFixture()
+                val (_, _, userId) = dependencies.registerUser()
                 val response =
                     either {
-                            val token =
-                                dependencies.userService.register(
-                                    RegisterUser(user.username, user.email, user.password)
-                                )
-                            val userId = verifyJwtToken(token)
-
                             val article = articleFixture()
                             val created =
                                 dependencies.articleService.createArticle(
@@ -449,15 +376,9 @@ class ArticlesRouteSpec :
 
         "can list comments for an article when authenticated" {
             withServer { dependencies ->
-                val user = userFixture()
+                val (user, token, userId) = dependencies.registerUser()
 
                 either {
-                        val token =
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        val userId = verifyJwtToken(token)
-
                         val article = articleFixture()
                         val created =
                             dependencies.articleService.createArticle(
@@ -494,15 +415,9 @@ class ArticlesRouteSpec :
 
         "can list comments for an article without authentication" {
             withServer { dependencies ->
-                val user = userFixture()
+                val (user, token, userId) = dependencies.registerUser()
 
                 either {
-                        val token =
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        val userId = verifyJwtToken(token)
-
                         val article = articleFixture()
                         val created =
                             dependencies.articleService.createArticle(
@@ -537,14 +452,8 @@ class ArticlesRouteSpec :
 
         "Can add a comment to an article" {
             withServer { dependencies ->
-                val user = userFixture()
+                val (user, token, userId) = dependencies.registerUser()
                 either {
-                        val token =
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        val userId = verifyJwtToken(token)
-
                         val comment = "This is a comment ${user.username}"
                         val article = articleFixture()
                         val created =
@@ -576,15 +485,9 @@ class ArticlesRouteSpec :
 
         "Can not add a comment to an article with invalid token" {
             withServer { dependencies ->
-                val user = userFixture()
+                val (_, _, userId) = dependencies.registerUser()
                 val response =
                     either {
-                            val token =
-                                dependencies.userService.register(
-                                    RegisterUser(user.username, user.email, user.password)
-                                )
-                            val userId = verifyJwtToken(token)
-
                             val comment = "This is a comment"
                             val article = articleFixture()
                             val created =
@@ -613,15 +516,9 @@ class ArticlesRouteSpec :
 
         "Can not add a comment to an article with empty body" {
             withServer { dependencies ->
-                val user = userFixture()
+                val (_, token, userId) = dependencies.registerUser()
                 val response =
                     either {
-                            val token =
-                                dependencies.userService.register(
-                                    RegisterUser(user.username, user.email, user.password)
-                                )
-                            val userId = verifyJwtToken(token)
-
                             val article = articleFixture()
                             val created =
                                 dependencies.articleService.createArticle(
@@ -649,15 +546,9 @@ class ArticlesRouteSpec :
 
         "can delete a comment from an article" {
             withServer { dependencies ->
-                val user = userFixture()
+                val (_, token, userId) = dependencies.registerUser()
 
                 either {
-                        val token =
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        val userId = verifyJwtToken(token)
-
                         val article = articleFixture()
                         val created =
                             dependencies.articleService.createArticle(
@@ -706,15 +597,9 @@ class ArticlesRouteSpec :
 
         "can delete an article by slug" {
             withServer { dependencies ->
-                val author = userFixture()
+                val (_, token, authorId) = dependencies.registerUser()
 
                 either {
-                        val token =
-                            dependencies.userService.register(
-                                RegisterUser(author.username, author.email, author.password)
-                            )
-                        val authorId = verifyJwtToken(token)
-
                         val article = articleFixture()
                         val created =
                             dependencies.articleService.createArticle(

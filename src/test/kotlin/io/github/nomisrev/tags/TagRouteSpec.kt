@@ -1,20 +1,14 @@
 package io.github.nomisrev.tags
 
-import arrow.core.flatMap
 import arrow.core.raise.either
-import io.github.nefilim.kjwt.JWSHMAC512Algorithm
-import io.github.nefilim.kjwt.JWT
 import io.github.nomisrev.Api
 import io.github.nomisrev.Api.Tags
 import io.github.nomisrev.Api.Tags.list
 import io.github.nomisrev.articleFixture
 import io.github.nomisrev.articles.CreateArticle
-import io.github.nomisrev.userFixture
-import io.github.nomisrev.users.RegisterUser
-import io.github.nomisrev.users.UserId
+import io.github.nomisrev.registerUser
 import io.github.nomisrev.withServer
 import io.kotest.assertions.arrow.core.shouldBeRight
-import io.kotest.assertions.arrow.core.shouldBeSome
 import io.kotest.core.spec.style.StringSpec
 import io.ktor.http.HttpStatusCode
 import opensavvy.spine.api.div
@@ -34,22 +28,13 @@ class TagRouteSpec :
 
         "Can get all tags" {
             withServer { dependencies ->
-                val user = userFixture()
-                val userId =
-                    either {
-                            dependencies.userService.register(
-                                RegisterUser(user.username, user.email, user.password)
-                            )
-                        }
-                        .flatMap { JWT.decodeT(it.value, JWSHMAC512Algorithm) }
-                        .map { it.claimValueAsLong("id").shouldBeSome() }
-                        .shouldBeRight()
+                val (_, _, userId) = dependencies.registerUser()
 
                 val article = articleFixture()
                 either {
                         dependencies.articleService.createArticle(
                             CreateArticle(
-                                UserId(userId),
+                                userId,
                                 article.title,
                                 article.description,
                                 article.body,
