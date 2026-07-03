@@ -19,4 +19,4 @@ Read [references/package-structure.md](references/package-structure.md) when cre
 
 ## Routes and validation
 
-Read [references/routes-and-validation.md](references/routes-and-validation.md) when editing HTTP contracts, route handlers, validation, or error mapping.
+Read [references/routes-and-validation.md](references/routes-and-validation.md) when editing HTTP contracts (Spine `Api.kt` endpoints), route handlers, `DomainError` modelling/mapping, or `accumulate`-based validation.
