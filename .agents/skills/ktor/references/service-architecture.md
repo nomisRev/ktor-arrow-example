@@ -1,165 +1,210 @@
 # Service Architecture
 
-Use the existing Foodies Ktor layout and manual dependency wiring.
+This is a single Ktor service (the RealWorld "Conduit" API) wired manually with Arrow's `ResourceScope`, not a
+multi-service/multi-module platform. Follow the shapes below when touching bootstrap, configuration, or dependency
+wiring.
 
 ## Module structure
 
-Typical service package (`src/main/kotlin/io/ktor/foodies/<service>/`) contains a mix of these elements, depending on the module type:
-
-- `<Service>App.kt`: entrypoint and Ktor plugin setup
-- `Config.kt`: `@Serializable` config types loaded from `application.yaml`
-- `<Service>Module.kt`: dependency graph assembly
-- `Routes.kt`: HTTP route definitions
-- `Service.kt`: business logic layer
-- `Repository.kt`: data access layer (for services that own persistence)
-- `<Dependency>Service.kt`: downstream service communication boundary
-- `<vendor-or-capability>/`: named package for shared third-party wrappers (for example `featureflags/` for `LaunchDarkly`)
-
-Keep the boundary explicit:
+Packages are feature-first under `io.github.nomisrev`:
 
 ```
-Routes -> Service -> XXXRepository -> Exposed
-                  -> XXXClient -> Ktor / VendorSdk / ...
+io.github.nomisrev/
+├── Main.kt                # main(), SuspendApp, Application.app(module) route registration
+├── Api.kt                 # Spine endpoint definitions (see routes-and-validation.md)
+├── DomainError.kt         # sealed DomainError hierarchy + toGenericErrorModel()
+├── ErrorRoutes.kt         # Route.route(endpoint) { } DSL, error recovery
+├── Validation.kt          # accumulate-based input validation shared by all features
+├── env/
+│   ├── Env.kt              # plain data class config, read from environment variables
+│   ├── Dependencies.kt     # ResourceScope wiring: builds every repository/service once
+│   ├── persistence.kt      # Hikari + SqlDelight ResourceScope builders
+│   └── ktor.kt             # Application.configure(): plugins, JSON, CORS, JWT auth
+├── auth/                  # JwtService/JwtConfig — JWT issuing/verification, used across features
+├── users/                 # UserPersistence, UserService, UserRoutes
+├── articles/              # ArticlePersistence, FavouritePersistence, SlugGenerator, ArticleService, ArticleRoutes
+├── profiles/              # ProfileRoutes (reuses UserPersistence)
+└── tags/                  # TagPersistence, TagRoutes
 ```
+
+Keep the boundary explicit per feature:
+
+```
+<Feature>Routes -> <Feature>Service -> <Feature>Persistence -> SqlDelight (generated queries) -> JDBC/Hikari
+```
+
+- `*Persistence` classes wrap generated SqlDelight `*Queries` objects; they are the only place SQL/`PSQLException`
+  handling happens (see `UserPersistence.raiseUniqueViolation`).
+- `*Service` classes hold business rules that span persistence calls (validation, ownership checks, composing
+  profiles/tags/favorites onto an article). Simple pass-throughs stay in the narrowest `Raise` type; only widen to
+  `Raise<DomainError>` when a function genuinely combines multiple error families — see
+  `references/routes-and-validation.md`.
+- `*Routes` files only decode/encode DTOs and call into a service — no persistence access, no manual error mapping.
+- Small features with no extra business logic (`tags`, `profiles`) skip the `*Service` layer entirely: their routes
+  call `*Persistence` directly.
 
 ## App bootstrap pattern
 
-Use `ApplicationConfig("application.yaml").getAs<Config>()`, then start Netty.
+The app uses [`SuspendApp`](https://arrow-kt.io/learn/coroutines/suspendapp/) (Arrow) instead of a plain `main`, and
+`arrow.fx.coroutines.resourceScope` to build and release all resources (Hikari pool, JDBC driver, Netty engine) in
+one structured scope, released automatically on shutdown/cancellation:
 
 ```kotlin
-fun main() {
-    val config = ApplicationConfig("application.yaml").getAs<Config>()
-    embeddedServer(Netty, host = config.host, port = config.port) {
-        val (_, openTelemetry) = monitoring(config.telemetry)
-        app(module(config, openTelemetry))
-    }.start(wait = true)
+fun main() = SuspendApp {
+    val env = Env()
+    resourceScope {
+        val dependencies = dependencies(env)
+        val _ = server(Netty, host = env.http.host, port = env.http.port) { app(dependencies) }
+        awaitCancellation()
+    }
+}
+
+fun Application.app(module: Dependencies) {
+    configure(module.jwtService)
+    routing {
+        userRoutes(module.userService, module.jwtService)
+        tagRoutes(module.tagPersistence)
+        articleRoutes(module.articleService, module.jwtService)
+        commentRoutes(module.userService, module.articleService, module.jwtService)
+        profileRoutes(module.userPersistence, module.jwtService)
+    }
+    install(Cohort) { healthcheck("/readiness", module.healthCheck) }
 }
 ```
 
-`app(module)` should install core plugins and register routes.
+`Application.configure(jwtConfig)` (`env/ktor.kt`) installs the cross-cutting plugins: `DefaultHeaders`,
+`ContentNegotiation` (kotlinx.serialization JSON), `CORS`, and JWT `authentication`.
 
-## Dependency wiring — root or two-level pattern
+## Dependency wiring — `Dependencies` + `ResourceScope`
 
-For services with feature packages, wiring can be split across two levels, or done directly in root module when that is
-clearer.
-
-**Root `<Service>Module.kt`** — thin orchestrator. Creates shared infrastructure, then delegates to feature module
-functions:
-
-```kotlin
-fun Application.module(config: Config, telemetry: OpenTelemetry): OrderModule {
-    val dataSource = dataSource(config.database, telemetry)
-
-    val httpClient = buildHttpClient(telemetry)
-
-    monitor.subscribe(ApplicationStopped) { httpClient.close() }
-  
-    val placement = placementModule(config, dataSource, publisher, httpClient)
-    val tracking = trackingModule(config, dataSource, publisher)
-    val fulfillment = fulfillmentModule(config, dataSource, publisher, subscriber)
-    val admin = adminModule(tracking, fulfillment)
-
-    val readinessCheck = buildReadinessChecks(dataSource, rabbitChannel)
-    return OrderModule(placement, tracking, fulfillment, admin, readinessCheck)
-}
-```
-
-**Feature `<Feature>Module.kt`** — owns wiring for that vertical slice only:
+There is a single, flat `Dependencies` holder built once in `env/Dependencies.kt`, not a two-level
+root/feature-module split — this service is small enough that per-feature wiring would add indirection without
+benefit:
 
 ```kotlin
-// placement/PlacementModule.kt
-fun placementModule(
-    config: Config,
-    dataSource: FoodiesDataSource,
-    httpClient: HttpClient,
-): PlacementModule {
-    val repo = ExposedPlacementRepository(dataSource.database)
-    val basketClient = HttpBasketClient(httpClient, config.basket.baseUrl)
-    val service = DefaultPlacementService(repo, basketClient, eventPublisher, config.order)
-    return PlacementModule(service)
+class Dependencies(
+    val userService: UserService,
+    val jwtService: JwtConfig<JwtContext>,
+    val articleService: ArticleService,
+    val healthCheck: HealthCheckRegistry,
+    val tagPersistence: TagPersistence,
+    val userPersistence: UserPersistence,
+)
+
+suspend fun ResourceScope.dependencies(env: Env): Dependencies {
+    val hikari = hikari(env.dataSource)
+    val sqlDelight = sqlDelight(hikari)
+
+    val userRepo = UserPersistence(sqlDelight.usersQueries, sqlDelight.followingQueries)
+    val articleRepo = ArticlePersistence(sqlDelight.articlesQueries, sqlDelight.commentsQueries, sqlDelight.tagsQueries)
+    val tagPersistence = TagPersistence(sqlDelight.tagsQueries)
+    val favouritePersistence = FavouritePersistence(sqlDelight.favoritesQueries)
+
+    val jwtService = JwtService(env.auth, userRepo)
+    val userService = UserService(userRepo, jwtService)
+
+    val checks = HealthCheckRegistry {
+        register(HikariConnectionsHealthCheck(hikari, minConnections = 1))
+    }
+
+    return Dependencies(
+        userService = userService,
+        jwtService = jwtService.config,
+        articleService = ArticleService(slugifyGenerator(), articleRepo, userRepo, tagPersistence, favouritePersistence),
+        healthCheck = checks,
+        tagPersistence = tagPersistence,
+        userPersistence = userRepo,
+    )
 }
 ```
 
 Rules:
 
-- Shared infrastructure (data source, rabbit channel, HTTP client) is created **once** in the root module and passed
-  into feature module functions.
-- Feature module functions create only their own repository/client/wrapper, service, publisher, and consumer instances.
-- When a service needs capabilities from multiple repositories, inject those repositories separately (explicit wiring)
-  instead of repository-interface inheritance.
-- The root `<Service>Module` data class should expose only what `app(...)` needs (least powerful): either assembled
-  feature modules or narrower dependencies such as services, consumers, and health checks.
-- Route wiring in `<Service>App.kt` should depend on services, not repositories.
-- Close shared resources (rabbit channel, HTTP client) in the root `ApplicationStopped` handler only.
+- `dependencies(env)` is a `suspend ResourceScope.() -> Dependencies` extension — anything it needs to close later
+  (Hikari pool, JDBC driver) is acquired with `ResourceScope` builders, not created as a plain object.
+- Persistence classes are constructed directly from SqlDelight `*Queries` objects generated onto the shared
+  `sqlDelight.<table>Queries` instance — there is no repository interface layer to implement.
+- Services receive already-built persistence instances through their constructor (explicit wiring); a service that
+  needs two repositories (e.g. `ArticleService` needing `UserPersistence` for author profiles) takes both directly
+  instead of one repository depending on another.
+- `Dependencies` exposes services (`userService`, `articleService`), plus the few persistence instances that have no
+  service layer (`tagPersistence`, `userPersistence` for profile lookups) and the health check registry —
+  `Main.kt`'s `app(module)` only ever reads from this object, never builds anything itself.
 
-Small modules can keep all wiring in a single root module when splitting into feature sub-modules does not add clarity.
+## Resource lifecycle — `ResourceScope`, not `ApplicationStopped`
+
+Resources are released by structured `ResourceScope` cleanup, driven by `resourceScope { }` in `Main.kt`, not by
+registering `monitor.subscribe(ApplicationStopped) { }` callbacks:
+
+```kotlin
+suspend fun ResourceScope.hikari(env: Env.DataSource): HikariDataSource = autoCloseable {
+    HikariDataSource(HikariConfig().apply {
+        jdbcUrl = env.url
+        username = env.username
+        password = env.password
+        driverClassName = env.driver
+    })
+}
+
+suspend fun ResourceScope.sqlDelight(dataSource: DataSource): SqlDelight {
+    val driver = closeable { dataSource.asJdbcDriver() }
+    SqlDelight.Schema.create(driver)
+    return SqlDelight(driver, /* adapters */)
+}
+```
+
+- Use `autoCloseable { }` for `AutoCloseable` resources (Hikari pool) and `closeable { }` for `Closeable` resources
+  (JDBC driver). Both register their `close()` with the enclosing `resourceScope`, released in reverse acquisition
+  order when the scope exits (including on cancellation of `SuspendApp`).
+- `arrow.continuations.ktor.server(Netty, host, port) { app(dependencies) }` is itself a resource acquired inside
+  the same `resourceScope`, so the HTTP server shuts down before the database pool it depends on.
+- When adding a new external resource (another data source, an HTTP client, a queue connection), add a
+  `suspend ResourceScope.build(env: Env.X): X` function next to the others in `env/persistence.kt` (or a new
+  `env/<name>.kt`), acquire it inside `dependencies(env)`, and pass the constructed instance into whatever
+  persistence/service needs it — do not open resources inside a `*Service`/`*Persistence` constructor.
 
 ## Configuration pattern
 
-- Group related configuration under a new root key in `application.yaml` i.e. server, database, rabbit, etc.
-- Support environment overrides (`"$ENV:default"` style).
-- Model nested settings as `@Serializable` nested data classes.
-
-### Adding new configuration
-
-To add a new config value:
-
-1. Add a key to `application.yaml`, either at root or under an existing group. Grouping under a dedicated root key (e.g. `data_source`) is preferred — it loads cleanly as a nested `@Serializable` type.
-2. Define a `@Serializable` data class for any nested structure.
-3. Add the field to the corresponding `Config` (or nested) class.
-
-Example — adding database connection settings:
-
-```yaml
-server:
-  host: "$HOST:0.0.0.0"
-  port: "$PORT:8080"
-
-data_source:
-    url: "$DB_URL:jdbc:postgresql://localhost:5432/foodies-database"
-    username: "$DB_USERNAME:foodies_admin"
-    password: "$DB_PASSWORD:foodies_password"
-```
+Configuration is a single plain `Env` data class (`env/Env.kt`) read directly from environment variables with
+hardcoded local-dev defaults — there is no `application.yaml`/`ApplicationConfig` loader in this project:
 
 ```kotlin
-@Serializable
-data class Config(
-    val server: Server,
-    @SerialName("data_source") val dataSource: DataSource,
+data class Env(
+    val dataSource: DataSource = DataSource(),
+    val http: Http = Http(),
+    val auth: Auth = Auth(),
 ) {
-    @Seriazable
-    data class Server(val host: String, val port: Int)
-    
-    @Serializable
-    data class DataSource(val url: String, val username: String, val password: String)
-}
+    data class Http(
+        val host: String = getenv("HOST") ?: "0.0.0.0",
+        val port: Int = getenv("SERVER_PORT")?.toIntOrNull() ?: PORT,
+    )
 
-val config = ApplicationConfig("application.yaml").getAs<Config>()
-```
-
-## Resource lifecycle
-
-Close external resources (database connections, HTTP clients, RabbitMQ channels) via `monitor.subscribe(ApplicationStopped)`. Register closers in the root module so ordering is explicit and centralised:
-
-```kotlin
-fun Application.hikari(config: Config): HikariDataSource {
-    val hikari = HikariDataSource(HikariConfig().apply {
-        jdbcUrl = config.dataSource.url
-        username = config.dataSource.username
-        password = config.dataSource.password
-    })
-    monitor.subscribe(ApplicationStopped) { hikari.close() }
-    return hikari
+    data class DataSource(
+        val url: String = getenv("POSTGRES_URL") ?: JDBC_URL,
+        val username: String = getenv("POSTGRES_USERNAME") ?: JDBC_USER,
+        val password: String = getenv("POSTGRES_PASSWORD") ?: JDBC_PW,
+        val driver: String = JDBC_DRIVER,
+    )
 }
 ```
 
-Register finalizers in dependency order so that consumers (services, routes) are torn down before the resources they use.
+To add a new configuration group:
 
-## Why manual dependency wiring?
+1. Add a nested `data class` to `Env`, following the `getenv("VAR_NAME") ?: default` pattern with a private
+   top-level `const val` for the default.
+2. Add it as a constructor parameter (with a default instance) on `Env` itself, mirroring `dataSource`/`http`/`auth`.
+3. Thread it through `dependencies(env)` to whatever builder function needs it (`env.newThing`).
 
-Manual wiring forces explicit reasoning about startup order and resource ownership. It makes parallelising initialisation with `Deferred` straightforward, and keeps the dependency graph visible in one place without framework magic. The perceived boilerplate is low in practice — this project demonstrates that.
+## Health checks
+
+`HealthCheckRegistry` (Cohort) is built once in `dependencies(env)` next to the resources it checks (e.g.
+`HikariConnectionsHealthCheck(hikari, minConnections = 1)`) and exposed on `Dependencies.healthCheck`. `Main.kt`
+installs it with `install(Cohort) { healthcheck("/readiness", module.healthCheck) }`. Add new checks to the same
+registry rather than installing a second `Cohort` block.
 
 ## Persistence and migrations
 
-- Database migrations run in the CI deployment pipeline.
-- Keep SQL schema evolution in module-local migration files.
+- Schema is defined as SqlDelight `.sq` files; `SqlDelight.Schema.create(driver)` applies it on startup
+  (`env/persistence.kt`) — there is no separate CI migration pipeline step for this project.
+- Column adapters (e.g. `UserId`, `ArticleId` value classes) are defined once in `env/persistence.kt` via the
+  `columnAdapter` helper and passed into the generated SqlDelight `*.Adapter` constructors.
