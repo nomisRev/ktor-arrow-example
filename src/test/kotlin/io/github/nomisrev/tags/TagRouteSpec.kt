@@ -28,20 +28,20 @@ class TagRouteSpec :
 
         "Can get all tags" {
             withServer { dependencies ->
-                val (_, _, userId) = dependencies.registerUser()
+                val (userId) = dependencies.registerUser()
 
                 val article = articleFixture()
                 either {
-                        dependencies.articleService.createArticle(
-                            CreateArticle(
-                                userId,
-                                article.title,
-                                article.description,
-                                article.body,
-                                article.tags,
-                            )
+                    dependencies.articleService.createArticle(
+                        CreateArticle(
+                            userId,
+                            article.title,
+                            article.description,
+                            article.body,
+                            article.tags,
                         )
-                    }
+                    )
+                }
                     .shouldBeRight()
 
                 val response = request(Api / Tags / list)

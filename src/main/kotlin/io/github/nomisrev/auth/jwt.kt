@@ -20,7 +20,7 @@ class JwtConfig<T>(
 ) {
     val name: String = "JWT"
 
-    fun orAnonymous(): JwtConfig<T?> = this as JwtConfig<T?>
+    @Suppress("UNCHECKED_CAST") fun orAnonymous(): JwtConfig<T?> = this as JwtConfig<T?>
 }
 
 interface AuthenticateContext<T> {
@@ -31,6 +31,7 @@ context(ctx: AuthenticateContext<T>)
 val <T> ApplicationCall.principal: T
     get() = ctx.principal(this)
 
+@IgnorableReturnValue
 inline fun <reified T : Any> Route.authenticateWith(
     jwt: JwtConfig<T>,
     crossinline block: context(AuthenticateContext<T>) Route.() -> Unit,
@@ -44,6 +45,7 @@ inline fun <reified T : Any> Route.authenticateWith(
         )
     }
 
+@IgnorableReturnValue
 @JvmName("authenticateOptionallyWith")
 inline fun <reified T : Any> Route.authenticateWith(
     jwt: JwtConfig<T?>,

@@ -1,5 +1,4 @@
 import com.diffplug.spotless.kotlin.KtfmtStep
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 @Suppress("DSL_SCOPE_VIOLATION") plugins {
   application
@@ -43,7 +42,7 @@ ktor {
 spotless {
   kotlin {
     targetExclude("**/build/**")
-    ktfmt().kotlinlangStyle().configure {
+    ktfmt("0.64").kotlinlangStyle().configure {
       it.setRemoveUnusedImports(true)
       it.setTrailingCommaManagementStrategy(KtfmtStep.TrailingCommaManagementStrategy.ONLY_ADD)
     }
@@ -80,5 +79,12 @@ kotlin {
   jvmToolchain(21)
   compilerOptions {
     optIn.add("arrow.core.raise.ExperimentalRaiseAccumulateApi")
+    freeCompilerArgs.addAll(
+      "-Xreturn-value-checker=full",
+      "-Xname-based-destructuring=complete",
+      "-Xcontext-sensitive-resolution",
+      "-Xcollection-literals"
+    )
+    allWarningsAsErrors = true
   }
 }

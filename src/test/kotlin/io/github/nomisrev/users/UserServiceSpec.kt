@@ -132,10 +132,10 @@ class UserServiceSpec :
                     withTestDependencies { dependencies ->
                         val user = userFixture(password = validPw)
                         either {
-                                dependencies.userService.register(
-                                    RegisterUser(user.username, user.email, user.password)
-                                )
-                            }
+                            dependencies.userService.register(
+                                RegisterUser(user.username, user.email, user.password)
+                            )
+                        }
                             .shouldBeRight()
                     }
                 }
@@ -145,10 +145,10 @@ class UserServiceSpec :
                         val first = userFixture(password = validPw)
                         val second = userFixture(password = validPw)
                         either {
-                                dependencies.userService.register(
-                                    RegisterUser(first.username, first.email, first.password)
-                                )
-                            }
+                            dependencies.userService.register(
+                                RegisterUser(first.username, first.email, first.password)
+                            )
+                        }
                             .shouldBeRight()
 
                         either {
@@ -164,10 +164,10 @@ class UserServiceSpec :
                         val first = userFixture(password = validPw)
                         val second = userFixture(password = validPw)
                         either {
-                                dependencies.userService.register(
-                                    RegisterUser(first.username, first.email, first.password)
-                                )
-                            }
+                            dependencies.userService.register(
+                                RegisterUser(first.username, first.email, first.password)
+                            )
+                        }
                             .shouldBeRight()
 
                         either {
@@ -235,17 +235,18 @@ class UserServiceSpec :
                 "All valid returns a token" {
                     withTestDependencies { dependencies ->
                         val user = userFixture(password = validPw)
-                        val token =
+                        val (token) =
                             either {
+                                val _ =
                                     dependencies.userService.register(
                                         RegisterUser(user.username, user.email, user.password)
                                     )
 
-                                    dependencies.userService.login(Login(user.email, user.password))
-                                }
+                                dependencies.userService.login(Login(user.email, user.password))
+                            }
                                 .shouldBeRight()
 
-                        token.first.value.shouldNotBeBlank()
+                        token.value.shouldNotBeBlank()
                     }
                 }
             }
@@ -254,7 +255,7 @@ class UserServiceSpec :
             {
                 "Update with all null" {
                     withTestDependencies { dependencies ->
-                        val (user, _, userId) = dependencies.registerUser(userFixture(password = validPw))
+                        val (userId) = dependencies.registerUser(userFixture(password = validPw))
 
                         val res = either {
                             dependencies.userService.update(
@@ -263,24 +264,22 @@ class UserServiceSpec :
                         }
 
                         res shouldBeLeft
-                            EmptyUpdate(
-                                "Cannot update user with $userId with only null values"
-                            )
+                            EmptyUpdate("Cannot update user with $userId with only null values")
                     }
                 }
 
                 "Update password rotates credentials and keeps public profile data" {
                     withTestDependencies { dependencies ->
-                        val (user, _, userId) = dependencies.registerUser(userFixture(password = validPw))
+                        val (user, userId) =
+                            dependencies.registerUser(userFixture(password = validPw))
                         val newPassword = "987654321"
 
-                        val updated =
-                            either {
-                                    dependencies.userService.update(
-                                        Update(userId, null, null, newPassword, null, null)
-                                    )
-                                }
-                                .shouldBeRight()
+                        val updated = either {
+                            dependencies.userService.update(
+                                Update(userId, null, null, newPassword, null, null)
+                            )
+                        }
+                            .shouldBeRight()
 
                         assert(updated.email == user.email)
                         assert(updated.username == user.username)
@@ -292,8 +291,8 @@ class UserServiceSpec :
                         } shouldBeLeft PasswordNotMatched
 
                         either {
-                                dependencies.userService.login(Login(user.email, newPassword))
-                            }
+                            dependencies.userService.login(Login(user.email, newPassword))
+                        }
                             .shouldBeRight()
                     }
                 }

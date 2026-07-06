@@ -11,7 +11,7 @@ Apply these conventions when implementing or reviewing Ktor code in this reposit
 
 ## Service architecture and wiring
 
-Read [references/service-architecture.md](references/service-architecture.md) when changing application bootstrap, dependency wiring, persistence, or messaging integration.
+Read [references/service-architecture.md](references/service-architecture.md) when changing application bootstrap (`Main.kt`/`SuspendApp`), `Env` configuration, `Dependencies` wiring, or `ResourceScope`-based resource lifecycle.
 
 ## Package structure
 
@@ -19,4 +19,4 @@ Read [references/package-structure.md](references/package-structure.md) when cre
 
 ## Routes and validation
 
-Read [references/routes-and-validation.md](references/routes-and-validation.md) when editing HTTP contracts, route handlers, validation, or error mapping.
+Read [references/routes-and-validation.md](references/routes-and-validation.md) when editing HTTP contracts (Spine `Api.kt` endpoints), route handlers, `DomainError` modelling/mapping, or `accumulate`-based validation.

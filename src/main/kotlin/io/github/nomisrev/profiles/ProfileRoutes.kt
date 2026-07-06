@@ -38,7 +38,7 @@ fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtConfig<
     authenticateWith(jwtService) {
         route(Api.Profiles.Username.Follow.add) {
             val username = idOf(Api.Profiles.Username)
-            userPersistence.followProfile(username, call.principal.userId)
+            val _ = userPersistence.followProfile(username, call.principal.userId)
             val userFollowed = userPersistence.select(username)
             respond(
                 ProfileWrapper(

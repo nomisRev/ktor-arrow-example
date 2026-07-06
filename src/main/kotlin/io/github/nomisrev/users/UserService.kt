@@ -47,13 +47,17 @@ class UserService(
     }
 
     context(_: Raise<DomainError>)
-    fun login(input: Login): Pair<JwtToken, UserInfo> {
+    fun login(input: Login): TokenAndUserInfo {
         val (email, password) = input.validate()
-        val (userId, info) = repo.verifyPassword(email, password)
-        val token = jwtService.generateJwtToken(userId)
-        return Pair(token, info)
+        val (id, info) = repo.verifyPassword(email, password)
+        val token = jwtService.generateJwtToken(id)
+        return TokenAndUserInfo(token, info)
     }
 
     context(_: Raise<UserNotFound>)
     fun getUser(userId: UserId): UserInfo = repo.select(userId)
 }
+
+data class UserIdAndInfo(val id: UserId, val info: UserInfo)
+
+data class TokenAndUserInfo(val token: JwtToken, val info: UserInfo)

@@ -22,7 +22,7 @@ fun main() = SuspendApp {
     val env = Env()
     resourceScope {
         val dependencies = dependencies(env)
-        server(Netty, host = env.http.host, port = env.http.port) { app(dependencies) }
+        val _ = server(Netty, host = env.http.host, port = env.http.port) { app(dependencies) }
         awaitCancellation()
     }
 }

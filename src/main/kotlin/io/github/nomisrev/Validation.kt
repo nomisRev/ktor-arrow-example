@@ -154,26 +154,30 @@ context(_: Raise<InvalidField>)
 private fun List<String>.validTags(): Set<String> =
     withError(::InvalidTag) { mapOrAccumulate { it.trim().notBlank() }.toSet() }
 
+@IgnorableReturnValue
 context(_: RaiseAccumulate<String>)
 private fun String.notBlank(): String = also {
-    ensureOrAccumulate(isNotBlank()) { "Cannot be blank" }
+    val _ = ensureOrAccumulate(isNotBlank()) { "Cannot be blank" }
 }
 
+@IgnorableReturnValue
 context(_: RaiseAccumulate<String>)
 private fun String.minSize(size: Int): String = also {
-    ensureOrAccumulate(length >= size) { "is too short (minimum is $size characters)" }
+    val _ = ensureOrAccumulate(length >= size) { "is too short (minimum is $size characters)" }
 }
 
+@IgnorableReturnValue
 context(_: RaiseAccumulate<String>)
 private fun String.maxSize(size: Int): String = also {
-    ensureOrAccumulate(length <= size) { "is too long (maximum is $size characters)" }
+    val _ = ensureOrAccumulate(length <= size) { "is too long (maximum is $size characters)" }
 }
 
 private val emailPattern = ".+@.+\\..+".toRegex()
 
+@IgnorableReturnValue
 context(_: RaiseAccumulate<String>)
 private fun String.looksLikeEmail(): String = also {
-    ensureOrAccumulate(emailPattern.matches(this)) { "'$this' is invalid email" }
+    val _ = ensureOrAccumulate(emailPattern.matches(this)) { "'$this' is invalid email" }
 }
 
 context(_: Raise<IncorrectInput>)
@@ -208,9 +212,10 @@ data class InvalidFeedLimit(override val errors: NonEmptyList<String>) : Invalid
     override val field: String = "feed limit"
 }
 
+@IgnorableReturnValue
 context(_: RaiseAccumulate<String>)
 private fun Int.minSize(size: Int): Int = also {
-    ensureOrAccumulate(this >= size) { "too small, minimum is $size, and found $this" }
+    val _ = ensureOrAccumulate(this >= size) { "too small, minimum is $size, and found $this" }
 }
 
 context(_: Raise<InvalidFeedOffset>)

@@ -40,7 +40,9 @@ class ArticlePersistence(
                 )
                 .executeAsOne()
 
-        tags.forEach { tag -> tagsQueries.insert(insertAndReturn.id, tag) }
+        tags.forEach { tag ->
+            val _ = tagsQueries.insert(insertAndReturn.id, tag)
+        }
 
         insertAndReturn
     }
@@ -180,9 +182,9 @@ class ArticlePersistence(
     }
 
     context(_: Raise<ArticleBySlugNotFound>)
-    fun deleteArticle(slug: Slug) {
+    suspend fun deleteArticle(slug: Slug) {
         val article = findArticleBySlug(slug)
-        articles.delete(article.id)
+        articles.delete(article.id).await()
     }
 
     fun createCommentForArticleSlug(
