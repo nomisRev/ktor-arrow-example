@@ -45,6 +45,7 @@ fun Application.configure(jwtConfig: JwtConfig<JwtContext>) {
     }
     authentication {
         jwt(jwtConfig.name) {
+            authSchemes("Token")
             verifier(jwtConfig.verifier)
             validate(jwtConfig.validate)
         }

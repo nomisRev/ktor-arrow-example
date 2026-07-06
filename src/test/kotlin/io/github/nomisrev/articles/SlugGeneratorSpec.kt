@@ -31,14 +31,12 @@ class SlugGeneratorSpec :
                     val title = "Test Title ${Random.nextInt(1000, 9999)}"
 
                     // First attempt not unique, second attempt is unique
-                    val slug =
-                        either {
-                                slugGenerator.generateSlug(title) { slug ->
-                                    slug.value ==
-                                        title.lowercase().replace(' ', '_') // First attempt fails
-                                }
-                            }
-                            .shouldBeRight()
+                    val slug = either {
+                        slugGenerator.generateSlug(title) { slug ->
+                            slug.value == title.lowercase().replace(' ', '_') // First attempt fails
+                        }
+                    }
+                        .shouldBeRight()
 
                     slug.value shouldContain "test_title"
                     slug.value shouldContain "_" // Should have a suffix

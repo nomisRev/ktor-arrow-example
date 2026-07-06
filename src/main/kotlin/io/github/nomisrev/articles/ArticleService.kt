@@ -142,7 +142,7 @@ class ArticleService(
     }
 
     context(_: Raise<ArticleError>)
-    fun deleteArticle(slug: Slug, userId: UserId) {
+    suspend fun deleteArticle(slug: Slug, userId: UserId) {
         val article = articlePersistence.findArticleBySlug(slug)
         ensure(article.author_id == userId) { NotArticleAuthor(userId.serial, slug.value) }
         articlePersistence.deleteArticle(slug)
@@ -165,13 +165,13 @@ class ArticleService(
         val authorId = articlePersistence.findCommentAuthor(commentId)
         val authorIdNonNull = ensureNotNull(authorId) { CommentNotFound(commentId) }
         ensure(authorIdNonNull == userId) { NotCommentAuthor(userId.serial, commentId) }
-        articlePersistence.deleteComment(commentId, userId)
+        val _ = articlePersistence.deleteComment(commentId, userId)
     }
 
     context(_: Raise<DomainError>)
     suspend fun favoriteArticle(slug: Slug, userId: UserId): Article {
         val article = articlePersistence.findArticleBySlug(slug)
-        favouritePersistence.favoriteArticle(userId, article.id)
+        val _ = favouritePersistence.favoriteArticle(userId, article.id)
         return article(article, userId)
     }
 

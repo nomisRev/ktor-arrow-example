@@ -9,12 +9,12 @@ import io.github.nomisrev.Api.Profiles.Username.Follow.remove
 import io.github.nomisrev.Api.Profiles.Username.get
 import io.github.nomisrev.GenericErrorModel
 import io.github.nomisrev.registerUser
+import io.github.nomisrev.tokenAuth
 import io.github.nomisrev.userFixture
 import io.github.nomisrev.withServer
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.call.*
-import io.ktor.client.request.bearerAuth
 import io.ktor.http.*
 import opensavvy.spine.api.*
 import opensavvy.spine.client.bodyOrThrow
@@ -24,13 +24,13 @@ class ProfileRouteSpec :
     StringSpec({
         "Can follow profile" {
             withServer { dependencies ->
-                val (_, token) = dependencies.registerUser()
+                val (token) = dependencies.registerUser()
                 val followed = userFixture()
                 dependencies.registerUser(followed)
 
                 val response =
                     request(Api / Profiles / Username(followed.username) / Follow / add) {
-                        bearerAuth(token.value)
+                        tokenAuth(token.value)
                     }
 
                 response.httpResponse.status shouldBe HttpStatusCode.OK
@@ -45,13 +45,13 @@ class ProfileRouteSpec :
 
         "Can unfollow profile" {
             withServer { dependencies ->
-                val (_, token) = dependencies.registerUser()
+                val (token) = dependencies.registerUser()
                 val followed = userFixture()
                 dependencies.registerUser(followed)
 
                 val response =
                     request(Api / Profiles / Username(followed.username) / Follow / remove) {
-                        bearerAuth(token.value)
+                        tokenAuth(token.value)
                     }
 
                 response.httpResponse.status shouldBe HttpStatusCode.OK
@@ -82,11 +82,11 @@ class ProfileRouteSpec :
 
         "Username invalid to follow" {
             withServer { dependencies ->
-                val (_, token) = dependencies.registerUser()
+                val (token) = dependencies.registerUser()
 
                 val response =
                     request(Api / Profiles / Username(userFixture().username) / Follow / add) {
-                        bearerAuth(token.value)
+                        tokenAuth(token.value)
                     }
 
                 response.httpResponse.status shouldBe HttpStatusCode.UnprocessableEntity
@@ -95,11 +95,11 @@ class ProfileRouteSpec :
 
         "Username invalid to unfollow" {
             withServer { dependencies ->
-                val (_, token) = dependencies.registerUser()
+                val (token) = dependencies.registerUser()
 
                 val response =
                     request(Api / Profiles / Username(userFixture().username) / Follow / remove) {
-                        bearerAuth(token.value)
+                        tokenAuth(token.value)
                     }
 
                 response.httpResponse.status shouldBe HttpStatusCode.UnprocessableEntity
@@ -124,17 +124,17 @@ class ProfileRouteSpec :
 
         "Get profile shows following for current viewer" {
             withServer { dependencies ->
-                val (_, token) = dependencies.registerUser()
+                val (token) = dependencies.registerUser()
                 val followed = userFixture()
                 dependencies.registerUser(followed)
 
                 request(Api / Profiles / Username(followed.username) / Follow / add) {
-                    bearerAuth(token.value)
+                    tokenAuth(token.value)
                 }
 
                 val response =
                     request(Api / Profiles / Username(followed.username) / get) {
-                        bearerAuth(token.value)
+                        tokenAuth(token.value)
                     }
 
                 response.httpResponse.status shouldBe HttpStatusCode.OK
@@ -147,23 +147,22 @@ class ProfileRouteSpec :
 
         "Get profile follow state is viewer specific" {
             withServer { dependencies ->
-                val (_, followerToken) = dependencies.registerUser()
-                val (_, viewerToken) = dependencies.registerUser()
-                val followed = userFixture()
-                dependencies.registerUser(followed)
+                val follower = dependencies.registerUser()
+                val viewer = dependencies.registerUser()
+                val followed = dependencies.registerUser()
 
-                request(Api / Profiles / Username(followed.username) / Follow / add) {
-                    bearerAuth(followerToken.value)
+                request(Api / Profiles / Username(followed.user.username) / Follow / add) {
+                    tokenAuth(follower.token.value)
                 }
 
                 val response =
-                    request(Api / Profiles / Username(followed.username) / get) {
-                        bearerAuth(viewerToken.value)
+                    request(Api / Profiles / Username(followed.user.username) / get) {
+                        tokenAuth(viewer.token.value)
                     }
 
                 response.httpResponse.status shouldBe HttpStatusCode.OK
                 with(response.bodyOrThrow().profile) {
-                    username shouldBe followed.username
+                    username shouldBe followed.user.username
                     following shouldBe false
                 }
             }

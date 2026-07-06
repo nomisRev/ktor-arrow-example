@@ -10,11 +10,11 @@ import io.github.nomisrev.Api.Users.Login.authenticate
 import io.github.nomisrev.Api.Users.register
 import io.github.nomisrev.GenericErrorModel
 import io.github.nomisrev.registerUser
+import io.github.nomisrev.tokenAuth
 import io.github.nomisrev.userFixture
 import io.github.nomisrev.withServer
 import io.kotest.core.spec.style.StringSpec
 import io.ktor.client.call.body
-import io.ktor.client.request.bearerAuth
 import io.ktor.http.HttpStatusCode
 import opensavvy.spine.api.div
 import opensavvy.spine.client.request
@@ -62,24 +62,23 @@ class UserRouteSpec :
 
         "Can get current user" {
             withServer { dependencies ->
-                val (user, expected) = dependencies.registerUser()
+                val (user, token) = dependencies.registerUser()
 
-                val response = request(Api / CurrentUser / get) { bearerAuth(expected.value) }
+                val response = request(Api / CurrentUser / get) { tokenAuth(token.value) }
 
                 assert(response.httpResponse.status == HttpStatusCode.OK)
-                with(response.httpResponse.body<UserWrapper<User>>().user) {
-                    assert(username == user.username)
-                    assert(email == user.email)
-                    assert(token == expected.value)
-                    assert(bio == "")
-                    assert(image == "")
-                }
+                val body = response.httpResponse.body<UserWrapper<User>>().user
+                assert(body.username == user.username)
+                assert(body.email == user.email)
+                assert(body.token == token.value)
+                assert(body.bio == "")
+                assert(body.image == "")
             }
         }
 
         "Update user" {
             withServer { dependencies ->
-                val (user, expected) = dependencies.registerUser()
+                val (user, token) = dependencies.registerUser()
                 val newUsername = "new-${user.username}"
 
                 val response =
@@ -87,23 +86,22 @@ class UserRouteSpec :
                         Api / CurrentUser / update,
                         UserWrapper(UpdateUser(username = newUsername)),
                     ) {
-                        bearerAuth(expected.value)
+                        tokenAuth(token.value)
                     }
 
                 assert(response.httpResponse.status == HttpStatusCode.OK)
-                with(response.httpResponse.body<UserWrapper<User>>().user) {
-                    assert(username == newUsername)
-                    assert(email == user.email)
-                    assert(token == expected.value)
-                    assert(bio == "")
-                    assert(image == "")
-                }
+                val body = response.httpResponse.body<UserWrapper<User>>().user
+                assert(body.username == newUsername)
+                assert(body.email == user.email)
+                assert(body.token == token.value)
+                assert(body.bio == "")
+                assert(body.image == "")
             }
         }
 
         "Update user invalid email" {
             withServer { dependencies ->
-                val (_, token) = dependencies.registerUser()
+                val (token) = dependencies.registerUser()
                 val invalidEmail = "invalidEmail"
 
                 val response =
@@ -111,7 +109,7 @@ class UserRouteSpec :
                         Api / CurrentUser / update,
                         UserWrapper(UpdateUser(email = invalidEmail)),
                     ) {
-                        bearerAuth(token.value)
+                        tokenAuth(token.value)
                     }
 
                 assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)

@@ -6,13 +6,13 @@ import io.github.nomisrev.Api.CurrentUser.get
 import io.github.nomisrev.Api.Users
 import io.github.nomisrev.Api.Users.register
 import io.github.nomisrev.SuspendFun
+import io.github.nomisrev.tokenAuth
 import io.github.nomisrev.userFixture
 import io.github.nomisrev.users.NewUser
 import io.github.nomisrev.users.User
 import io.github.nomisrev.users.UserWrapper
 import io.github.nomisrev.withServer
 import io.ktor.client.call.body
-import io.ktor.client.request.bearerAuth
 import io.ktor.http.HttpStatusCode
 import opensavvy.spine.api.div
 import opensavvy.spine.client.request
@@ -44,7 +44,7 @@ class JwtServiceSpec :
 
                         val currentUserResponse =
                             request(Api / CurrentUser / get) {
-                                bearerAuth(registeredUser.token)
+                                tokenAuth(registeredUser.token)
                             }
 
                         assert(currentUserResponse.httpResponse.status == HttpStatusCode.OK)

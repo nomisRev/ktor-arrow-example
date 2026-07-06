@@ -50,15 +50,15 @@ class UserPersistence(
     }
 
     context(_: Raise<UserError>)
-    fun verifyPassword(email: String, password: String): Pair<UserId, UserInfo> {
-        val (userId, username, salt, key, bio, image) =
+    fun verifyPassword(email: String, password: String): UserIdAndInfo {
+        val (id, username, salt, hashed_password, bio, image) =
             ensureNotNull(usersQueries.selectSecurityByEmail(email).executeAsOneOrNull()) {
                 UserNotFound("email=$email")
             }
 
         val hash = generateKey(password, salt)
-        ensure(hash contentEquals key) { PasswordNotMatched }
-        return Pair(userId, UserInfo(email, username, bio, image))
+        ensure(hash contentEquals hashed_password) { PasswordNotMatched }
+        return UserIdAndInfo(id, UserInfo(email, username, bio, image))
     }
 
     context(_: Raise<UserNotFound>)
