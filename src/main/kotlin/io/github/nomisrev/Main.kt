@@ -4,6 +4,7 @@ import arrow.continuations.SuspendApp
 import arrow.continuations.ktor.server
 import arrow.fx.coroutines.resourceScope
 import com.sksamuel.cohort.Cohort
+import com.sksamuel.cohort.HealthCheckRegistry
 import io.github.nomisrev.articles.articleRoutes
 import io.github.nomisrev.articles.commentRoutes
 import io.github.nomisrev.env.Dependencies
@@ -17,6 +18,7 @@ import io.ktor.server.application.*
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
 
 fun main() = SuspendApp {
     val env = Env()
@@ -36,5 +38,10 @@ fun Application.app(module: Dependencies) {
         commentRoutes(module.userService, module.articleService, module.jwtService)
         profileRoutes(module.userPersistence, module.jwtService)
     }
-    install(Cohort) { healthcheck("/readiness", module.healthCheck) }
+    install(Cohort) {
+        verboseHealthCheckResponse = developmentMode
+        healthcheck("/healthz/startup", HealthCheckRegistry(Dispatchers.Default))
+        healthcheck("/healthz/liveness", HealthCheckRegistry(Dispatchers.Default))
+        healthcheck("/healthz/readiness", module.healthCheck)
+    }
 }
