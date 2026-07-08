@@ -1208,3 +1208,5 @@ kotlin-js-store
 /.pi/extensions/read-website/node_modules/turndown/package.json
 /.pi/extensions/read-website/node_modules/turndown/README.md
 /.pi/extensions/read-website/node_modules/.package-lock.json
+site/
+.venv/

@@ -1,0 +1,66 @@
+site_name: Ktor Arrow Wiki
+site_description: Tutorials and reference material for the Ktor Arrow example
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  logo: assets/images/arrow-logo.svg
+  favicon: assets/images/arrow-logo.svg
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.expand
+    - navigation.tracking
+    - navigation.top
+    - toc.follow
+    - content.code.copy
+    - content.code.annotate
+    - header.autohide
+    - search.highlight
+    - search.share
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+repo_url: https://github.com/nomisRev/ktor-arrow-example
+repo_name: nomisRev/ktor-arrow-example
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Running the project: running-the-project.md
+  - Tutorials:
+      - Project setup: tutorials/project-setup.md
+      - End-to-end feature: tutorials/end-to-end-feature.md
+      - Validation: tutorials/validation.md
