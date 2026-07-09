@@ -28,7 +28,7 @@ and [Arrow](https://arrow-kt.io/) as the main building blocks.
 Other technologies used:
 
 - [SqlDelight](https://cashapp.github.io/sqldelight/) for the persistence layer
-- [Kotest](https://kotest.io/) for testing
+- [TestBalloon](https://infix-de.github.io/testBalloon/latest/) for testing
 
 ## Running the project
 

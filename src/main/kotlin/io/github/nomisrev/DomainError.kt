@@ -1,8 +1,11 @@
 package io.github.nomisrev
 
 import arrow.core.NonEmptyList
+import arrow.core.raise.context.Raise
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.MissingFieldException
+
+typealias DomainErrors = Raise<DomainError>
 
 sealed interface DomainError
 

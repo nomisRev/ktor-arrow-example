@@ -7,7 +7,6 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
   alias(libs.plugins.kotlin.assert)
   alias(libs.plugins.kover)
   alias(libs.plugins.kotlinx.serialization)
-  alias(libs.plugins.kotest.multiplatform)
   alias(libs.plugins.sqldelight)
   alias(libs.plugins.ktor)
   alias(libs.plugins.testballoon)
@@ -75,7 +74,6 @@ dependencies {
   testImplementation(libs.spine.client)
   testImplementation(libs.testcontainers.postgresql)
   testImplementation(libs.ktor.server.tests)
-  testImplementation(libs.bundles.kotest)
   testImplementation(libs.testballoon.framework.core)
 }
 

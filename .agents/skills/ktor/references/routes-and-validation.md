@@ -1,7 +1,7 @@
 # Routes and Validation
 
 This project defines its HTTP contracts with [Spine](https://gitlab.com/opensavvy/spine) instead of raw Ktor
-`routing { }` blocks, and models failures as `Raise<DomainError>` (Arrow) instead of exceptions. Keep that
+`routing { }` blocks, and models failures as `DomainErrors` (Arrow) instead of exceptions. Keep that
 combination in mind whenever you add or change an endpoint.
 
 ## Define the contract in `Api.kt`
@@ -68,12 +68,12 @@ Inside the block:
 ## `ErrorRoutes.kt`: how failures become HTTP responses
 
 `Route.route(endpoint) { block }` in `ErrorRoutes.kt` runs `block` inside `arrow.core.raise.recover` with the
-handler's body scoped to `context(Raise<DomainError>)`:
+handler's body scoped to `context(DomainErrors)`:
 
 ```kotlin
 inline fun <...> Route.route(
     endpoint: Endpoint<In, Out, Failure, Params>,
-    crossinline block: suspend context(Raise<DomainError>) TypedResponseScope<...>.() -> Unit,
+    crossinline block: suspend context(DomainErrors) TypedResponseScope<...>.() -> Unit,
 ): Unit =
     route(endpoint) response@{
         recover(
@@ -125,14 +125,14 @@ fun select(userId: UserId): UserInfo { ... }
 ```
 
 Because `UserError`, `ArticleError`, `ValidationError`, etc. are all subtypes of `DomainError`, and Arrow's
-`context(Raise<E>)` is contravariant in the way it composes, a function written as `context(_: Raise<DomainError>)`
+`context(Raise<E>)` is contravariant in the way it composes, a function written as `context(_: DomainErrors)`
 can call any function that raises a narrower error type directly — no wrapping, no `mapLeft`, no manual lifting.
 This is how the error type **grows** as you move up the call stack:
 
 ```kotlin
 class UserService(private val repo: UserPersistence, private val jwtService: JwtService) {
     // register only fails with UserError (repo.insert) plus IncorrectInput (validate) -> DomainError
-    context(_: Raise<DomainError>)
+    context(_: DomainErrors)
     fun register(input: RegisterUser): JwtToken {
         val (username, email, password) = input.validate()   // Raise<IncorrectInput>
         val userId = repo.insert(username, email, password)  // Raise<UserError>
@@ -149,10 +149,10 @@ Guidelines:
 
 - Repository/persistence functions: narrowest possible error type (`UserError`, `ArticleError`, a single
   variant like `UserNotFound`, ...).
-- Service functions: `Raise<DomainError>` **only when they genuinely combine multiple error families** (validation
+- Service functions: `DomainErrors` **only when they genuinely combine multiple error families** (validation
   + persistence + JWT, etc.). If a service function only ever delegates to one narrow-error repository call, keep
   that narrow type instead of widening to `DomainError` for no reason.
-- Route handlers (the `route(endpoint) { ... }` block body): always `context(Raise<DomainError>)` — this is the
+- Route handlers (the `route(endpoint) { ... }` block body): always `context(DomainErrors)` — this is the
   edge of the service, where any remaining domain error must be convertible to `GenericErrorModel` via
   `toGenericErrorModel`.
 - Never introduce exceptions for expected failures. `raise`/`ensure`/`ensureNotNull`/`catch` (Arrow) are the only

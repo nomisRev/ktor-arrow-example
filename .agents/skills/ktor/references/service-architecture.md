@@ -37,7 +37,7 @@ Keep the boundary explicit per feature:
   handling happens (see `UserPersistence.raiseUniqueViolation`).
 - `*Service` classes hold business rules that span persistence calls (validation, ownership checks, composing
   profiles/tags/favorites onto an article). Simple pass-throughs stay in the narrowest `Raise` type; only widen to
-  `Raise<DomainError>` when a function genuinely combines multiple error families — see
+  `DomainErrors` when a function genuinely combines multiple error families — see
   `references/routes-and-validation.md`.
 - `*Routes` files only decode/encode DTOs and call into a service — no persistence access, no manual error mapping.
 - Small features with no extra business logic (`tags`, `profiles`) skip the `*Service` layer entirely: their routes

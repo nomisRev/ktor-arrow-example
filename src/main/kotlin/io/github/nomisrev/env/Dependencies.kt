@@ -3,6 +3,7 @@ package io.github.nomisrev.env
 import arrow.fx.coroutines.ResourceScope
 import com.sksamuel.cohort.HealthCheckRegistry
 import com.sksamuel.cohort.hikari.HikariConnectionsHealthCheck
+import com.zaxxer.hikari.HikariDataSource
 import io.github.nomisrev.articles.ArticlePersistence
 import io.github.nomisrev.articles.ArticleService
 import io.github.nomisrev.articles.FavouritePersistence
@@ -23,11 +24,13 @@ class Dependencies(
     val tagPersistence: TagPersistence,
     val userPersistence: UserPersistence,
 )
-
 suspend fun ResourceScope.dependencies(env: Env): Dependencies {
     val hikari = hikari(env.dataSource)
-    val sqlDelight = sqlDelight(hikari)
+    return dependencies(env, hikari)
+}
 
+suspend fun ResourceScope.dependencies(env: Env, hikari: HikariDataSource): Dependencies {
+    val sqlDelight = sqlDelight(hikari)
     val userRepo = UserPersistence(sqlDelight.usersQueries, sqlDelight.followingQueries)
     val articleRepo =
         ArticlePersistence(

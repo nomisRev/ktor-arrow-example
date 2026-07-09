@@ -7,7 +7,7 @@ import io.github.nomisrev.createArticle
 import io.github.nomisrev.dependencies
 import io.github.nomisrev.registerUser
 import io.github.nomisrev.testDependencies
-import io.kotest.matchers.shouldBe
+import org.junit.Assert.assertEquals
 
 @Suppress("RETURN_VALUE_NOT_USED_COERCION")
 val ArticleServiceSuite by testSuite {
@@ -71,7 +71,7 @@ val ArticleServiceSuite by testSuite {
 
         val created = dependencies.articleService.createArticle(author.userId)
 
-        assertRaised {
+        val error = assertRaised {
             dependencies.articleService.updateArticle(
                 UpdateArticleInput(
                     slug = Slug(created.slug),
@@ -81,6 +81,7 @@ val ArticleServiceSuite by testSuite {
                     body = null,
                 )
             )
-        } shouldBe NotArticleAuthor(nonAuthor.userId.serial, created.slug)
+        }
+        assertEquals(NotArticleAuthor(nonAuthor.userId.serial, created.slug), error)
     }
 }

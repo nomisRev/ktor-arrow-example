@@ -9,6 +9,34 @@
 - When the user asks a question, answer it first before making edits or running implementation commands.
 - When responding to user feedback or an analysis, explicitly say whether you agree or disagree before saying what you changed.
 
+## Kotlin
+
+### Name-based destructing (2.4.0)
+
+Since Kotlin 2.4.0 we can use name-based destructing data classes.
+
+```kotlin
+data class Person(val age: Int, val name: String)
+
+fun example() {
+    val (name) = Person(20, "John")
+    println(name) // "John"
+}
+
+fun example2() {
+    val (age2, name) = Person(20, "John")
+    val
+}
+```
+
+### Collection literals (2.4.0)
+
+Since Kotlin 2.4.0 we can use collection literals to create collection types.
+
+```kotlin
+val x: List<Int> = [1, 2, 3]
+```
+
 ## Gradle
 
 Always use `-q`/`--quiet` when running `./gradlew` commands to avoid noisy output.

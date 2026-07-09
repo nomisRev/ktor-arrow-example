@@ -5,7 +5,7 @@ import arrow.core.raise.context.ensure
 import arrow.core.raise.context.ensureNotNull
 import io.github.nomisrev.ArticleError
 import io.github.nomisrev.CommentNotFound
-import io.github.nomisrev.DomainError
+import io.github.nomisrev.DomainErrors
 import io.github.nomisrev.NotArticleAuthor
 import io.github.nomisrev.NotCommentAuthor
 import io.github.nomisrev.UserNotFound
@@ -49,7 +49,7 @@ class ArticleService(
     private val tagPersistence: TagPersistence,
     private val favouritePersistence: FavouritePersistence,
 ) {
-    context(_: Raise<DomainError>)
+    context(_: DomainErrors)
     suspend fun createArticle(input: CreateArticle): Article {
         val slug =
             slugGenerator.generateSlug(input.title) { slug ->
@@ -116,13 +116,13 @@ class ArticleService(
         )
     }
 
-    context(_: Raise<DomainError>)
+    context(_: DomainErrors)
     fun getArticleBySlug(slug: Slug, currentUserId: UserId? = null): Article {
         val article = articlePersistence.findArticleBySlug(slug)
         return article(article, currentUserId)
     }
 
-    context(_: Raise<DomainError>)
+    context(_: DomainErrors)
     fun updateArticle(input: UpdateArticleInput): Article {
         val article = articlePersistence.findArticleBySlug(input.slug)
 
@@ -148,7 +148,7 @@ class ArticleService(
         articlePersistence.deleteArticle(slug)
     }
 
-    context(_: Raise<DomainError>)
+    context(_: DomainErrors)
     fun insertCommentForArticleSlug(slug: Slug, userId: UserId, comment: String): Comments {
         val article = getArticleBySlug(slug, userId)
         return articlePersistence.createCommentForArticleSlug(
@@ -168,14 +168,14 @@ class ArticleService(
         val _ = articlePersistence.deleteComment(commentId, userId)
     }
 
-    context(_: Raise<DomainError>)
+    context(_: DomainErrors)
     suspend fun favoriteArticle(slug: Slug, userId: UserId): Article {
         val article = articlePersistence.findArticleBySlug(slug)
         val _ = favouritePersistence.favoriteArticle(userId, article.id)
         return article(article, userId)
     }
 
-    context(_: Raise<DomainError>)
+    context(_: DomainErrors)
     suspend fun unfavoriteArticle(slug: Slug, userId: UserId): Article {
         val article = articlePersistence.findArticleBySlug(slug)
         val articleId = article.id

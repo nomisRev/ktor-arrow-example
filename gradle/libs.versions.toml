@@ -5,8 +5,6 @@ detekt = "1.23.8"
 dev-tools = "0.0.1"
 hikari = "7.1.0"
 kjwt = "1.0.0"
-kotest = "6.2.2"
-kotest-testcontainers = "2.0.2"
 kotlin = "2.4.0"
 kover = "0.9.8"
 ktor = "3.5.1"
@@ -29,13 +27,6 @@ cohort-hikari = { module = "com.sksamuel.cohort:cohort-hikari", version.ref = "c
 cohort-ktor = { module = "com.sksamuel.cohort:cohort-ktor", version.ref = "cohort" }
 hikari = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
 kjwt-core = { module = "io.github.nefilim.kjwt:kjwt-core", version.ref = "kjwt" }
-kotest-arrow = { module = "io.kotest:kotest-assertions-arrow", version.ref = "kotest" }
-kotest-arrow-fx = { module = "io.kotest:kotest-assertions-arrow-fx-coroutines", version.ref = "kotest" }
-kotest-assertionsCore = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
-kotest-frameworkEngine = { module = "io.kotest:kotest-framework-engine", version.ref = "kotest" }
-kotest-property = { module = "io.kotest:kotest-property", version.ref = "kotest" }
-kotest-runnerJUnit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
-kotest-testcontainers = { module = "io.kotest.extensions:kotest-extensions-testcontainers", version.ref = "kotest-testcontainers" }
 ktor-server-tests = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
@@ -60,20 +51,9 @@ cohort = [
     "cohort-hikari",
     "cohort-ktor",
 ]
-kotest = [
-    "kotest-arrow",
-    "kotest-arrow-fx",
-    "kotest-assertionsCore",
-    "kotest-frameworkEngine",
-    "kotest-property",
-    "kotest-runnerJUnit5",
-    "kotest-testcontainers",
-]
 
 [plugins]
-detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 dev-tools = { id = "io.github.nomisrev.dev-tools", version.ref = "dev-tools" }
-kotest-multiplatform = { id = "io.kotest", version.ref = "kotest" }
 kotlin-assert = { id = "org.jetbrains.kotlin.plugin.power-assert", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

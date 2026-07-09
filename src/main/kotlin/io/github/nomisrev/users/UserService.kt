@@ -2,7 +2,7 @@ package io.github.nomisrev.users
 
 import arrow.core.raise.context.Raise
 import arrow.core.raise.context.ensure
-import io.github.nomisrev.DomainError
+import io.github.nomisrev.DomainErrors
 import io.github.nomisrev.EmptyUpdate
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.auth.JwtService
@@ -28,14 +28,14 @@ class UserService(
     private val repo: UserPersistence,
     private val jwtService: JwtService,
 ) {
-    context(_: Raise<DomainError>)
+    context(_: DomainErrors)
     fun register(input: RegisterUser): JwtToken {
         val (username, email, password) = input.validate()
         val userId = repo.insert(username, email, password)
         return jwtService.generateJwtToken(userId)
     }
 
-    context(_: Raise<DomainError>)
+    context(_: DomainErrors)
     fun update(input: Update): UserInfo {
         val (userId, username, email, password, bio, image) = input.validate()
         ensure(
@@ -46,7 +46,7 @@ class UserService(
         return repo.update(userId, email, username, password, bio, image)
     }
 
-    context(_: Raise<DomainError>)
+    context(_: DomainErrors)
     fun login(input: Login): TokenAndUserInfo {
         val (email, password) = input.validate()
         val (id, info) = repo.verifyPassword(email, password)

@@ -1,42 +1,37 @@
 package io.github.nomisrev.articles
 
-import arrow.core.raise.either
 import de.infix.testBalloon.framework.core.testSuite
 import io.github.nomisrev.CannotGenerateSlug
-import io.kotest.assertions.arrow.core.shouldBeLeft
-import io.kotest.assertions.arrow.core.shouldBeRight
-import io.kotest.matchers.string.shouldContain
-import io.kotest.matchers.string.shouldNotContain
+import io.github.nomisrev.assertRaised
+import io.github.nomisrev.testRaise
+import org.junit.Assert.assertEquals
 import kotlin.random.Random
 
 @Suppress("RETURN_VALUE_NOT_USED_COERCION")
 val SlugGeneratorSuite by testSuite {
     val seed = Random(42)
 
-    test("should generate a slug from a title") {
+    testRaise("should generate a slug from a title") {
         val slugGenerator = slugifyGenerator(seed)
 
         val title = "Test Title"
-        val slug = either { slugGenerator.generateSlug(title) { true } }.shouldBeRight()
 
-        slug.value shouldContain "test_title"
-        slug.value shouldNotContain " "
+        assertEquals(
+            "test_title",
+            slugGenerator.generateSlug(title) { true }.value
+        )
     }
 
-    test("should add a random suffix when the first attempt is not unique") {
+    testRaise("should add a random suffix when the first attempt is not unique") {
         val slugGenerator = slugifyGenerator(seed)
 
         val title = "Test Title"
 
-        val slug = either {
-            slugGenerator.generateSlug(title) { slug ->
-                slug.value == title.lowercase().replace(' ', '_')
-            }
+        val slug = slugGenerator.generateSlug(title) { slug ->
+            slug.value != title.lowercase().replace(' ', '_')
         }
-            .shouldBeRight()
 
-        slug.value shouldContain "test_title"
-        slug.value shouldContain "_"
+        assertEquals("test_title_142", slug.value)
     }
 
     test("should return CannotGenerateSlug when all attempts fail") {
@@ -44,36 +39,36 @@ val SlugGeneratorSuite by testSuite {
 
         val title = "Test Title"
 
-        either { slugGenerator.generateSlug(title) { false } }
-            .shouldBeLeft(CannotGenerateSlug("Failed to generate unique slug from $title"))
+        assertEquals(
+            CannotGenerateSlug("Failed to generate unique slug from $title"),
+            assertRaised { slugGenerator.generateSlug(title) { false } }
+        )
     }
 
-    test("should handle special characters in title") {
+    testRaise("should handle special characters in title") {
         val slugGenerator = slugifyGenerator(seed)
 
         val title = "Special @#$%^&*() Title"
-        val result = either { slugGenerator.generateSlug(title) { true } }
+        val slug = slugGenerator.generateSlug(title) { true }
 
-        val slug = result.shouldBeRight()
-        slug.value shouldContain "special_title"
-        slug.value shouldNotContain "@"
-        slug.value shouldNotContain "#"
-        slug.value shouldNotContain "$"
+        assertEquals("special_title", slug.value)
     }
 
-    test("should handle empty title") {
+    testRaise("should handle empty title") {
         val slugGenerator = slugifyGenerator(seed)
 
-        either { slugGenerator.generateSlug("") { true } }.shouldBeRight(Slug(""))
+        assertEquals(
+            "",
+            slugGenerator.generateSlug("") { true }.value
+        )
     }
 
-    test("should handle very long title") {
+    testRaise("should handle very long title") {
         val slugGenerator = slugifyGenerator(seed)
 
         val title = "Very Long Title " + "x".repeat(200)
-        val result = either { slugGenerator.generateSlug(title) { true } }
+        val slug = slugGenerator.generateSlug(title) { true }
 
-        val slug = result.shouldBeRight()
-        slug.value shouldContain "very_long_title"
+        assertEquals( "very_long_title_" + "x".repeat(200), slug.value)
     }
 }
