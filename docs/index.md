@@ -1,8 +1,12 @@
-# Ktor Arrow Example
-
-A production-style backend built with Ktor and Arrow, featuring typed errors, resource-safe wiring, and functional Kotlin.
-
----
+<div class="arrow-hero">
+  <div class="arrow-hero__content">
+    <p class="arrow-hero__eyebrow">Ktor Arrow Example</p>
+    <p class="arrow-hero__subtitle">
+      A production-style backend built with Ktor and Arrow, featuring typed errors,
+      resource-safe wiring, and functional Kotlin.
+    </p>
+  </div>
+</div>
 
 ## Technology Stack
 

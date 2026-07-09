@@ -13,4 +13,3 @@ This section contains the longer walkthroughs.
 - [Project setup](project-setup.md)
 - [End-to-end feature](end-to-end-feature.md)
 - [Validation](validation.md)
-- [Adding a tutorial](adding-a-tutorial.md)

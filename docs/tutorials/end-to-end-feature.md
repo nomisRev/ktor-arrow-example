@@ -310,27 +310,26 @@ The compiler guarantees that no domain error silently falls through.
 
 ## The full picture
 
-```text
-              GenericErrorModel (flat strings, 422)
-                       ^
-                       | toGenericErrorModel()  — one exhaustive mapping
-                       |
-  ErrorRoutes.kt  route(endpoint) { recover { ... } }
-                       ^
-                       | Raise<DomainError>
-                       |
-  UserRoutes.kt   route handler (decode body, call service, respond)
-                       |
-                       v
-  UserService.kt  register()  — Raise<DomainError> (combines all error families)
-                    |      |
-        validate()  |      |  repo.insert()       jwtService.generateJwtToken()
-   Raise<IncorrectInput>   |  Raise<UserError>     Raise<JwtError>
-                           v
-  UserPersistence.kt  insert()  — Raise<UserError>
-                       |
-                       v
-                    SqlDelight / JDBC
+```mermaid
+flowchart TD
+    GEM["GenericErrorModel<br/>flat strings · 422"]
+    ER["ErrorRoutes.kt<br/>route(endpoint) { recover { ... } }"]
+    UR["UserRoutes.kt<br/>route handler<br/>decode body · call service · respond"]
+    US["UserService.kt<br/>register() — Raise&lt;DomainError&gt;"]
+    VAL["validate()<br/>Raise&lt;IncorrectInput&gt;"]
+    INS["repo.insert()<br/>Raise&lt;UserError&gt;"]
+    JWT["jwtService.generateJwtToken()<br/>Raise&lt;JwtError&gt;"]
+    UP["UserPersistence.kt<br/>insert() — Raise&lt;UserError&gt;"]
+    DB[("SqlDelight / JDBC")]
+
+    ER -- "toGenericErrorModel()\nexhaustive mapping" --> GEM
+    UR -- "Raise&lt;DomainError&gt;" --> ER
+    UR --> US
+    US --> VAL
+    US --> INS
+    US --> JWT
+    INS --> UP
+    UP --> DB
 ```
 
 Errors are precise at every layer. They widen naturally as functions compose. And they
@@ -347,5 +346,5 @@ edge. The domain never compromises; the spec never breaks.
 
 - [Validation tutorial](validation.md) — deep dive into `accumulate` and
   `ensureOrAccumulate`
-- [File structure reference](../reference/file-structure.md) — how the codebase is
+- [Architecture overview](../index.md#architecture) — how the codebase is
   organized

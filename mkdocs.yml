@@ -16,26 +16,28 @@ theme:
     - toc.follow
     - content.code.copy
     - content.code.annotate
-    - header.autohide
     - search.highlight
     - search.share
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
+      primary: blue
       accent: amber
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
+      primary: blue
       accent: amber
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
   icon:
     repo: fontawesome/brands/github
+
+extra_css:
+  - stylesheets/arrow-theme.css
 
 repo_url: https://github.com/nomisRev/ktor-arrow-example
 repo_name: nomisRev/ktor-arrow-example
@@ -61,6 +63,7 @@ nav:
   - Home: index.md
   - Running the project: running-the-project.md
   - Tutorials:
+      - Overview: tutorials/index.md
       - Project setup: tutorials/project-setup.md
       - End-to-end feature: tutorials/end-to-end-feature.md
       - Validation: tutorials/validation.md

@@ -35,8 +35,7 @@ and [Arrow](https://arrow-kt.io/) as the main building blocks:
 - [SqlDelight](https://sqldelight.github.io/sqldelight/) with PostgreSQL for the persistence layer
 - [kJWT](https://github.com/nefilim/kjwt) for JWT-based authentication
 - [Cohort](https://github.com/sksamuel/cohort) for health checks
-- [Kotest](https://kotest.io/), [TestBalloon](https://github.com/infix-de/testBalloon), and
-  [Testcontainers](https://testcontainers.com/) for testing
+- [TestBalloon](https://github.com/infix-de/testBalloon), and [Testcontainers](https://testcontainers.com/) for testing
 
 ## Running the project
 
