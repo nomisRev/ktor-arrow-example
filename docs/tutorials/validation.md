@@ -1,25 +1,28 @@
 # Validation with typed errors
 
-This tutorial walks through `Validation.kt`, the file responsible for validating every
-incoming request in this service. It demonstrates how Arrow's `accumulate` pattern
-collects _all_ failures in a single pass instead of stopping at the first one, and how
-that pattern slots directly into the ordinary `Raise` DSL used elsewhere in the
-application.
+Validation is where fail-fast error handling is often not what we want. If a user sends
+a form with three invalid fields, returning only the first error is not very helpful.
+We'd like to validate everything we can, collect all failures, and still end up with a
+plain Kotlin value when validation succeeds.
 
-The code uses `@OptIn(ExperimentalRaiseAccumulateApi::class)` because the
-`accumulate` / `RaiseAccumulate` API is still being stabilised in Arrow. The shape is
-unlikely to change, but the annotation is required for now.
+That is exactly what Arrow's `accumulate` API gives us.
+
+In this tutorial we'll walk through `Validation.kt`, from the smallest string rule up
+to full request validation.
+
+Note: the file uses `@OptIn(ExperimentalRaiseAccumulateApi::class)` because
+`accumulate` and `RaiseAccumulate` are still experimental in Arrow. The API is already
+very usable, but Kotlin asks us to acknowledge that opt-in for now.
 
 ---
 
 ## The error model
 
-Before looking at validation rules, it helps to understand the types that failures flow
-into.
+Let's start with the types. Every field error implements `InvalidField`:
 
 ```kotlin
 sealed interface InvalidField {
-    val errors: NonEmptyList<String>   // (1)
+    val errors: NonEmptyList<String>
     val field: String
 }
 
@@ -31,73 +34,82 @@ data class InvalidPassword(override val errors: NonEmptyList<String>) : InvalidF
     override val field: String = "password"
 }
 
-// … InvalidUsername, InvalidTitle, InvalidBody, etc.
+// ... InvalidUsername, InvalidTitle, InvalidBody, etc.
 ```
 
-1. `NonEmptyList<String>` guarantees that if a field is invalid, there is **at least one**
-   human-readable message explaining why. This is the central invariant that makes
-   accumulation safe: you can never produce an empty error list.
+The important type here is `NonEmptyList<String>`.
 
-At the top of the hierarchy sits `IncorrectInput`, defined in `DomainError.kt`:
+If a value is an `InvalidField`, then we know it has *at least one* error message. We
+cannot accidentally construct an invalid field with an empty list of reasons. That small
+invariant makes the rest of the validation code much nicer.
+
+At the top of the validation hierarchy we have `IncorrectInput`:
 
 ```kotlin
 data class IncorrectInput(val errors: NonEmptyList<InvalidField>) : ValidationError
 ```
 
-Again a `NonEmptyList` — if an `IncorrectInput` exists, at least one field failed.
+Again, `NonEmptyList` tells us something useful. If `IncorrectInput` exists, at least
+one field failed.
 
-This nesting (`IncorrectInput` → `NonEmptyList<InvalidField>` → each field carries its
-own `NonEmptyList<String>`) precisely mirrors the structure of a validation error
-response: multiple fields can fail, and each field can have multiple reasons.
+So the structure is:
+
+```text
+IncorrectInput
+  -> NonEmptyList<InvalidField>
+       -> NonEmptyList<String>
+```
+
+This mirrors how we want validation to behave. Multiple fields can fail, and each field
+can have multiple reasons.
 
 ---
 
-## Leaf-level rules: `RaiseAccumulate` and `ensureOrAccumulate`
+## Leaf rules: `RaiseAccumulate` and `ensureOrAccumulate`
 
-The lowest level of the stack is individual string predicates. Each one runs inside a
-`RaiseAccumulate<String>` context — a specialised `Raise` that _accumulates_ failures
-rather than short-circuiting.
+At the bottom we have small predicates on `String`. They run in a
+`RaiseAccumulate<String>` context:
 
 ```kotlin
+@IgnorableReturnValue
 context(_: RaiseAccumulate<String>)
 private fun String.notBlank(): String = also {
     val _ = ensureOrAccumulate(isNotBlank()) { "Cannot be blank" }
 }
 
+@IgnorableReturnValue
 context(_: RaiseAccumulate<String>)
 private fun String.minSize(size: Int): String = also {
     val _ = ensureOrAccumulate(length >= size) { "is too short (minimum is $size characters)" }
 }
 
+@IgnorableReturnValue
 context(_: RaiseAccumulate<String>)
 private fun String.maxSize(size: Int): String = also {
     val _ = ensureOrAccumulate(length <= size) { "is too long (maximum is $size characters)" }
 }
 
+@IgnorableReturnValue
 context(_: RaiseAccumulate<String>)
 private fun String.looksLikeEmail(): String = also {
     val _ = ensureOrAccumulate(emailPattern.matches(this)) { "'$this' is invalid email" }
 }
 ```
 
-`ensureOrAccumulate` is the accumulating counterpart of `ensure`. Whereas `ensure`
-immediately short-circuits the entire computation, `ensureOrAccumulate` records the
-error message in the accumulator and lets execution continue. This means every rule in
-the same `accumulate` block runs, regardless of how many previous rules have already
-failed.
+`ensureOrAccumulate` is the accumulating version of `ensure`.
 
-The `@IgnorableReturnValue` annotation signals that the return value of each rule (the
-original `String`) is only there to enable fluent chaining; callers that invoke the
-function for its side-effect on the accumulator are not required to use it.
+With normal `ensure`, a failed condition short-circuits immediately. With
+`ensureOrAccumulate`, the error is recorded and validation continues. This lets us run
+all rules for a field and return all messages at once.
+
+The functions return the original `String` so they compose nicely, but callers don't
+need the return value. That is why the code uses `@IgnorableReturnValue`.
 
 ---
 
-## Field-level validation: grouping rules with `accumulate`
+## Field validation: collect rules, then name the field
 
-Individual rules are combined into per-field validators using `accumulate`. The
-`accumulate { … }` block creates a `RaiseAccumulate` scope. Inside it you can call
-`ensureOrAccumulate` directly (as above), or call any function that requires
-`RaiseAccumulate` in context.
+Individual rules are grouped into field validators with `accumulate`:
 
 ```kotlin
 context(_: Raise<NonEmptyList<String>>)
@@ -109,13 +121,13 @@ private fun String.passwordRules(): String = accumulate {
 }
 ```
 
-`accumulate` itself lives in a `Raise<NonEmptyList<E>>` context: it collects every
-individual `String` raised by `ensureOrAccumulate` and, if any were collected, raises
-them all together as a `NonEmptyList<String>`. If none were collected the last
-expression in the block is returned as the success value.
+Inside the block we are in a `RaiseAccumulate<String>` context, so we can call
+`notBlank`, `minSize`, and `maxSize` directly.
 
-The field-level validator then wraps the rule set with `withError` to map
-`NonEmptyList<String>` onto the concrete `InvalidField` subtype:
+If no rule fails, the block returns the password. If one or more rules fail, Arrow
+raises a `NonEmptyList<String>` containing all messages.
+
+Now we still need to say *which* field failed. That is what `withError` is for:
 
 ```kotlin
 context(_: Raise<InvalidField>)
@@ -123,27 +135,41 @@ private fun String.passwordValidation(): String =
     withError(::InvalidPassword) { passwordRules() }
 ```
 
-`withError` (from Arrow) transforms the error type of an inner `Raise` block. Here it
-converts a `NonEmptyList<String>` produced by `passwordRules()` into an
-`InvalidPassword`. See the
-[Arrow docs on transforming errors](https://arrow-kt.io/learn/typed-errors/working-with-typed-errors/#transforming-errors)
-for the general pattern.
+`passwordRules()` raises `NonEmptyList<String>`. `withError(::InvalidPassword)` turns
+that into `InvalidPassword`, which implements `InvalidField`.
 
-The public surface of each field validator exposes the `InvalidField` supertype so all
-fields can be treated uniformly during object-level accumulation:
+The public field validator exposes the common supertype:
 
 ```kotlin
 context(_: Raise<InvalidField>)
 private fun String.validPassword(): String = passwordValidation()
 ```
 
+Email and username validation follow the same shape:
+
+```kotlin
+context(_: Raise<InvalidField>)
+private fun String.emailValidation(): String =
+    withError(::InvalidEmail) { trim().emailRules() }
+
+context(_: Raise<InvalidField>)
+private fun String.usernameValidation(): String =
+    withError(::InvalidUsername) { trim().usernameRules() }
+```
+
+This is the first important translation:
+
+```text
+String rule errors -> NonEmptyList<String> -> InvalidField
+```
+
 ---
 
-## Object-level validation: the `accumulate` / `by accumulating` pattern
+## Object validation: `accumulate` and `by accumulating`
 
-This is where the design comes together. Each domain object — `RegisterUser`, `Login`,
-`NewArticle`, etc. — is validated by an `accumulate` block that collects one
-`InvalidField` per field via `by accumulating { … }` delegation:
+Once every field can raise `InvalidField`, we can validate a whole object.
+
+Here is `RegisterUser`:
 
 ```kotlin
 context(_: Raise<IncorrectInput>)
@@ -151,55 +177,67 @@ fun RegisterUser.validate(): RegisterUser =
     withError(::IncorrectInput) {
         accumulate {
             val username by accumulating { username.validUsername() }
-            val email    by accumulating { email.validEmail() }
+            val email by accumulating { email.validEmail() }
             val password by accumulating { password.validPassword() }
             RegisterUser(username, email, password)
         }
     }
 ```
 
-Breaking this down:
+There are a couple of pieces here.
 
-- **`accumulate { … }`** opens an accumulation scope whose error type is
-  `NonEmptyList<InvalidField>`.
-- **`by accumulating { … }`** runs the lambda inside the accumulation scope. If it
-  raises an `InvalidField`, that error is recorded. Either way, execution continues to
-  the next field. The `by` keyword (property delegation) is required here because
-  `accumulating` cannot return a value eagerly when a failure has been recorded — the
-  delegate defers reading the value until the end of the block, at which point Arrow
-  knows whether all fields succeeded.
-- The **trailing constructor call** `RegisterUser(username, email, password)` is only
-  reached when _all_ delegates have resolved successfully. If any field failed, the
-  collected `NonEmptyList<InvalidField>` is raised instead.
-- The outer **`withError(::IncorrectInput)`** converts that `NonEmptyList<InvalidField>`
-  into the top-level `IncorrectInput` error that the rest of the application works with.
+`accumulate { ... }` opens a scope that can collect multiple `InvalidField` values.
+Inside it, `by accumulating { ... }` runs one field validator. If the field raises, the
+error is stored and the next field still runs.
 
-Contrast this with a naïve sequential approach:
+The `by` is property delegation. Arrow needs this because there may not be a valid
+`username`, `email`, or `password` value yet. The delegate lets Arrow delay reading the
+value until it knows all fields succeeded.
+
+If all fields are valid, the last line builds a normal `RegisterUser`. If any field
+failed, the collected `NonEmptyList<InvalidField>` is raised instead.
+
+The outer `withError(::IncorrectInput)` performs the final translation:
+
+```text
+NonEmptyList<InvalidField> -> IncorrectInput
+```
+
+So callers only need to know about `IncorrectInput`, while the internals still preserve
+all field-level information.
+
+---
+
+## Why not validate sequentially?
+
+Let's compare it with a fail-fast implementation:
 
 ```kotlin
-// Short-circuits at the first failure — the caller never learns about the others.
+// Short-circuits at the first failure.
 context(_: Raise<IncorrectInput>)
 fun RegisterUser.validateNaive(): RegisterUser {
-    val username = username.validUsername()  // raises immediately on failure
-    val email    = email.validEmail()
+    val username = username.validUsername()
+    val email = email.validEmail()
     val password = password.validPassword()
     return RegisterUser(username, email, password)
 }
 ```
 
-With `accumulate` + `by accumulating`, all three fields are checked in one pass, and
-the caller receives every problem at once — which is exactly what an API consumer needs
-to correct a form submission.
+This shape is fine for many domain operations, but it is not great for input
+validation. If `username` fails, we never check `email` or `password`. The API consumer
+fixes one error, sends the form again, and only then discovers the next error.
 
-See the
-[Arrow validation docs](https://arrow-kt.io/learn/typed-errors/validation/#fail-first-vs-accumulation)
-for a side-by-side comparison of fail-first vs. accumulation.
+With `accumulate` and `by accumulating`, all three fields are checked in one pass.
+That is the behavior we usually want at the edge of an HTTP API.
+
+> See the [Arrow validation docs](https://arrow-kt.io/learn/typed-errors/validation/#fail-first-vs-accumulation)
+> for a side-by-side comparison of fail-first and accumulating validation.
 
 ---
 
-## Nullable fields: accumulating optional values
+## Nullable fields: optional values stay optional
 
-`Update` models a partial user profile edit where every field is optional:
+`Update` represents a partial profile update, so every user-editable field is nullable:
 
 ```kotlin
 context(_: Raise<IncorrectInput>)
@@ -207,23 +245,25 @@ fun Update.validate(): Update =
     withError(::IncorrectInput) {
         accumulate {
             val username by accumulating { username?.validUsername() }
-            val email    by accumulating { email?.validEmail() }
+            val email by accumulating { email?.validEmail() }
             val password by accumulating { password?.validPassword() }
             Update(userId, username, email, password, bio, image)
         }
     }
 ```
 
-The `?.` safe-call means that a missing field is simply `null` and passes through
-without raising anything. Only fields that are _present_ and _invalid_ contribute errors
-to the accumulator.
+The `?.` is doing exactly what we want. Missing values remain `null` and do not
+contribute errors. Present values are validated, and invalid present values are added to
+the accumulator.
+
+After validation, `UserService.update` performs one more domain check with normal
+fail-fast `Raise`: at least one field must be present.
 
 ---
 
-## Collection validation: `mapOrAccumulate`
+## Collections: `mapOrAccumulate`
 
-Tags on an article are validated as a collection. Each tag is checked individually and
-all invalid tags are reported together:
+Article tags are validated as a collection:
 
 ```kotlin
 context(_: Raise<InvalidField>)
@@ -232,23 +272,20 @@ private fun List<String>.validTags(): Set<String> =
 ```
 
 `mapOrAccumulate` is the accumulating counterpart of `map`. It runs the lambda for every
-element, collects any raised `String` errors, and — if any were collected — raises them
-together as a `NonEmptyList<String>`. The outer `withError(::InvalidTag)` wraps the
-whole list's errors into a single `InvalidTag`.
+element, collects any raised `String` errors, and raises them together as a
+`NonEmptyList<String>` if anything failed.
 
-Note that `mapOrAccumulate` still treats the _list_ as an atomic field: one `InvalidTag`
-is raised that contains the accumulated messages from all bad tags. This is intentional
-— from the API's perspective, "tags" is a single field.
+Then `withError(::InvalidTag)` wraps those messages into one `InvalidTag`.
 
-For a deeper look at accumulating over collections see the
-[Arrow typed-errors guide](https://arrow-kt.io/learn/typed-errors/working-with-typed-errors/#accumulating-errors).
+This means `tags` is still treated as one field from the API's perspective, even if
+multiple elements inside the list were invalid. That keeps the response simple without
+losing the useful messages.
 
 ---
 
-## Value class validation: query parameters
+## Value classes: validated query parameters
 
-Feed pagination parameters are validated into value classes before being passed to
-services:
+We also validate query parameters into value classes before passing them to services:
 
 ```kotlin
 context(_: Raise<InvalidFeedOffset>)
@@ -270,12 +307,10 @@ fun Int.validFeedLimit(): FeedLimit =
     }
 ```
 
-`@JvmInline value class FeedOffset(val offset: Int)` and `FeedLimit` are declared in
-`ArticleRoutes.kt`. Wrapping the raw `Int` in a value class makes it impossible to
-accidentally pass an unvalidated offset where a validated one is expected — the type
-system enforces the invariant at compile time.
+`FeedOffset` and `FeedLimit` are `@JvmInline value class` wrappers. Once we have one,
+we know that the raw `Int` passed validation.
 
-The two validated parameters are then accumulated at the `FeedParameters` level:
+The full feed parameters then accumulate both values:
 
 ```kotlin
 context(_: Raise<IncorrectInput>)
@@ -283,54 +318,57 @@ fun FeedParameters.validate(userId: UserId): GetFeed =
     withError(::IncorrectInput) {
         accumulate {
             val offset by accumulating { offset.validFeedOffset() }
-            val limit  by accumulating { limit.validFeedLimit() }
+            val limit by accumulating { limit.validFeedLimit() }
             GetFeed(userId, limit.limit, offset.offset)
         }
     }
 ```
 
+This is a small pattern, but I like it a lot. The route layer receives strings and
+numbers from HTTP, and the service layer receives values that already encode their
+invariants.
+
 ---
 
-## How validation flows into the `Raise` DSL
+## Back to the normal `Raise` DSL
 
-Every public `validate()` function requires `Raise<IncorrectInput>` in context —
-the same error type used throughout the service layer. This means calling `.validate()`
-inside any `Raise<IncorrectInput>` scope costs nothing extra; it is just a function
-call:
+Every public `validate()` function raises `IncorrectInput`. That means route handlers
+and services can call validation like any other typed-error function:
 
 ```kotlin
-// Inside a route handler, already inside a Raise<DomainError> / Raise<IncorrectInput> scope:
-val body = call.receive<RegisterUser>()
-val validated = body.validate()       // accumulates and either raises or returns
-userService.register(validated)       // only reachable with a fully validated value
+context(_: DomainErrors)
+fun register(input: RegisterUser): JwtToken {
+    val (username, email, password) = input.validate()
+    val userId = repo.insert(username, email, password)
+    return jwtService.generateJwtToken(userId)
+}
 ```
 
-There is no impedance mismatch between the accumulating validation layer and the
-fail-first service layer. Once `validate()` returns successfully you have a plain
-`RegisterUser` value; any subsequent `Raise`-based code treats it exactly like any
-other typed-error computation.
+There is no impedance mismatch between accumulating validation and the rest of the
+fail-fast service layer.
 
-This is the key insight: **accumulation is scoped**. The `accumulate { }` block
-collects all field errors and then either raises `IncorrectInput` or returns the
-validated object. From that point on, normal `Raise` semantics resume — short-circuit on
-the first logical failure, as usual. The two modes coexist cleanly because they operate
-at different layers of the call stack.
+The key is that accumulation is scoped. Inside `accumulate { ... }`, we collect as many
+validation errors as possible. Once `validate()` returns, we have a plain value. From
+that point on, normal `Raise` semantics resume and the next logical error
+short-circuits as usual.
 
-See the
-[Arrow guide on working with typed errors](https://arrow-kt.io/learn/typed-errors/working-with-typed-errors/)
-for the general `Raise` DSL primitives (`ensure`, `raise`, `withError`, `recover`) that
-are used alongside this pattern.
-
----
-
-## Layer summary
+So we get the best of both modes:
 
 | Layer | API | Error type |
 |---|---|---|
 | Individual rule | `ensureOrAccumulate` in `RaiseAccumulate<String>` | `String` |
 | Field validator | `accumulate { }` + `withError(::InvalidXxx)` | `InvalidField` |
 | Object validator | `accumulate { val x by accumulating { } }` + `withError(::IncorrectInput)` | `IncorrectInput` |
-| Service / route | normal `Raise<IncorrectInput>` | `IncorrectInput` |
+| Service / route | normal `Raise` | `IncorrectInput` or `DomainError` |
 
-Each layer translates errors upward using `withError`, and the `NonEmptyList` wrapper
-ensures the "at least one error" invariant is preserved across every translation.
+---
+
+## Where to go next
+
+Validation gives us a precise `IncorrectInput` value with all field errors preserved.
+The [end-to-end walkthrough](end-to-end-feature.md) shows where that error goes next:
+through the service layer, into `ErrorRoutes.kt`, and finally into the RealWorld
+`GenericErrorModel` response.
+
+Thank you for reading! I hope this makes `accumulate` feel like a small extension of the
+`Raise` DSL rather than a separate validation framework.

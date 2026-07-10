@@ -85,7 +85,8 @@ kotlin {
       "-Xreturn-value-checker=full",
       "-Xname-based-destructuring=complete",
       "-Xcontext-sensitive-resolution",
-      "-Xcollection-literals"
+      "-Xcollection-literals",
+      "-Xintrinsic-const-evaluation"
     )
     allWarningsAsErrors = true
   }

@@ -1,16 +1,17 @@
-# Project Setup
+# Project setup
 
-This tutorial explains how the application boots: how configuration is loaded,
-how `embeddedServer` is started with resource safety, and how the dependency
-graph is assembled before the first request arrives.
+Before the first request can be handled, we need to do a surprising amount of work:
+read configuration, open a connection pool, create a SqlDelight driver, build the
+service graph, start Ktor, and make sure everything shuts down in the right order.
+
+This tutorial walks through that bootstrap path. The main idea is simple: use plain
+Kotlin for wiring, and use Arrow's `ResourceScope` for resource safety.
 
 ---
 
 ## Configuration with `Env`
 
-All configuration lives in a single data class hierarchy in `env/Env.kt`.
-Each nested class reads from environment variables with sensible defaults for
-local development:
+All configuration lives in `env/Env.kt`:
 
 ```kotlin
 data class Env(
@@ -20,44 +21,43 @@ data class Env(
 ) {
     data class Http(
         val host: String = getenv("HOST") ?: "0.0.0.0",
-        val port: Int = getenv("SERVER_PORT")?.toIntOrNull() ?: 8080,
+        val port: Int = getenv("SERVER_PORT")?.toIntOrNull() ?: PORT,
     )
 
     data class DataSource(
-        val url: String = getenv("POSTGRES_URL") ?: "jdbc:postgresql://localhost:5432/ktor-arrow-example-database",
-        val username: String = getenv("POSTGRES_USERNAME") ?: "postgres",
-        val password: String = getenv("POSTGRES_PASSWORD") ?: "postgres",
-        val driver: String = "org.postgresql.Driver",
+        val url: String = getenv("POSTGRES_URL") ?: JDBC_URL,
+        val username: String = getenv("POSTGRES_USERNAME") ?: JDBC_USER,
+        val password: String = getenv("POSTGRES_PASSWORD") ?: JDBC_PW,
+        val driver: String = JDBC_DRIVER,
     )
 
     data class Auth(
-        val secret: String = getenv("JWT_SECRET") ?: "MySuperStrongSecret",
-        val issuer: String = getenv("JWT_ISSUER") ?: "KtorArrowExampleIssuer",
-        val duration: Duration = (getenv("JWT_DURATION")?.toIntOrNull() ?: 30).days,
+        val secret: String = getenv("JWT_SECRET") ?: AUTH_SECRET,
+        val issuer: String = getenv("JWT_ISSUER") ?: AUTH_ISSUER,
+        val duration: Duration = (getenv("JWT_DURATION")?.toIntOrNull() ?: AUTH_DURATION).days,
     )
 }
 ```
 
-Key design decisions:
+There is no configuration framework here. `Env()` is a normal constructor call that
+reads `System.getenv` and falls back to local defaults.
 
-- **Plain data classes, no framework.** There is no config library, no HOCON
-  parsing, and no injection container. `Env()` is a regular constructor call
-  that reads `System.getenv` at the call site. This makes configuration
-  trivially testable -- just pass different values to the constructor.
-- **Defaults everywhere.** Running locally requires zero environment variables.
-  The defaults match the `docker-compose.yaml` that ships with the project, so
-  `docker-compose up -d` followed by `./gradlew run` works out of the box.
-- **Grouped by concern.** `Http`, `DataSource`, and `Auth` each carry only the
-  values their subsystem needs. When a function takes `Env.DataSource`, it
-  cannot accidentally read the JWT secret.
+That gives us a couple of nice properties.
+
+First, the defaults match the local PostgreSQL setup from `docker-compose.yaml`, so
+running the project locally does not require a wall of environment variables.
+
+Second, configuration is grouped by concern. A function that needs database settings can
+take `Env.DataSource`; it cannot accidentally reach for the JWT secret.
+
+Finally, this remains easy to test. We can construct `Env`, or one of its nested data
+classes, directly.
 
 ---
 
-## The entry point: `SuspendApp` and `embeddedServer`
+## The entry point: `SuspendApp`
 
-The `main` function in `Main.kt` is the only entry point. It uses Arrow's
-[SuspendApp](https://arrow-kt.io/ecosystem/suspendapp/) to get a
-coroutine-aware `main` with proper JVM shutdown-hook handling:
+The whole application starts in `Main.kt`:
 
 ```kotlin
 fun main() = SuspendApp {
@@ -70,50 +70,33 @@ fun main() = SuspendApp {
 }
 ```
 
-This is four lines, but each one matters:
+This is small, but it contains the entire lifecycle of the server.
 
-### 1. `SuspendApp { ... }`
+`SuspendApp` gives us a coroutine-aware `main` with proper JVM shutdown-hook handling.
+It is the production-friendly version of writing `runBlocking` ourselves. When the JVM
+receives `SIGTERM` or `SIGINT`, the coroutine scope is cancelled and resources can be
+released cleanly.
 
-`SuspendApp` replaces `fun main() = runBlocking { ... }` with a version that
-installs JVM shutdown hooks. When the process receives `SIGTERM` or
-`SIGINT`, the coroutine scope is cancelled gracefully instead of being
-killed mid-flight. This matters in production: connections are closed, in-flight
-requests complete, and resources are released in order.
+Then we build `Env()` before acquiring any resource. From that point on, we pass one
+immutable configuration value through the rest of the bootstrap code.
 
-### 2. `val env = Env()`
+The `resourceScope { ... }` block is where resource safety starts. Every resource
+acquired inside this scope is released when the scope exits, in reverse acquisition
+order. This is the `try-with-resources` idea, but for suspending code and without
+nesting.
 
-Configuration is loaded eagerly, before any resource is opened. If an
-environment variable is missing or malformed, the process fails fast.
+Finally, `server(Netty, ...) { app(dependencies) }` is SuspendApp's Ktor integration. It
+wraps Ktor's `embeddedServer` as an Arrow resource, so starting and stopping the server
+becomes part of the same lifecycle as the database resources.
 
-### 3. `resourceScope { ... }`
-
-`resourceScope` is Arrow Fx's structured resource management. Every resource
-acquired inside this block -- the HikariCP connection pool, the SqlDelight
-driver, the Ktor server itself -- is guaranteed to be closed when the block
-exits, in reverse acquisition order. This is the `try-with-resources` equivalent
-for suspend functions, extended to handle an arbitrary number of resources
-without nesting.
-
-### 4. `server(Netty, ...) { app(dependencies) }`
-
-This is SuspendApp's Ktor integration. It calls Ktor's `embeddedServer`
-internally, but wraps it as a `Resource` so that the server is started and
-stopped as part of the `resourceScope` lifecycle. The `Netty` argument selects
-the engine. The trailing lambda is a standard Ktor `Application.() -> Unit`
-configuration block.
-
-### 5. `awaitCancellation()`
-
-After the server starts, the coroutine suspends indefinitely. The process stays
-alive until a shutdown signal arrives, at which point `SuspendApp` cancels the
-scope, the `resourceScope` tears down all resources, and the process exits
-cleanly.
+`awaitCancellation()` keeps the process alive. Once shutdown begins, the coroutine is
+cancelled, `resourceScope` unwinds, and the server, driver, and pool are closed.
 
 ---
 
 ## Ktor application configuration
 
-The `app` function wires Ktor plugins and routes:
+`app` wires Ktor plugins and routes:
 
 ```kotlin
 fun Application.app(module: Dependencies) {
@@ -125,34 +108,54 @@ fun Application.app(module: Dependencies) {
         commentRoutes(module.userService, module.articleService, module.jwtService)
         profileRoutes(module.userPersistence, module.jwtService)
     }
-    install(Cohort) {
-        verboseHealthCheckResponse = true
-        healthcheck("/healthz/startup", HealthCheckRegistry(Dispatchers.Default))
-        healthcheck("/healthz/liveness", HealthCheckRegistry(Dispatchers.Default))
-        healthcheck("/healthz/readiness", module.healthCheck)
+    install(Cohort) { healthcheck("/readiness", module.healthCheck) }
+}
+```
+
+The `configure()` function in `env/ktor.kt` installs the shared Ktor plugins:
+
+```kotlin
+fun Application.configure(jwtConfig: JwtConfig<JwtContext>) {
+    install(DefaultHeaders)
+    install(ContentNegotiation) {
+        json(
+            Json {
+                serializersModule = kotlinXSerializersModule
+                isLenient = true
+                ignoreUnknownKeys = true
+            }
+        )
+    }
+    install(CORS) {
+        allowHeader(HttpHeaders.Authorization)
+        allowHeader(HttpHeaders.ContentType)
+        anyHost()
+        anyMethod()
+        allowNonSimpleContentTypes = true
+        maxAgeDuration = 3.days
+    }
+    authentication {
+        jwt(jwtConfig.name) {
+            authSchemes("Token")
+            verifier(jwtConfig.verifier)
+            validate(jwtConfig.validate)
+        }
     }
 }
 ```
 
-`configure()` in `env/ktor.kt` installs the standard Ktor plugins:
+So route handlers can stay focused on request handling. They do not configure JSON,
+CORS, default headers, or JWT validation themselves.
 
-- **`DefaultHeaders`** -- adds standard HTTP headers to every response.
-- **`ContentNegotiation`** with `kotlinx.serialization` -- automatic JSON
-  serialization and deserialization.
-- **`CORS`** -- configured to allow `Authorization` and `Content-Type` headers
-  from any origin.
-- **`authentication`** with JWT -- verifies `Token <jwt>` headers using the
-  HMAC512 verifier built by `JwtService`.
-
-Each plugin is installed exactly once. Route handlers never configure
-serialization or auth themselves -- they rely on the application-level setup.
+The only health endpoint registered today is `/readiness`, backed by Cohort's
+`HealthCheckRegistry`. It checks that Hikari can provide at least one database
+connection.
 
 ---
 
 ## The dependency graph
 
-`Dependencies` is a plain class that holds every service and persistence
-instance the route layer needs:
+`Dependencies` is a plain Kotlin class:
 
 ```kotlin
 class Dependencies(
@@ -165,19 +168,23 @@ class Dependencies(
 )
 ```
 
-The `dependencies()` factory function builds the graph inside `ResourceScope`:
+There is no dependency injection framework. The graph is built by hand in one function:
 
 ```kotlin
 suspend fun ResourceScope.dependencies(env: Env): Dependencies {
     val hikari = hikari(env.dataSource)
-    val sqlDelight = sqlDelight(hikari)
+    return dependencies(env, hikari)
+}
 
+suspend fun ResourceScope.dependencies(env: Env, hikari: HikariDataSource): Dependencies {
+    val sqlDelight = sqlDelight(hikari)
     val userRepo = UserPersistence(sqlDelight.usersQueries, sqlDelight.followingQueries)
-    val articleRepo = ArticlePersistence(
-        sqlDelight.articlesQueries,
-        sqlDelight.commentsQueries,
-        sqlDelight.tagsQueries,
-    )
+    val articleRepo =
+        ArticlePersistence(
+            sqlDelight.articlesQueries,
+            sqlDelight.commentsQueries,
+            sqlDelight.tagsQueries,
+        )
     val tagPersistence = TagPersistence(sqlDelight.tagsQueries)
     val favouritePersistence = FavouritePersistence(sqlDelight.favoritesQueries)
 
@@ -185,16 +192,21 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
     val slugGenerator: SlugGenerator = slugifyGenerator()
     val userService = UserService(userRepo, jwtService)
 
-    val checks = HealthCheckRegistry(Dispatchers.Default) {
-        register(HikariConnectionsHealthCheck(hikari, 1), Duration.ZERO, 5.seconds)
+    val checks = HealthCheckRegistry {
+        register(HikariConnectionsHealthCheck(hikari, minConnections = 1))
     }
 
     return Dependencies(
         userService = userService,
         jwtService = jwtService.config,
-        articleService = ArticleService(
-            slugGenerator, articleRepo, userRepo, tagPersistence, favouritePersistence,
-        ),
+        articleService =
+            ArticleService(
+                slugGenerator,
+                articleRepo,
+                userRepo,
+                tagPersistence,
+                favouritePersistence,
+            ),
         healthCheck = checks,
         tagPersistence = tagPersistence,
         userPersistence = userRepo,
@@ -202,44 +214,36 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
 }
 ```
 
-The construction order matters:
+This is intentionally boring. And boring is good here.
 
-1. **HikariCP connection pool** -- acquired as a `ResourceScope` resource via
-   `autoCloseable`. If the database is unreachable, the process fails here
-   before any server socket is opened.
-2. **SqlDelight driver and schema** -- the JDBC driver is wrapped as a
-   closeable resource, and `SqlDelight.Schema.create(driver)` runs the DDL
-   migrations.
-3. **Persistence layers** -- each one receives only the SqlDelight query
-   objects it needs. `UserPersistence` gets `usersQueries` and
-   `followingQueries`; `ArticlePersistence` gets `articlesQueries`,
-   `commentsQueries`, and `tagsQueries`.
-4. **Services** -- composed from persistence layers and cross-cutting
-   concerns like `JwtService`.
-5. **Health checks** -- Cohort's `HealthCheckRegistry` with a HikariCP
-   connection check, exposed at `/healthz/readiness`. Empty registries
-   serve `/healthz/startup` and `/healthz/liveness`.
+We can read the construction order directly:
 
-There is no dependency injection framework. The graph is built by hand in a
-single function, making the wiring explicit and easy to follow. Because the
-function runs inside `ResourceScope`, any resource that implements
-`AutoCloseable` is automatically closed on shutdown.
+1. Acquire the HikariCP connection pool.
+2. Create the SqlDelight JDBC driver and run `SqlDelight.Schema.create(driver)`.
+3. Build persistence classes from the query objects they need.
+4. Build services from persistence classes and cross-cutting concerns like `JwtService`.
+5. Build the readiness health check.
+6. Return one `Dependencies` object for the route layer.
+
+Because the function runs in `ResourceScope`, resources that are registered with
+`autoCloseable` or `closeable` are tied to the application lifecycle.
 
 ---
 
 ## Resource safety in detail
 
-The `hikari()` and `sqlDelight()` helpers in `env/persistence.kt` show how
-resources are registered:
+The resource helpers live in `env/persistence.kt`:
 
 ```kotlin
 suspend fun ResourceScope.hikari(env: Env.DataSource): HikariDataSource = autoCloseable {
-    HikariDataSource(HikariConfig().apply {
-        jdbcUrl = env.url
-        username = env.username
-        password = env.password
-        driverClassName = env.driver
-    })
+    HikariDataSource(
+        HikariConfig().apply {
+            jdbcUrl = env.url
+            username = env.username
+            password = env.password
+            driverClassName = env.driver
+        }
+    )
 }
 
 suspend fun ResourceScope.sqlDelight(dataSource: DataSource): SqlDelight {
@@ -254,15 +258,25 @@ suspend fun ResourceScope.sqlDelight(dataSource: DataSource): SqlDelight {
 }
 ```
 
-`autoCloseable` and `closeable` register the resource with the enclosing
-`ResourceScope`. When the scope is cancelled:
+`autoCloseable` registers the `HikariDataSource` with the current `ResourceScope`.
+`closeable` does the same for the SqlDelight JDBC driver.
 
-1. The Ktor server stops accepting new connections.
-2. The SqlDelight JDBC driver is closed.
-3. The HikariCP pool drains and closes.
+When shutdown happens, the release order is the reverse of acquisition:
 
-This happens automatically, in reverse order, regardless of whether the
-shutdown was triggered by a signal, an exception, or a test completing.
+```text
+server starts
+  -> Hikari acquired
+  -> SqlDelight driver acquired
+  -> Ktor server acquired
+
+shutdown
+  -> Ktor server stops
+  -> SqlDelight driver closes
+  -> Hikari pool closes
+```
+
+That order is exactly what we want. The server stops accepting work before the database
+resources disappear underneath it.
 
 ---
 
@@ -270,55 +284,56 @@ shutdown was triggered by a signal, an exception, or a test completing.
 
 The project uses three version catalogs:
 
-- `libs` -- declared in `gradle/libs.versions.toml` (Arrow, SqlDelight,
-  Testcontainers, etc.)
-- `ktorLibs` -- imported from `io.ktor:ktor-version-catalog` in
-  `settings.gradle.kts`
-- `arrow` -- imported from `io.arrow-kt:arrow-version-catalog` in
-  `settings.gradle.kts`
+- `libs`, declared in `gradle/libs.versions.toml`.
+- `ktorLibs`, imported from `io.ktor:ktor-version-catalog` in `settings.gradle.kts`.
+- `arrow`, imported from `io.arrow-kt:arrow-version-catalog` in `settings.gradle.kts`.
 
-The key runtime dependencies in `build.gradle.kts`:
+The runtime dependencies in `build.gradle.kts` are grouped by concern:
 
 | Dependency | Purpose |
 |---|---|
 | `libs.bundles.arrow` | Arrow Core, Arrow Fx Coroutines, SuspendApp, SuspendApp-Ktor |
 | `ktorLibs.server.netty` | Ktor HTTP server with the Netty engine |
+| `ktorLibs.server.defaultHeaders` | Standard response headers |
+| `ktorLibs.server.cors` | CORS configuration |
 | `ktorLibs.server.contentNegotiation` | JSON request/response serialization |
 | `ktorLibs.serialization.kotlinx.json` | kotlinx.serialization JSON format |
 | `ktorLibs.server.auth.jwt` | Ktor JWT authentication plugin |
-| `libs.kjwt.core` | JWT token generation (kJWT) |
+| `libs.spine.api`, `libs.spine.server`, `libs.spine.server.arrow` | Typed endpoint contracts and route integration |
+| `libs.kjwt.core` | JWT token generation |
 | `libs.sqldelight.jdbc` | SqlDelight JDBC driver |
 | `libs.hikari` | HikariCP connection pool |
 | `libs.postgresql` | PostgreSQL JDBC driver |
-| `libs.bundles.cohort` | Cohort health checks (Ktor + HikariCP) |
+| `libs.bundles.cohort` | Cohort readiness checks |
 | `libs.slugify` | URL slug generation for article titles |
+| `libs.logback.classic` | Logging backend |
 
-The Arrow bundle deserves a closer look. It pulls in four libraries:
+The Arrow bundle is small but important:
 
 ```toml
 [bundles]
 arrow = [
-    "arrow-core",      # Raise, Either, NonEmptyList, etc.
-    "arrow-fx",        # ResourceScope, coroutine utilities
-    "suspendapp",      # SuspendApp entry point with shutdown hooks
-    "suspendapp-ktor", # server() helper that wraps embeddedServer as a Resource
+    "arrow-core",
+    "arrow-fx",
+    "suspendapp",
+    "suspendapp-ktor",
 ]
 ```
 
-`arrow-core` provides the `Raise` DSL used throughout the codebase for typed
-error handling. `arrow-fx` provides `ResourceScope` for structured resource
-management. `suspendapp` and `suspendapp-ktor` provide the `SuspendApp` entry
-point and the `server()` bridge that connects Ktor's lifecycle to
-`ResourceScope`.
+`arrow-core` gives us `Raise`, `NonEmptyList`, `recover`, and the typed-error DSL.
+`arrow-fx` gives us `ResourceScope`. `suspendapp` and `suspendapp-ktor` connect the
+application entry point and Ktor server lifecycle to those resources.
 
 ---
 
 ## Startup sequence summary
 
+Putting it all together, startup looks like this:
+
 ```text
 main()
   |
-  +-- SuspendApp { ... }              Install JVM shutdown hooks
+  +-- SuspendApp { ... }              Install shutdown handling
   |
   +-- Env()                           Read environment variables
   |
@@ -337,13 +352,19 @@ main()
        +-- awaitCancellation()        Suspend until shutdown signal
 ```
 
-On shutdown, the sequence reverses: the server stops, the driver closes, the
-pool drains, and the process exits.
+And on shutdown the order reverses: Ktor stops, the SqlDelight driver closes, Hikari
+closes, and the process exits.
+
+No container is hiding that from us. The wiring is plain Kotlin, while resource safety is
+handled by `ResourceScope`.
 
 ---
 
 ## Where to go next
 
-- [End-to-end feature](end-to-end-feature.md) -- trace a request from the HTTP
-  contract through services and persistence
-- [Validation](validation.md) -- how input validation accumulates errors
+- [End-to-end feature](end-to-end-feature.md): trace registration from HTTP to the
+  database and back.
+- [Validation](validation.md): see how request validation accumulates all field errors.
+
+Thank you for reading! Next we can look at how this setup supports typed errors across a
+full feature without making the route handlers noisy.
