@@ -16,7 +16,7 @@ io.github.nomisrev/
 ├── ErrorRoutes.kt         # Route.route(endpoint) { } DSL, error recovery
 ├── Validation.kt          # accumulate-based input validation shared by all features
 ├── env/
-│   ├── Env.kt              # plain data class config, read from environment variables
+│   ├── Env.kt              # serializable config loaded from application.yaml
 │   ├── Dependencies.kt     # ResourceScope wiring: builds every repository/service once
 │   ├── persistence.kt      # Hikari + SqlDelight ResourceScope builders
 │   └── ktor.kt             # Application.configure(): plugins, JSON, CORS, JWT auth
@@ -51,7 +51,7 @@ one structured scope, released automatically on shutdown/cancellation:
 
 ```kotlin
 fun main() = SuspendApp {
-    val env = Env()
+    val env = ApplicationConfig("application.yaml").getAs<Env>()
     resourceScope {
         val dependencies = dependencies(env)
         val _ = server(Netty, host = env.http.host, port = env.http.port) { app(dependencies) }
@@ -165,35 +165,51 @@ suspend fun ResourceScope.sqlDelight(dataSource: DataSource): SqlDelight {
 
 ## Configuration pattern
 
-Configuration is a single plain `Env` data class (`env/Env.kt`) read directly from environment variables with
-hardcoded local-dev defaults — there is no `application.yaml`/`ApplicationConfig` loader in this project:
+Configuration is a single serializable `Env` data class (`env/Env.kt`) loaded from `application.yaml` with Ktor's
+`ApplicationConfig` loader, matching the quickstart pattern:
 
 ```kotlin
+@Serializable
 data class Env(
-    val dataSource: DataSource = DataSource(),
-    val http: Http = Http(),
-    val auth: Auth = Auth(),
+    val dataSource: DataSource,
+    val http: Http,
+    val auth: Auth,
 ) {
+    @Serializable
     data class Http(
-        val host: String = getenv("HOST") ?: "0.0.0.0",
-        val port: Int = getenv("SERVER_PORT")?.toIntOrNull() ?: PORT,
+        val host: String,
+        val port: Int,
     )
 
+    @Serializable
     data class DataSource(
-        val url: String = getenv("POSTGRES_URL") ?: JDBC_URL,
-        val username: String = getenv("POSTGRES_USERNAME") ?: JDBC_USER,
-        val password: String = getenv("POSTGRES_PASSWORD") ?: JDBC_PW,
-        val driver: String = JDBC_DRIVER,
+        val url: String,
+        val username: String,
+        val password: String,
+        val driver: String,
+    )
+
+    @Serializable
+    data class Auth(
+        val secret: String,
+        val issuer: String,
+        val duration: kotlin.time.Duration,
     )
 }
 ```
 
+`Main.kt` should read it with:
+
+```kotlin
+val env = ApplicationConfig("application.yaml").getAs<Env>()
+```
+
 To add a new configuration group:
 
-1. Add a nested `data class` to `Env`, following the `getenv("VAR_NAME") ?: default` pattern with a private
-   top-level `const val` for the default.
-2. Add it as a constructor parameter (with a default instance) on `Env` itself, mirroring `dataSource`/`http`/`auth`.
-3. Thread it through `dependencies(env)` to whatever builder function needs it (`env.newThing`).
+1. Add a nested `@Serializable data class` to `Env`.
+2. Add it as a constructor parameter on `Env` itself, mirroring `dataSource`/`http`/`auth`.
+3. Add the corresponding section to `application.yaml` and thread it through `dependencies(env)` to whatever
+   builder function needs it (`env.newThing`).
 
 ## Health checks
 

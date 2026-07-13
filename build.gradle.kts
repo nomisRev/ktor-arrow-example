@@ -58,6 +58,7 @@ dependencies {
   implementation(ktorLibs.server.defaultHeaders)
   implementation(ktorLibs.server.cors)
   implementation(ktorLibs.server.contentNegotiation)
+  implementation(ktorLibs.server.config.yaml)
   implementation(libs.spine.api)
   implementation(libs.spine.server)
   implementation(libs.spine.server.arrow)

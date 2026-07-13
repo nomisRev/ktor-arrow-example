@@ -15,16 +15,13 @@ import opensavvy.spine.server.TypedResponseScope
 import opensavvy.spine.server.fail
 import opensavvy.spine.server.route
 
-@Serializable
-data class GenericErrorModel(val errors: GenericErrorModelErrors)
+@Serializable data class GenericErrorModel(val errors: GenericErrorModelErrors)
 
-@Serializable
-data class GenericErrorModelErrors(val body: List<String>)
+@Serializable data class GenericErrorModelErrors(val body: List<String>)
 
 /**
  * This is a function that allows us to remove a layer of indentation and repition in every route.
  * Normally we'd have to write:
- *
  * ```kotlin
  * routeWithRaise(Api.Articles.list) {
  *     withError({ e: DomainError -> e.toGenericErrorModel() }) {
@@ -35,9 +32,10 @@ data class GenericErrorModelErrors(val body: List<String>)
  * }
  * ```
  *
- * To manually transform our fine-grained `DomainError` into the Real World Conduit API [GenericErrorModel].
- * Using this extension, we can bake-in `{ e: DomainError -> e.toGenericErrorModel() }`.
- * This allows our `Route` to take [Api]'s defined with `GenericErrorModel` and run our [DomainErrors] instead.
+ * To manually transform our fine-grained `DomainError` into the Real World Conduit API
+ * [GenericErrorModel]. Using this extension, we can bake-in `{ e: DomainError ->
+ * e.toGenericErrorModel() }`. This allows our `Route` to take [Api]'s defined with
+ * `GenericErrorModel` and run our [DomainErrors] instead.
  *
  * ```kotlin
  * route(Api.Articles.list) {
@@ -50,22 +48,23 @@ data class GenericErrorModelErrors(val body: List<String>)
 @Suppress("DSL_MARKER_APPLIED_TO_WRONG_TARGET")
 @KtorDsl
 inline fun <
-        reified In : Any,
-        reified Out : Any,
-        reified Failure : Or<Never, ByCode<GenericErrorModel>>,
-        reified Params : Parameters
-        >
-        Route.route(
+    reified In : Any,
+    reified Out : Any,
+    reified Failure : Or<Never, ByCode<GenericErrorModel>>,
+    reified Params : Parameters,
+> Route.route(
     endpoint: Endpoint<In, Out, Failure, Params>,
-    crossinline block: suspend context(DomainErrors) TypedResponseScope<
+    crossinline block:
+        suspend context(DomainErrors) TypedResponseScope<
             In,
             Out,
             Or<Never, ByCode<GenericErrorModel>>,
             Params,
-            >.() -> Unit,
-): Unit = route(endpoint) response@{
-    recover(
-        block = { block() },
-        recover = { error: DomainError -> fail(error.toGenericErrorModel()) },
-    )
-}
+        >.() -> Unit,
+): Unit =
+    route(endpoint) response@{
+        recover(
+            block = { block() },
+            recover = { error: DomainError -> fail(error.toGenericErrorModel()) },
+        )
+    }
