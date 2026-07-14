@@ -5,10 +5,13 @@ import arrow.core.raise.context.Raise
 import arrow.core.raise.context.ensure
 import arrow.core.raise.context.ensureNotNull
 import arrow.core.raise.context.raise
+import io.github.nomisrev.Email
 import io.github.nomisrev.EmailAlreadyExists
+import io.github.nomisrev.Password
 import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.UserError
 import io.github.nomisrev.UserNotFound
+import io.github.nomisrev.Username
 import io.github.nomisrev.UsernameAlreadyExists
 import io.github.nomisrev.profiles.Profile
 import io.github.nomisrev.sqldelight.FollowingQueries
@@ -19,7 +22,8 @@ import javax.crypto.spec.PBEKeySpec
 import org.postgresql.util.PSQLException
 import org.postgresql.util.PSQLState
 
-@JvmInline value class UserId(val serial: Long)
+@JvmInline
+value class UserId(val serial: Long)
 
 class UserPersistence(
     private val usersQueries: UsersQueries,
@@ -30,14 +34,14 @@ class UserPersistence(
         SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512"),
 ) {
     context(_: Raise<UserError>)
-    fun insert(username: String, email: String, password: String): UserId {
+    fun insert(register: RegisterUser): UserId {
         val salt = generateSalt()
-        val key = generateKey(password, salt)
+        val key = generateKey(register.password.raw(), salt)
         return catch({
             usersQueries
                 .insertAndGetId(
-                    username = username,
-                    email = email,
+                    username = register.username.value,
+                    email = register.email.value,
                     salt = salt,
                     hashed_password = key,
                     bio = "",
@@ -45,20 +49,20 @@ class UserPersistence(
                 )
                 .executeAsOne()
         }) { e: PSQLException ->
-            raiseUniqueViolation(e, username, email)
+            raiseUniqueViolation(e, register.username, register.email)
         }
     }
 
     context(_: Raise<UserError>)
-    fun verifyPassword(email: String, password: String): UserIdAndInfo {
+    fun verifyPassword(email: Email, password: Password): UserIdAndInfo {
         val (id, username, salt, hashed_password, bio, image) =
-            ensureNotNull(usersQueries.selectSecurityByEmail(email).executeAsOneOrNull()) {
+            ensureNotNull(usersQueries.selectSecurityByEmail(email.value).executeAsOneOrNull()) {
                 UserNotFound("email=$email")
             }
 
-        val hash = generateKey(password, salt)
+        val hash = generateKey(password.raw(), salt)
         ensure(hash contentEquals hashed_password) { PasswordNotMatched }
-        return UserIdAndInfo(id, UserInfo(email, username, bio, image))
+        return UserIdAndInfo(id, UserInfo(email.value, username, bio, image))
     }
 
     context(_: Raise<UserNotFound>)
@@ -98,12 +102,11 @@ class UserPersistence(
         if (authorIds.isEmpty()) emptyMap()
         else
             usersQueries
-                .selectProfilesByViewer(viewerId?.serial ?: NO_USER, authorIds.distinct()) {
-                    id,
-                    username,
-                    bio,
-                    image,
-                    following ->
+                .selectProfilesByViewer(viewerId?.serial ?: NO_USER, authorIds.distinct()) { id,
+                                                                                             username,
+                                                                                             bio,
+                                                                                             image,
+                                                                                             following ->
                     id to Profile(username, bio, image, following > 0)
                 }
                 .executeAsList()
@@ -114,38 +117,31 @@ class UserPersistence(
 
     @Suppress("LongParameterList")
     context(_: Raise<UserError>)
-    fun update(
-        userId: UserId,
-        email: String?,
-        username: String?,
-        password: String?,
-        bio: String?,
-        image: String?,
-    ): UserInfo {
-        val passwordUpdate = password?.let {
+    fun update(update: Update): UserInfo {
+        val passwordUpdate = update.password?.let {
             val salt = generateSalt()
-            salt to generateKey(it, salt)
+            salt to generateKey(it.raw(), salt)
         }
 
         val info =
             catch({
                 usersQueries
                     .update(
-                        email = email,
-                        username = username,
+                        email = update.email?.value,
+                        username = update.username?.value,
                         salt = passwordUpdate?.first,
                         hashed_password = passwordUpdate?.second,
-                        bio = bio,
-                        image = image,
-                        userId = userId,
-                        mapper = ::UserInfo,
+                        bio = update.bio,
+                        image = update.image,
+                        userId = update.userId,
+                        ::UserInfo
                     )
                     .executeAsOneOrNull()
             }) { e: PSQLException ->
-                raiseUniqueViolation(e, username, email)
+                raiseUniqueViolation(e, update.username, update.email)
             }
 
-        return ensureNotNull(info) { UserNotFound("userId=$userId") }
+        return ensureNotNull(info) { UserNotFound("userId=${update.userId}") }
     }
 
     suspend fun unfollowProfile(followedUsername: String, followerId: UserId) {
@@ -168,12 +164,12 @@ class UserPersistence(
     context(_: Raise<UserError>)
     private fun raiseUniqueViolation(
         exception: PSQLException,
-        username: String?,
-        email: String?,
+        username: Username?,
+        email: Email?,
     ): Nothing =
         when (exception.serverErrorMessage?.constraint) {
-            "users_username_key" -> raise(UsernameAlreadyExists(username.orEmpty()))
-            "users_email_key" -> raise(EmailAlreadyExists(email.orEmpty()))
+            "users_username_key" -> raise(UsernameAlreadyExists(username?.value.orEmpty()))
+            "users_email_key" -> raise(EmailAlreadyExists(email?.value.orEmpty()))
             else -> throw exception
         }
 

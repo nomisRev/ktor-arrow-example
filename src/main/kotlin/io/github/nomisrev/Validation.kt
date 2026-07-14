@@ -4,11 +4,13 @@
 package io.github.nomisrev
 
 import arrow.core.NonEmptyList
+import arrow.core.nonEmptyListOf
 import arrow.core.raise.ExperimentalRaiseAccumulateApi
 import arrow.core.raise.context.Raise
 import arrow.core.raise.context.RaiseAccumulate
 import arrow.core.raise.context.accumulate
 import arrow.core.raise.context.accumulating
+import arrow.core.raise.context.ensure
 import arrow.core.raise.context.ensureOrAccumulate
 import arrow.core.raise.context.mapOrAccumulate
 import arrow.core.raise.context.withError
@@ -24,6 +26,9 @@ import io.github.nomisrev.users.Login
 import io.github.nomisrev.users.RegisterUser
 import io.github.nomisrev.users.Update
 import io.github.nomisrev.users.UserId
+import kotlin.text.contains
+import kotlin.text.isNotBlank
+import kotlin.text.trim
 
 sealed interface InvalidField {
     val errors: NonEmptyList<String>
@@ -47,48 +52,54 @@ data class InvalidUsername(override val errors: NonEmptyList<String>) : InvalidF
 }
 
 data class InvalidTitle(override val errors: NonEmptyList<String>) : InvalidField {
+    constructor(error: String) : this(nonEmptyListOf(error))
+
     override val field: String = "title"
 }
 
 data class InvalidDescription(override val errors: NonEmptyList<String>) : InvalidField {
+    constructor(error: String) : this(nonEmptyListOf(error))
+
     override val field: String = "description"
 }
 
 data class InvalidBody(override val errors: NonEmptyList<String>) : InvalidField {
+    constructor(error: String) : this(nonEmptyListOf(error))
+
     override val field: String = "body"
 }
 
 context(_: Raise<IncorrectInput>)
-fun Login.validate(): Login = withError(::IncorrectInput) { validated() }
-
-context(_: Raise<NonEmptyList<InvalidField>>)
-private fun Login.validated(): Login = accumulate {
-    val email by accumulating { email.validEmail() }
-    val password by accumulating { password.validPassword() }
-    Login(email, password)
-}
-
-context(_: Raise<IncorrectInput>)
-fun RegisterUser.validate(): RegisterUser =
-    withError(::IncorrectInput) {
-        accumulate {
-            val username by accumulating { username.validUsername() }
-            val email by accumulating { email.validEmail() }
-            val password by accumulating { password.validPassword() }
-            RegisterUser(username, email, password)
-        }
-    }
+fun Login.validate(): Login = TODO("Remove in favor of Login.Companion.invoke")
+//    withError(::IncorrectInput) {
+//    accumulate {
+//        val email by accumulating { Email(Email(email).value }
+//        val password by accumulating { Password(password) }
+//        Login(email, password)
+//    }
+//}
 
 context(_: Raise<IncorrectInput>)
-fun Update.validate(): Update =
-    withError(::IncorrectInput) {
-        accumulate {
-            val username by accumulating { username?.validUsername() }
-            val email by accumulating { email?.validEmail() }
-            val password by accumulating { password?.validPassword() }
-            Update(userId, username, email, password, bio, image)
-        }
-    }
+fun RegisterUser.validate(): RegisterUser = TODO("Remove in favor of RegisterUser.Companion.invoke")
+//withError(::IncorrectInput) {
+//        accumulate {
+//            val username by accumulating { Username(username) }
+//            val email by accumulating { email.validEmail() }
+//            val password by accumulating { Password(password) }
+//            RegisterUser(username, email, password)
+//        }
+//    }
+
+context(_: Raise<IncorrectInput>)
+fun Update.validate(): Update = TODO("Remove in favor of Update.Companion.invoke")
+//    withError(::IncorrectInput) {
+//        accumulate {
+//            val username by accumulating { username?.let { Username(it) } }
+//            val email by accumulating { email?.let { Email(it) } }
+//            val password by accumulating { password?.let { Password(it) } }
+//            Update(userId, username, email, password, bio, image)
+//        }
+//    }
 
 private const val MIN_PASSWORD_LENGTH = 8
 private const val MAX_PASSWORD_LENGTH = 100
@@ -97,38 +108,90 @@ private const val MIN_USERNAME_LENGTH = 1
 private const val MAX_USERNAME_LENGTH = 25
 
 context(_: Raise<InvalidField>)
-private fun String.validPassword(): String = passwordValidation()
-
-context(_: Raise<InvalidField>)
-private fun String.passwordValidation(): String = withError(::InvalidPassword) { passwordRules() }
+private fun String.validPassword(): String =
+    withError(::InvalidPassword) { passwordRules() }
 
 context(_: Raise<NonEmptyList<String>>)
 private fun String.passwordRules(): String = accumulate {
     notBlank()
+    val _ = ensureOrAccumulate(contains("[A-Z]".toRegex())) { "At least one uppercase letter" }
+    val _ = ensureOrAccumulate(contains("[a-z]".toRegex())) { "At least one lowercase letter" }
+    val _ = ensureOrAccumulate(contains("[0-9]".toRegex())) { "At least one number" }
+    val _ = ensureOrAccumulate(contains("""[$#%&^*!?{}\[\]+=<€>±§|]""".toRegex())) { "At least one special character" }
     minSize(MIN_PASSWORD_LENGTH)
     maxSize(MAX_PASSWORD_LENGTH)
-    this@passwordRules
 }
 
-context(_: Raise<InvalidField>)
-private fun String.validEmail(): String = emailValidation()
+@JvmInline
+value class Password private constructor(private val value: String) {
+    fun raw(): String = value
+    override fun toString(): String = "Password(*****)"
 
-context(_: Raise<InvalidField>)
-private fun String.emailValidation(): String = withError(::InvalidEmail) { trim().emailRules() }
+    companion object {
+        context(_: Raise<InvalidPassword>)
+        operator fun invoke(value: String): Password = withError(::InvalidPassword) {
+            accumulate {
+                val _ = ensureOrAccumulate(value.isNotBlank()) { "Password cannot be blank" }
+                val _ = ensureOrAccumulate(value.length >= 8) { "Password must be minimum 8 characters long" }
+                val _ = ensureOrAccumulate(value.length <= 100) { "Password must be maximum 100 characters long" }
+                val _ = ensureOrAccumulate(value.contains("[A-Z]".toRegex())) { "At least one uppercase letter" }
+                val _ = ensureOrAccumulate(value.contains("[a-z]".toRegex())) { "At least one lowercase letter" }
+                val _ = ensureOrAccumulate(value.contains("[0-9]".toRegex())) { "At least one number" }
+                val _ = ensureOrAccumulate(value.contains("""[$#%&^*!?{}\[\]+=<€>±§|]""".toRegex())) { "At least one special character" }
+                Password(value)
+            }
+        }
+    }
+}
+
+context(_: Raise<InvalidPassword>)
+private fun String.passwordRules2(): Password = withError(::InvalidPassword) {
+    Password(this)
+}
+
+@JvmInline
+value class Email private constructor(val value: String) {
+    companion object {
+        context(_: Raise<InvalidEmail>)
+        operator fun invoke(value: String): Email = withError(::InvalidEmail) {
+            accumulate {
+                value.notBlank()
+                value.maxSize(MAX_EMAIL_LENGTH)
+                val _ = ensureOrAccumulate(emailPattern.matches(value)) { "'$this' is invalid email" }
+                Email(value)
+            }
+        }
+    }
+}
+
+context(_: Raise<InvalidEmail>)
+private fun String.validEmail(): String =
+    withError(::InvalidEmail) { this.trim().emailRules() }
 
 context(_: Raise<NonEmptyList<String>>)
 private fun String.emailRules(): String = accumulate {
     notBlank()
     maxSize(MAX_EMAIL_LENGTH)
     looksLikeEmail()
-    this@emailRules
+}
+
+@JvmInline
+value class Username private constructor(val value: String) {
+    companion object {
+        context(_: Raise<InvalidUsername>)
+        operator fun invoke(value: String): Username = withError(::InvalidUsername) {
+            accumulate {
+                val _ = ensureOrAccumulate(value.isNotEmpty()) { "Username cannot be empty" }
+                val _ = ensureOrAccumulate(value.isNotBlank()) { "Username cannot be blank" }
+                val _ = ensureOrAccumulate(value.length <= MAX_USERNAME_LENGTH) { "Username cannot be blank" }
+                Username(value.trim())
+            }
+        }
+    }
 }
 
 context(_: Raise<InvalidField>)
-private fun String.validUsername(): String = usernameValidation()
-
-context(_: Raise<InvalidField>)
-private fun String.usernameValidation(): String =
+private fun String.validUsername(): String =
     withError(::InvalidUsername) { trim().usernameRules() }
 
 context(_: Raise<NonEmptyList<String>>)
@@ -136,24 +199,32 @@ private fun String.usernameRules(): String = accumulate {
     notBlank()
     minSize(MIN_USERNAME_LENGTH)
     maxSize(MAX_USERNAME_LENGTH)
-    this@usernameRules
 }
 
-context(_: Raise<InvalidField>)
-private fun String.validTitle(): String = withError(::InvalidTitle) { trim().notBlankRule() }
+context(_: Raise<InvalidTitle>)
+private fun String.validTitle(): String = trimNotBlank(::InvalidTitle)
 
-context(_: Raise<InvalidField>)
-private fun String.validDescription(): String =
-    withError(::InvalidDescription) { trim().notBlankRule() }
+context(_: Raise<InvalidDescription>)
+private fun String.validDescription(): String = trimNotBlank(::InvalidDescription)
 
-context(_: Raise<InvalidField>)
-private fun String.validBody(): String = withError(::InvalidBody) { trim().notBlankRule() }
+context(_: Raise<InvalidBody>)
+private fun String.validBody(): String = trimNotBlank(::InvalidBody)
+// TODO: Check inference problem and report to YouTrack.
+//  IntelliJ suggest it's not needed but when removed report ambuigity.
+//  Context parameter inference should infer OtherError == String, this should disambiguate InvalidBody constructor
+//    withError<InvalidField, String, String>(::InvalidBody) {
+//        val value = trim()
+//        ensure(value.isNotBlank()) { "Cannot be blank" }
+//        value
+//    }
 
-context(_: Raise<NonEmptyList<String>>)
-private fun String.notBlankRule(): String = accumulate {
-    notBlank()
-    this@notBlankRule
-}
+context(_: Raise<E>)
+private fun <E> String.trimNotBlank(withError: (String) -> E): String =
+    withError(withError) {
+        val value = trim()
+        ensure(value.isNotBlank()) { "Cannot be blank" }
+        value
+    }
 
 context(_: Raise<InvalidField>)
 private fun List<String>.validTags(): Set<String> =
