@@ -2,8 +2,10 @@
 
 package io.github.nomisrev.articles
 
+import arrow.core.raise.context.Raise
 import arrow.core.raise.context.ensureNotNull
 import io.github.nomisrev.Api
+import io.github.nomisrev.IncorrectInput
 import io.github.nomisrev.MissingParameter
 import io.github.nomisrev.auth.JwtConfig
 import io.github.nomisrev.auth.JwtContext
@@ -59,7 +61,14 @@ data class MultipleArticlesResponse(val articles: List<Article>, val articlesCou
 
 @Serializable data class CommentWrapper<T : Any>(val comment: T)
 
-@Serializable data class NewComment(val body: String)
+@Serializable
+data class NewComment(val body: String) {
+    context(_: Raise<IncorrectInput>)
+    fun toCreateComment(slug: Slug, userId: UserId): CreateComment {
+        val comment = validate()
+        return CreateComment(userId = userId, slug = slug, body = comment.body)
+    }
+}
 
 @Serializable data class SingleCommentResponse(val comment: Comment)
 
@@ -80,7 +89,19 @@ data class NewArticle(
     val description: String,
     val body: String,
     val tagList: List<String> = emptyList(),
-)
+) {
+    context(_: Raise<IncorrectInput>)
+    fun toCreateArticle(userId: UserId): CreateArticle {
+        val article = validate()
+        return CreateArticle(
+            userId = userId,
+            title = article.title,
+            description = article.description,
+            body = article.body,
+            tags = article.tagList.toSet(),
+        )
+    }
+}
 
 @Serializable
 data class UpdateArticle(
@@ -163,16 +184,9 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtConfig<Jw
         }
 
         route(Api.Articles.create) {
-            val article = body.article.validate()
             val created =
                 articleService.createArticle(
-                    CreateArticle(
-                        call.principal.userId,
-                        article.title,
-                        article.description,
-                        article.body,
-                        article.tagList.toSet(),
-                    )
+                    body.article.toCreateArticle(call.principal.userId)
                 )
             respond(SingleArticleResponse(created), HttpStatusCode.Created)
         }
@@ -191,12 +205,12 @@ fun Route.commentRoutes(
 
     authenticateWith(jwtService) {
         route(Api.Articles.Slug.Comments.create) {
-            val commentBody = body.comment.validate()
             val comments =
-                articleService.insertCommentForArticleSlug(
-                    slug = Slug(idOf(Api.Articles.Slug)),
-                    userId = call.principal.userId,
-                    comment = commentBody.body,
+                articleService.insertComment(
+                    body.comment.toCreateComment(
+                        slug = Slug(idOf(Api.Articles.Slug)),
+                        userId = call.principal.userId,
+                    )
                 )
             val userProfile = userService.getUser(UserId(comments.author))
 

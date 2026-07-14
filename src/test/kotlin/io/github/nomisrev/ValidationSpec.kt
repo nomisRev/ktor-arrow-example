@@ -10,9 +10,9 @@ import io.github.nomisrev.articles.GetArticles
 import io.github.nomisrev.articles.GetFeed
 import io.github.nomisrev.articles.NewArticle
 import io.github.nomisrev.articles.NewComment
-import io.github.nomisrev.users.Login
-import io.github.nomisrev.users.RegisterUser
-import io.github.nomisrev.users.Update
+import io.github.nomisrev.users.LoginUser
+import io.github.nomisrev.users.NewUser
+import io.github.nomisrev.users.UpdateUser
 import io.github.nomisrev.users.UserId
 import org.junit.Assert.assertEquals
 
@@ -22,9 +22,9 @@ fun IncorrectInput(head: InvalidField, vararg tail: InvalidField) =
 @Suppress("RETURN_VALUE_NOT_USED_COERCION")
 val Validation by testSuite {
     test("accumulates all invalid fields and all errors per field") {
-        val input = RegisterUser(username = "", email = "not-an-email", password = "")
+        val input = NewUser(username = "", email = "not-an-email", password = "")
 
-        val error = assertRaised { input.validate() }
+        val error = assertRaised { input.toRegisterUser() }
 
         assertEquals(
             IncorrectInput(
@@ -39,17 +39,21 @@ val Validation by testSuite {
                     nonEmptyListOf(
                         "Cannot be blank",
                         "is too short (minimum is 8 characters)",
+                        "At least one uppercase letter",
+                        "At least one lowercase letter",
+                        "At least one number",
+                        "At least one special character",
                     )
                 ),
             ),
-            error
+            error,
         )
     }
 
     test("accumulates email and password validation errors") {
-        val input = Login(email = "", password = "")
+        val input = LoginUser(email = "", password = "")
 
-        val error = assertRaised { input.validate() }
+        val error = assertRaised { input.toLogin() }
 
         assertEquals(
             IncorrectInput(
@@ -58,17 +62,20 @@ val Validation by testSuite {
                     nonEmptyListOf(
                         "Cannot be blank",
                         "is too short (minimum is 8 characters)",
+                        "At least one uppercase letter",
+                        "At least one lowercase letter",
+                        "At least one number",
+                        "At least one special character",
                     )
                 ),
             ),
-            error
+            error,
         )
     }
 
     test("accumulates errors for every provided invalid nullable field") {
         val input =
-            Update(
-                userId = UserId(1),
+            UpdateUser(
                 username = "",
                 email = "invalid-email",
                 password = "short",
@@ -76,7 +83,7 @@ val Validation by testSuite {
                 image = null,
             )
 
-        val error = assertRaised { input.validate() }
+        val error = assertRaised { input.toUpdate(UserId(1)) }
 
         assertEquals(
             IncorrectInput(
@@ -87,24 +94,27 @@ val Validation by testSuite {
                     )
                 ),
                 InvalidEmail(nonEmptyListOf("'invalid-email' is invalid email")),
-                InvalidPassword(nonEmptyListOf("is too short (minimum is 8 characters)")),
+                InvalidPassword(
+                    nonEmptyListOf(
+                        "is too short (minimum is 8 characters)",
+                        "At least one uppercase letter",
+                        "At least one number",
+                        "At least one special character",
+                    )
+                ),
             ),
-            error
+            error,
         )
     }
 
     testRaise("ignores null nullable fields") {
-        val input =
-            Update(
-                userId = UserId(1),
-                username = null,
-                email = null,
-                password = null,
-                bio = null,
-                image = null,
-            )
+        val input = UpdateUser()
 
-        assertEquals(input, input.validate())
+        val update = input.toUpdate(UserId(1))
+        assertEquals(UserId(1), update.userId)
+        assertEquals(null, update.username)
+        assertEquals(null, update.email)
+        assertEquals(null, update.password)
     }
 
     test("accumulates title description body and every invalid tag") {
@@ -125,7 +135,7 @@ val Validation by testSuite {
                 InvalidBody(nonEmptyListOf("Cannot be blank")),
                 InvalidTag(nonEmptyListOf("Cannot be blank", "Cannot be blank")),
             ),
-            error
+            error,
         )
     }
 
@@ -134,7 +144,7 @@ val Validation by testSuite {
 
         assertEquals(
             IncorrectInput(InvalidBody(nonEmptyListOf("Cannot be blank"))),
-            error
+            error,
         )
     }
 
@@ -155,7 +165,7 @@ val Validation by testSuite {
                 InvalidFeedOffset(nonEmptyListOf("too small, minimum is 0, and found -1")),
                 InvalidFeedLimit(nonEmptyListOf("too small, minimum is 1, and found 0")),
             ),
-            error
+            error,
         )
     }
 
@@ -175,18 +185,19 @@ val Validation by testSuite {
                 InvalidFeedOffset(nonEmptyListOf("too small, minimum is 0, and found -1")),
                 InvalidFeedLimit(nonEmptyListOf("too small, minimum is 1, and found 0")),
             ),
-            error
+            error,
         )
     }
 
     testRaise("returns valid inputs unchanged or mapped to service input") {
-        val register = RegisterUser("simon", "simon@example.com", "12345678")
-        assertEquals(register, register.validate())
+        val register = NewUser("simon", "simon@example.com", "Aa123456!").toRegisterUser()
+        assertEquals("simon", register.username.value)
+        assertEquals("simon@example.com", register.email.value)
 
         val article = NewArticle("title", "description", "body", listOf(" kotlin ", "arrow"))
         assertEquals(
             NewArticle("title", "description", "body", listOf("kotlin", "arrow")),
-            article.validate()
+            article.validate(),
         )
 
         assertEquals(FeedOffset(0), 0.validFeedOffset())
@@ -196,12 +207,12 @@ val Validation by testSuite {
         assertEquals(
             GetFeed(userId = userId, limit = 3, offset = 2),
             FeedParameters(
-                mutableMapOf(
-                    "offset" to listOf("2"),
-                    "limit" to listOf("3"),
+                    mutableMapOf(
+                        "offset" to listOf("2"),
+                        "limit" to listOf("3"),
+                    )
                 )
-            )
-                .validate(userId)
+                .validate(userId),
         )
 
         assertEquals(
@@ -214,13 +225,13 @@ val Validation by testSuite {
                 currentUserId = userId,
             ),
             ArticlesParameters(
-                mutableMapOf(
-                    "tag" to listOf("kotlin"),
-                    "offset" to listOf("4"),
-                    "limit" to listOf("5"),
+                    mutableMapOf(
+                        "tag" to listOf("kotlin"),
+                        "offset" to listOf("4"),
+                        "limit" to listOf("5"),
+                    )
                 )
-            )
-                .validate(userId)
+                .validate(userId),
         )
     }
 }

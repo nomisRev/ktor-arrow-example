@@ -11,7 +11,7 @@ data class ArticleFixture(
     val tags: Set<String>,
 )
 
-fun userFixture(password: String = "123456789"): UserFixture {
+fun userFixture(password: String = "Aa123456!"): UserFixture {
     val suffix = randomSuffix()
     val username = "user-$suffix"
     return UserFixture(username = username, email = "$username@domain.com", password = password)
@@ -27,5 +27,4 @@ fun articleFixture(): ArticleFixture {
     )
 }
 
-fun randomSuffix(length: Int = 12): String =
-    Uuid.random().toString().replace("-", "").take(length)
+fun randomSuffix(length: Int = 12): String = Uuid.random().toString().replace("-", "").take(length)

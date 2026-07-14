@@ -33,8 +33,8 @@ val UserRouteSuite by testSuite {
         with(response.httpResponse.body<UserWrapper<User>>().user) {
             assert(username == user.username)
             assert(email == user.email)
-            assert(bio == "")
-            assert(image == "")
+            assert(bio == null)
+            assert(image == null)
         }
     }
 

@@ -22,8 +22,7 @@ import javax.crypto.spec.PBEKeySpec
 import org.postgresql.util.PSQLException
 import org.postgresql.util.PSQLState
 
-@JvmInline
-value class UserId(val serial: Long)
+@JvmInline value class UserId(val serial: Long)
 
 class UserPersistence(
     private val usersQueries: UsersQueries,
@@ -102,11 +101,12 @@ class UserPersistence(
         if (authorIds.isEmpty()) emptyMap()
         else
             usersQueries
-                .selectProfilesByViewer(viewerId?.serial ?: NO_USER, authorIds.distinct()) { id,
-                                                                                             username,
-                                                                                             bio,
-                                                                                             image,
-                                                                                             following ->
+                .selectProfilesByViewer(viewerId?.serial ?: NO_USER, authorIds.distinct()) {
+                    id,
+                    username,
+                    bio,
+                    image,
+                    following ->
                     id to Profile(username, bio, image, following > 0)
                 }
                 .executeAsList()
@@ -118,10 +118,11 @@ class UserPersistence(
     @Suppress("LongParameterList")
     context(_: Raise<UserError>)
     fun update(update: Update): UserInfo {
-        val passwordUpdate = update.password?.let {
-            val salt = generateSalt()
-            salt to generateKey(it.raw(), salt)
-        }
+        val passwordUpdate =
+            update.password?.let {
+                val salt = generateSalt()
+                salt to generateKey(it.raw(), salt)
+            }
 
         val info =
             catch({
@@ -134,7 +135,7 @@ class UserPersistence(
                         bio = update.bio,
                         image = update.image,
                         userId = update.userId,
-                        ::UserInfo
+                        ::UserInfo,
                     )
                     .executeAsOneOrNull()
             }) { e: PSQLException ->

@@ -8,6 +8,7 @@ import io.github.nomisrev.client
 import io.github.nomisrev.createArticle
 import io.github.nomisrev.dependencies
 import io.github.nomisrev.registerUser
+import io.github.nomisrev.randomSuffix
 import io.github.nomisrev.testServer
 import io.ktor.http.HttpStatusCode
 import opensavvy.spine.api.div
@@ -16,11 +17,12 @@ import opensavvy.spine.client.request
 
 @Suppress("RETURN_VALUE_NOT_USED_COERCION")
 val TagRouteSuite by testSuite {
-    testServer("check for empty list retrieval") {
+    testServer("does not return an unrelated tag") {
+        val marker = "test-${randomSuffix()}"
         val response = client.request(Api / Tags / list)
 
         assert(response.httpResponse.status == HttpStatusCode.OK)
-        assert(response.bodyOrThrow().tags == emptyList<String>())
+        assert(marker !in response.bodyOrThrow().tags)
     }
 
     testServer("can get all tags") {

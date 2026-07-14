@@ -23,6 +23,12 @@ data class CreateArticle(
     val tags: Set<String>,
 )
 
+data class CreateComment(
+    val userId: UserId,
+    val slug: Slug,
+    val body: String,
+)
+
 data class UpdateArticleInput(
     val slug: Slug,
     val userId: UserId,
@@ -149,11 +155,11 @@ class ArticleService(
     }
 
     context(_: DomainErrors)
-    fun insertCommentForArticleSlug(slug: Slug, userId: UserId, comment: String): Comments {
-        val article = getArticleBySlug(slug, userId)
+    fun insertComment(input: CreateComment): Comments {
+        val article = getArticleBySlug(input.slug, input.userId)
         return articlePersistence.createCommentForArticleSlug(
-            userId,
-            comment,
+            input.userId,
+            input.body,
             ArticleId(article.articleId),
         )
     }

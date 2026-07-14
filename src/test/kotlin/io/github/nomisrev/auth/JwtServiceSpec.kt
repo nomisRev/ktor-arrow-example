@@ -34,8 +34,8 @@ val JwtServiceSuite by testSuite {
 
         assert(registeredUser.username == user.username)
         assert(registeredUser.email == user.email)
-        assert(registeredUser.bio == "")
-        assert(registeredUser.image == "")
+        assert(registeredUser.bio == null)
+        assert(registeredUser.image == null)
         assert(registeredUser.token.isNotBlank())
 
         val currentUserResponse =

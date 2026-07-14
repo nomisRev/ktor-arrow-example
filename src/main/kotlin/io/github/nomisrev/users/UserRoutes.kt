@@ -27,14 +27,15 @@ data class UserWrapper<T : Any>(val user: T)
 @Serializable
 data class NewUser(val username: String, val email: String, val password: String) {
     context(_: Raise<IncorrectInput>)
-    fun toRegisterUser() = withError(::IncorrectInput) {
-        accumulate {
-            val username by accumulating { Username(username) }
-            val email by accumulating { Email(email) }
-            val password by accumulating { Password(password) }
-            RegisterUser(username, email, password)
+    fun toRegisterUser() =
+        withError(::IncorrectInput) {
+            accumulate {
+                val username by accumulating { Username(username) }
+                val email by accumulating { Email(email) }
+                val password by accumulating { Password(password) }
+                RegisterUser(username, email, password)
+            }
         }
-    }
 }
 
 @Serializable
@@ -46,14 +47,15 @@ data class UpdateUser(
     val image: String? = null,
 ) {
     context(_: Raise<IncorrectInput>)
-    fun toUpdate(userId: UserId) = withError(::IncorrectInput) {
-        accumulate {
-            val username by accumulating { username?.let { Username(it) } }
-            val email by accumulating { email?.let { Email(it) } }
-            val password by accumulating { password?.let { Password(it) } }
-            Update(userId, username, email, password, bio, image)
+    fun toUpdate(userId: UserId) =
+        withError(::IncorrectInput) {
+            accumulate {
+                val username by accumulating { username?.let { Username(it) } }
+                val email by accumulating { email?.let { Email(it) } }
+                val password by accumulating { password?.let { Password(it) } }
+                Update(userId, username, email, password, bio, image)
+            }
         }
-    }
 }
 
 @Serializable
@@ -68,13 +70,14 @@ data class User(
 @Serializable
 data class LoginUser(val email: String, val password: String) {
     context(_: Raise<IncorrectInput>)
-    fun toLogin() = withError(::IncorrectInput) {
-        accumulate {
-            val email by accumulating { Email(email) }
-            val password by accumulating { Password(password) }
-            Login(email, password)
+    fun toLogin() =
+        withError(::IncorrectInput) {
+            accumulate {
+                val email by accumulating { Email(email) }
+                val password by accumulating { Password(password) }
+                Login(email, password)
+            }
         }
-    }
 }
 
 fun Route.userRoutes(userService: UserService, jwtService: JwtConfig<JwtContext>) {
@@ -83,7 +86,7 @@ fun Route.userRoutes(userService: UserService, jwtService: JwtConfig<JwtContext>
         val token = userService.register(register)
         respond(
             UserWrapper(register.toUser(token)),
-            HttpStatusCode.Created
+            HttpStatusCode.Created,
         )
     }
 

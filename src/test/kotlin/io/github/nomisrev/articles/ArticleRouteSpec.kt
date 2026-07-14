@@ -152,13 +152,13 @@ val ArticleRouteSuite by testSuite {
     }
 
     testServer("article list returns viewer specific metadata") {
-        val author = registerUser()
+        val articleAuthor = registerUser()
         val viewer = registerUser()
         val article = articleFixture()
         val created =
             dependencies.articleService.createArticle(
                 CreateArticle(
-                    author.userId,
+                    articleAuthor.userId,
                     article.title,
                     article.description,
                     article.body,
@@ -166,11 +166,17 @@ val ArticleRouteSuite by testSuite {
                 )
             )
 
-        val _ = dependencies.userPersistence.followProfile(author.user.username, viewer.userId)
+        val _ =
+            dependencies.userPersistence.followProfile(articleAuthor.user.username, viewer.userId)
         val _ = dependencies.articleService.favoriteArticle(Slug(created.slug), viewer.userId)
 
         val response =
-            client.request(endpoint = Api / Articles / list, parameters = {}) {
+            client.request(
+                endpoint = Api / Articles / list,
+                parameters = {
+                    author = articleAuthor.user.username
+                },
+            ) {
                 tokenAuth(viewer.token.value)
             }
 
