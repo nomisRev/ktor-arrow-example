@@ -2,9 +2,8 @@
 
 package io.github.nomisrev.profiles
 
-import arrow.core.raise.context.ensure
 import io.github.nomisrev.Api
-import io.github.nomisrev.MissingParameter
+import io.github.nomisrev.Username
 import io.github.nomisrev.auth.JwtConfig
 import io.github.nomisrev.auth.JwtContext
 import io.github.nomisrev.auth.authenticateWith
@@ -28,8 +27,7 @@ data class Profile(
 fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtConfig<JwtContext>) {
     authenticateWith(jwtService.orAnonymous()) {
         route(Api.Profiles.Username.get) {
-            val username = idOf(Api.Profiles.Username)
-            ensure(username.isNotBlank()) { MissingParameter("username cannot be null or blank") }
+            val username = Username(idOf(Api.Profiles.Username))
             val profile = userPersistence.selectProfile(username, call.principal?.userId)
             respond(ProfileWrapper(profile))
         }
@@ -37,13 +35,13 @@ fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtConfig<
 
     authenticateWith(jwtService) {
         route(Api.Profiles.Username.Follow.add) {
-            val username = idOf(Api.Profiles.Username)
+            val username = Username(idOf(Api.Profiles.Username))
             val _ = userPersistence.followProfile(username, call.principal.userId)
             val userFollowed = userPersistence.select(username)
             respond(
                 ProfileWrapper(
                     Profile(
-                        userFollowed.username,
+                        userFollowed.username.value,
                         userFollowed.bio,
                         userFollowed.image,
                         true,
@@ -53,13 +51,13 @@ fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtConfig<
         }
 
         route(Api.Profiles.Username.Follow.remove) {
-            val username = idOf(Api.Profiles.Username)
+            val username = Username(idOf(Api.Profiles.Username))
             userPersistence.unfollowProfile(username, call.principal.userId)
             val userUnfollowed = userPersistence.select(username)
             respond(
                 ProfileWrapper(
                     Profile(
-                        userUnfollowed.username,
+                        userUnfollowed.username.value,
                         userUnfollowed.bio,
                         userUnfollowed.image,
                         false,

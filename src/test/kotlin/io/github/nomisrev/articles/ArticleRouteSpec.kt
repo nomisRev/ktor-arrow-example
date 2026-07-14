@@ -177,7 +177,7 @@ val ArticleRouteSuite by testSuite {
             client.request(
                 endpoint = Api / Articles / list,
                 parameters = {
-                    author = articleAuthor.user.username
+                    author = articleAuthor.user.username.value
                 },
             ) {
                 tokenAuth(viewer.token.value)
@@ -250,14 +250,14 @@ val ArticleRouteSuite by testSuite {
             client.request(
                 Api / Articles / list,
                 parameters = {
-                    this.author = author.user.username
+                    this.author = author.user.username.value
                 },
             )
 
         val body: MultipleArticlesResponse = response.bodyOrThrow()
         assert(body.articlesCount == 1)
         assert(body.articles.single().slug == created.slug)
-        assert(body.articles.single().author.username == author.user.username)
+        assert(body.articles.single().author.username == author.user.username.value)
     }
 
     testServer("article list filters by author when authenticated") {
@@ -282,7 +282,7 @@ val ArticleRouteSuite by testSuite {
             client.request(
                 Api / Articles / list,
                 parameters = {
-                    this.author = author.user.username
+                    this.author = author.user.username.value
                 },
             ) {
                 tokenAuth(viewer.token.value)
@@ -292,7 +292,7 @@ val ArticleRouteSuite by testSuite {
         val articleResponse = body.articles.single()
         assert(body.articlesCount == 1)
         assert(articleResponse.slug == created.slug)
-        assert(articleResponse.author.username == author.user.username)
+        assert(articleResponse.author.username == author.user.username.value)
         assert(articleResponse.author.following)
     }
 
@@ -359,7 +359,7 @@ val ArticleRouteSuite by testSuite {
             client.request(
                 Api / Articles / list,
                 parameters = {
-                    favorited = viewer.user.username
+                    favorited = viewer.user.username.value
                 },
             )
 
@@ -392,7 +392,7 @@ val ArticleRouteSuite by testSuite {
             client.request(
                 Api / Articles / list,
                 parameters = {
-                    favorited = viewer.user.username
+                    favorited = viewer.user.username.value
                 },
             ) {
                 tokenAuth(viewer.token.value)
@@ -431,7 +431,7 @@ val ArticleRouteSuite by testSuite {
         assert(created.article.body == article.body.value)
         assert(created.article.favoritesCount == 0L)
         assert(!created.article.favorited)
-        assert(created.article.author.username == user.username)
+        assert(created.article.author.username == user.username.value)
         assert(created.article.tagList.toSet() == article.tags)
         assert(response.httpResponse.status == HttpStatusCode.Created)
     }
@@ -461,7 +461,7 @@ val ArticleRouteSuite by testSuite {
         assert(created.article.body == article.body.value)
         assert(created.article.favoritesCount == 0L)
         assert(!created.article.favorited)
-        assert(created.article.author.username == user.username)
+        assert(created.article.author.username == user.username.value)
         assert(created.article.tagList.isEmpty())
         assert(response.httpResponse.status == HttpStatusCode.Created)
     }

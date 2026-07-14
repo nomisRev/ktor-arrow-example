@@ -21,6 +21,7 @@ import io.github.nomisrev.InvalidField
 import io.github.nomisrev.InvalidTag
 import io.github.nomisrev.MissingParameter
 import io.github.nomisrev.Title
+import io.github.nomisrev.Username
 import io.github.nomisrev.auth.JwtConfig
 import io.github.nomisrev.auth.JwtContext
 import io.github.nomisrev.auth.authenticateWith
@@ -79,7 +80,9 @@ value class FeedOffset private constructor(val value: Long) {
             withError<InvalidFeedOffset, String, FeedOffset>({
                 InvalidFeedOffset(nonEmptyListOf(it))
             }) {
-                ensure(offset >= MIN_FEED_OFFSET) { "too small, minimum is 1, and found $offset" }
+                ensure(offset >= MIN_FEED_OFFSET) {
+                    "too small, minimum is $MIN_FEED_OFFSET, and found $offset"
+                }
                 FeedOffset(offset.toLong())
             }
     }
@@ -178,6 +181,9 @@ class ArticlesParameters(data: ParameterStorage) : Parameters(data) {
             accumulate {
                 val offset by accumulating { FeedOffset(offset) }
                 val limit by accumulating { FeedLimit(limit) }
+                val author by accumulating { author?.let { Username(it) } }
+                val favorited by accumulating { favorited?.let { Username(it) } }
+
                 GetArticles(
                     limit = limit,
                     offset = offset,
@@ -303,7 +309,7 @@ fun Route.commentRoutes(
                         body = comments.body,
                         author =
                             Profile(
-                                username = userProfile.username,
+                                username = userProfile.username.value,
                                 bio = userProfile.bio,
                                 image = userProfile.image,
                                 following = false,

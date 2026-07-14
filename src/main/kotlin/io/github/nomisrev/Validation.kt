@@ -113,7 +113,7 @@ value class Email private constructor(val value: String) {
                     normalized.maxSize(MAX_EMAIL_LENGTH)
                     val _ =
                         ensureOrAccumulate(emailPattern.matches(normalized)) {
-                            "'$this' is invalid email"
+                            "'$normalized' is invalid email"
                         }
                     Email(normalized)
                 }
@@ -124,9 +124,9 @@ value class Email private constructor(val value: String) {
 @JvmInline
 value class Username private constructor(val value: String) {
     companion object {
-        context(_: Raise<InvalidUsername>)
+        context(_: Raise<IncorrectInput>)
         operator fun invoke(value: String): Username =
-            withError(::InvalidUsername) {
+            withError({ IncorrectInput(nonEmptyListOf(InvalidUsername(it))) }) {
                 val normalized = value.trim()
                 accumulate {
                     normalized.notBlank()

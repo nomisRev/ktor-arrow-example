@@ -20,7 +20,6 @@ import io.github.nomisrev.env.Dependencies
 import io.github.nomisrev.env.Env
 import io.github.nomisrev.env.dependencies
 import io.github.nomisrev.env.kotlinXSerializersModule
-import io.github.nomisrev.users.NewUser
 import io.github.nomisrev.users.UserId
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -138,10 +137,7 @@ suspend fun ArticleService.createArticle(
 
 context(dependencies: Dependencies, _: DomainErrors)
 fun registerUser(fixture: UserFixture = userFixture()): RegisteredUser {
-    val token =
-        dependencies.userService.register(
-            NewUser(fixture.username, fixture.email, fixture.password).toRegisterUser()
-        )
+    val token = dependencies.userService.register(fixture.toNewUser().toRegisterUser())
     val jwt =
         withError({ JwtInvalid(it.toString()) }) {
             JWT.decodeT(token.value, JWSHMAC512Algorithm).bind()

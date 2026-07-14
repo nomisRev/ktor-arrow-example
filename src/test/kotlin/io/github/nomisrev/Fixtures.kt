@@ -1,9 +1,12 @@
 package io.github.nomisrev
 
 import arrow.core.raise.recover
+import io.github.nomisrev.users.NewUser
 import kotlin.uuid.Uuid
 
-data class UserFixture(val username: String, val email: String, val password: String)
+data class UserFixture(val username: Username, val email: Email, val password: Password) {
+    fun toNewUser() = NewUser(username.value, email.value, password.raw())
+}
 
 data class ArticleFixture(
     val title: Title,
@@ -15,7 +18,15 @@ data class ArticleFixture(
 fun userFixture(password: String = "Aa123456!"): UserFixture {
     val suffix = randomSuffix()
     val username = "user-$suffix"
-    return UserFixture(username = username, email = "$username@domain.com", password = password)
+    return recover({
+        UserFixture(
+            username = Username(username),
+            email = Email("$username@domain.com"),
+            password = Password(password),
+        )
+    }) { error ->
+        throw RuntimeException("Failed to UserFixture ArticleFixture: $error")
+    }
 }
 
 fun articleFixture(): ArticleFixture {
@@ -28,7 +39,7 @@ fun articleFixture(): ArticleFixture {
             tags = setOf("arrow-$suffix", "ktor-$suffix", "kotlin-$suffix", "sqldelight-$suffix"),
         )
     }) { error ->
-        throw RuntimeException("Impossible")
+        throw RuntimeException("Failed to created ArticleFixture: $error")
     }
 }
 

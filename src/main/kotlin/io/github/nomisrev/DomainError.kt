@@ -25,9 +25,9 @@ sealed interface UserError : DomainError
 
 data class UserNotFound(val property: String) : UserError
 
-data class EmailAlreadyExists(val email: String) : UserError
+data class EmailAlreadyExists(val email: Email) : UserError
 
-data class UsernameAlreadyExists(val username: String) : UserError
+data class UsernameAlreadyExists(val username: Username) : UserError
 
 data object PasswordNotMatched : UserError
 

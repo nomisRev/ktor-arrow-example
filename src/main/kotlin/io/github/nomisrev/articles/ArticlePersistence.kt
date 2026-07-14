@@ -111,7 +111,7 @@ class ArticlePersistence(
 
         val rows =
             when {
-                !input.author.isNullOrBlank() ->
+                !input.author?.value.isNullOrBlank() ->
                     articles.selectArticlesByAuthor(
                         input.author,
                         input.limit.value,
@@ -119,7 +119,7 @@ class ArticlePersistence(
                         mapper,
                     )
 
-                !input.favorited.isNullOrBlank() ->
+                !input.favorited?.value.isNullOrBlank() ->
                     articles.selectArticlesFavoritedByUsername(
                         input.favorited,
                         input.limit.value,
@@ -217,7 +217,7 @@ class ArticlePersistence(
                     createdAt,
                     updatedAt,
                     body,
-                    Profile(username, bio, image, false),
+                    Profile(username.value, bio, image, false),
                 )
             }
             .executeAsList()

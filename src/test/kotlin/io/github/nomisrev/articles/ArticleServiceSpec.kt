@@ -62,7 +62,7 @@ val ArticleServiceSuite by testSuite {
         assert(updated.title == "updated-title")
         assert(updated.description == "updated description")
         assert(updated.body == "updated body")
-        assert(updated.author.username == author.user.username)
+        assert(updated.author.username == author.user.username.value)
     }
 
     testDependencies("rejects users who are not the article author") {

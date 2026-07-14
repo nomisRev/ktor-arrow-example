@@ -12,7 +12,9 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.github.nomisrev.Body
 import io.github.nomisrev.Description
+import io.github.nomisrev.Email
 import io.github.nomisrev.Title
+import io.github.nomisrev.Username
 import io.github.nomisrev.articles.ArticleId
 import io.github.nomisrev.articles.Slug
 import io.github.nomisrev.sqldelight.Articles
@@ -47,7 +49,7 @@ suspend fun ResourceScope.sqlDelight(dataSource: DataSource): SqlDelight {
             userIdAdapter,
         ),
         Tags.Adapter(articleIdAdapter),
-        Users.Adapter(userIdAdapter),
+        Users.Adapter(userIdAdapter, emailAdapter, usernameAdapter),
     )
 }
 
@@ -72,6 +74,16 @@ private val descriptionAdapter =
 private val bodyAdapter =
     columnAdapter(Body::value) {
         requireAll({ it.errors }) { Body(it) }
+    }
+
+private val emailAdapter =
+    columnAdapter(Email::value) {
+        requireAll({ it.errors }) { Email(it) }
+    }
+
+private val usernameAdapter =
+    columnAdapter(Username::value) { value ->
+        requireAll({ e -> e.errors.flatMap { it.errors } }) { Username(value) }
     }
 
 private inline fun <A : Any, B> columnAdapter(

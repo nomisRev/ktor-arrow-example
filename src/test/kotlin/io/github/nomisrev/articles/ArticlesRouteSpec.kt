@@ -103,7 +103,7 @@ val ArticlesRouteSuite by testSuite {
         assert(body.article.title == created.title)
         assert(body.article.description == created.description)
         assert(body.article.body == "With two hands")
-        assert(body.article.author.username == author.user.username)
+        assert(body.article.author.username == author.user.username.value)
     }
 
     testServer("favoriting an article updates the response and persisted state") {
@@ -148,8 +148,6 @@ val ArticlesRouteSuite by testSuite {
             client.request(Api / Articles / created.slug / Favorite / favoriteArticle) {
                 tokenAuth(viewer.token.value)
             }
-
-        val x = Api / Articles / Slug("")
 
         val readResponse =
             client.request(Api / Articles / created.slug / get) {
@@ -246,7 +244,7 @@ val ArticlesRouteSuite by testSuite {
         assert(body.comments.size == 1)
         val comment = body.comments.single()
         assert(comment.body == "Thank you so much!")
-        assert(comment.author.username == user.username)
+        assert(comment.author.username == user.username.value)
     }
 
     testServer("can list comments for an article without authentication") {
@@ -267,7 +265,7 @@ val ArticlesRouteSuite by testSuite {
         assert(body.comments.size == 1)
         val comment = body.comments.single()
         assert(comment.body == "Thank you so much!")
-        assert(comment.author.username == user.username)
+        assert(comment.author.username == user.username.value)
     }
 
     testServer("Can add a comment to an article") {
@@ -285,7 +283,7 @@ val ArticlesRouteSuite by testSuite {
 
         val body = response.bodyOrThrow()
         assert(body.comment.body == comment)
-        assert(body.comment.author.username == user.username)
+        assert(body.comment.author.username == user.username.value)
     }
 
     testServer("Can not add a comment to an article with invalid token") {
@@ -368,7 +366,7 @@ val ArticlesRouteSuite by testSuite {
         assert(getResponse.httpResponse.status == HttpStatusCode.UnprocessableEntity)
         assert(
             getResponse.httpResponse.body<GenericErrorModel>().errors.body ==
-                ["Article by slug ${created.slug} not found"]
+                ["Article by slug ${created.slug.value} not found"]
         )
     }
 }

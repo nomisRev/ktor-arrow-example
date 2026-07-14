@@ -16,6 +16,7 @@ import io.github.nomisrev.tokenAuth
 import io.github.nomisrev.userFixture
 import io.ktor.client.call.body
 import io.ktor.http.HttpStatusCode
+import opensavvy.spine.api.ResolvedResource
 import opensavvy.spine.api.div
 import opensavvy.spine.api.invoke
 import opensavvy.spine.client.bodyOrThrow
@@ -29,13 +30,13 @@ val ProfileRouteSuite by testSuite {
         registerUser(followed)
 
         val response =
-            client.request(Api / Profiles / Username(followed.username) / Follow / add) {
+            client.request(Api / Profiles / followed.username / Follow / add) {
                 tokenAuth(token.value)
             }
 
         assert(response.httpResponse.status == HttpStatusCode.OK)
         with(response.bodyOrThrow().profile) {
-            assert(username == followed.username)
+            assert(username == followed.username.value)
             assert(bio == "")
             assert(image == "")
             assert(following)
@@ -48,13 +49,13 @@ val ProfileRouteSuite by testSuite {
         registerUser(followed)
 
         val response =
-            client.request(Api / Profiles / Username(followed.username) / Follow / remove) {
+            client.request(Api / Profiles / followed.username / Follow / remove) {
                 tokenAuth(token.value)
             }
 
         assert(response.httpResponse.status == HttpStatusCode.OK)
         with(response.bodyOrThrow().profile) {
-            assert(username == followed.username)
+            assert(username == followed.username.value)
             assert(bio == "")
             assert(image == "")
             assert(!following)
@@ -62,14 +63,12 @@ val ProfileRouteSuite by testSuite {
     }
 
     testServer("needs token to follow") {
-        val response =
-            client.request(Api / Profiles / Username(userFixture().username) / Follow / add)
+        val response = client.request(Api / Profiles / userFixture().username / Follow / add)
         assert(response.httpResponse.status == HttpStatusCode.Unauthorized)
     }
 
     testServer("needs token to unfollow") {
-        val response =
-            client.request(Api / Profiles / Username(userFixture().username) / Follow / remove)
+        val response = client.request(Api / Profiles / userFixture().username / Follow / remove)
         assert(response.httpResponse.status == HttpStatusCode.Unauthorized)
     }
 
@@ -77,7 +76,7 @@ val ProfileRouteSuite by testSuite {
         val (token) = registerUser()
 
         val response =
-            client.request(Api / Profiles / Username(userFixture().username) / Follow / add) {
+            client.request(Api / Profiles / userFixture().username / Follow / add) {
                 tokenAuth(token.value)
             }
 
@@ -88,7 +87,7 @@ val ProfileRouteSuite by testSuite {
         val (token) = registerUser()
 
         val response =
-            client.request(Api / Profiles / Username(userFixture().username) / Follow / remove) {
+            client.request(Api / Profiles / userFixture().username / Follow / remove) {
                 tokenAuth(token.value)
             }
 
@@ -98,11 +97,11 @@ val ProfileRouteSuite by testSuite {
     testServer("get profile with no following") {
         val (user) = registerUser()
 
-        val response = client.request(Api / Profiles / Username(user.username) / get)
+        val response = client.request(Api / Profiles / user.username / get)
 
         assert(response.httpResponse.status == HttpStatusCode.OK)
         with(response.bodyOrThrow().profile) {
-            assert(username == user.username)
+            assert(username == user.username.value)
             assert(bio == "")
             assert(image == "")
             assert(!following)
@@ -114,18 +113,18 @@ val ProfileRouteSuite by testSuite {
         val followed = userFixture()
         registerUser(followed)
 
-        client.request(Api / Profiles / Username(followed.username) / Follow / add) {
+        client.request(Api / Profiles / followed.username / Follow / add) {
             tokenAuth(token.value)
         }
 
         val response =
-            client.request(Api / Profiles / Username(followed.username) / get) {
+            client.request(Api / Profiles / followed.username / get) {
                 tokenAuth(token.value)
             }
 
         assert(response.httpResponse.status == HttpStatusCode.OK)
         with(response.bodyOrThrow().profile) {
-            assert(username == followed.username)
+            assert(username == followed.username.value)
             assert(following)
         }
     }
@@ -135,18 +134,18 @@ val ProfileRouteSuite by testSuite {
         val viewer = registerUser()
         val followed = registerUser()
 
-        client.request(Api / Profiles / Username(followed.user.username) / Follow / add) {
+        client.request(Api / Profiles / followed.user.username / Follow / add) {
             tokenAuth(follower.token.value)
         }
 
         val response =
-            client.request(Api / Profiles / Username(followed.user.username) / get) {
+            client.request(Api / Profiles / followed.user.username / get) {
                 tokenAuth(viewer.token.value)
             }
 
         assert(response.httpResponse.status == HttpStatusCode.OK)
         with(response.bodyOrThrow().profile) {
-            assert(username == followed.user.username)
+            assert(username == followed.user.username.value)
             assert(!following)
         }
     }
@@ -154,7 +153,7 @@ val ProfileRouteSuite by testSuite {
     testServer("get profile invalid username") {
         val invalidUsername = userFixture().username
 
-        val response = client.request(Api / Profiles / Username(invalidUsername) / get)
+        val response = client.request(Api / Profiles / invalidUsername / get)
 
         assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
         assert(
@@ -169,7 +168,10 @@ val ProfileRouteSuite by testSuite {
         assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
         assert(
             response.httpResponse.body<GenericErrorModel>().errors.body ==
-                listOf("Missing username cannot be null or blank parameter in request")
+                ["Missing username cannot be null or blank parameter in request"]
         )
     }
 }
+
+operator fun ResolvedResource<Profiles>.div(username: io.github.nomisrev.Username) =
+    div(Username(username.value))

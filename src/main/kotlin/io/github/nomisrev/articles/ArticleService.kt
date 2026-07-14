@@ -12,6 +12,7 @@ import io.github.nomisrev.NotArticleAuthor
 import io.github.nomisrev.NotCommentAuthor
 import io.github.nomisrev.Title
 import io.github.nomisrev.UserNotFound
+import io.github.nomisrev.Username
 import io.github.nomisrev.sqldelight.Articles
 import io.github.nomisrev.sqldelight.Comments
 import io.github.nomisrev.tags.TagPersistence
@@ -45,8 +46,8 @@ data class GetFeed(val userId: UserId, val limit: FeedLimit, val offset: FeedOff
 data class GetArticles(
     val limit: FeedLimit,
     val offset: FeedOffset,
-    val author: String? = null,
-    val favorited: String? = null,
+    val author: Username? = null,
+    val favorited: Username? = null,
     val tag: String? = null,
     val currentUserId: UserId? = null,
 )

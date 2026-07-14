@@ -10,7 +10,6 @@ import io.github.nomisrev.client
 import io.github.nomisrev.testServer
 import io.github.nomisrev.tokenAuth
 import io.github.nomisrev.userFixture
-import io.github.nomisrev.users.NewUser
 import io.github.nomisrev.users.User
 import io.github.nomisrev.users.UserWrapper
 import io.ktor.client.call.body
@@ -25,15 +24,15 @@ val JwtServiceSuite by testSuite {
         val registerResponse =
             client.request(
                 Api / Users / register,
-                UserWrapper(NewUser(user.username, user.email, user.password)),
+                UserWrapper(user.toNewUser()),
             )
 
         assert(registerResponse.httpResponse.status == HttpStatusCode.Created)
 
         val registeredUser = registerResponse.httpResponse.body<UserWrapper<User>>().user
 
-        assert(registeredUser.username == user.username)
-        assert(registeredUser.email == user.email)
+        assert(registeredUser.username == user.username.value)
+        assert(registeredUser.email == user.email.value)
         assert(registeredUser.bio == null)
         assert(registeredUser.image == null)
         assert(registeredUser.token.isNotBlank())
@@ -47,8 +46,8 @@ val JwtServiceSuite by testSuite {
 
         val currentUser = currentUserResponse.httpResponse.body<UserWrapper<User>>().user
 
-        assert(currentUser.username == user.username)
-        assert(currentUser.email == user.email)
+        assert(currentUser.username == user.username.value)
+        assert(currentUser.email == user.email.value)
         assert(currentUser.token == registeredUser.token)
         assert(currentUser.bio == "")
         assert(currentUser.image == "")

@@ -26,13 +26,13 @@ val UserRouteSuite by testSuite {
         val response =
             client.request(
                 Api / Users / register,
-                UserWrapper(NewUser(user.username, user.email, user.password)),
+                UserWrapper(user.toNewUser()),
             )
 
         assert(response.httpResponse.status == HttpStatusCode.Created)
         with(response.httpResponse.body<UserWrapper<User>>().user) {
-            assert(username == user.username)
-            assert(email == user.email)
+            assert(username == user.username.value)
+            assert(email == user.email.value)
             assert(bio == null)
             assert(image == null)
         }
@@ -44,13 +44,13 @@ val UserRouteSuite by testSuite {
         val response =
             client.request(
                 Api / Users / Login / authenticate,
-                UserWrapper(LoginUser(user.email, user.password)),
+                UserWrapper(LoginUser(user.email.value, user.password.raw())),
             )
 
         assert(response.httpResponse.status == HttpStatusCode.OK)
         with(response.httpResponse.body<UserWrapper<User>>().user) {
-            assert(username == user.username)
-            assert(email == user.email)
+            assert(username == user.username.value)
+            assert(email == user.email.value)
             assert(bio == "")
             assert(image == "")
         }
@@ -63,8 +63,8 @@ val UserRouteSuite by testSuite {
 
         assert(response.httpResponse.status == HttpStatusCode.OK)
         val body = response.httpResponse.body<UserWrapper<User>>().user
-        assert(body.username == user.username)
-        assert(body.email == user.email)
+        assert(body.username == user.username.value)
+        assert(body.email == user.email.value)
         assert(body.token == token.value)
         assert(body.bio == "")
         assert(body.image == "")
@@ -85,7 +85,7 @@ val UserRouteSuite by testSuite {
         assert(response.httpResponse.status == HttpStatusCode.OK)
         val body = response.httpResponse.body<UserWrapper<User>>().user
         assert(body.username == newUsername)
-        assert(body.email == user.email)
+        assert(body.email == user.email.value)
         assert(body.token == token.value)
         assert(body.bio == "")
         assert(body.image == "")

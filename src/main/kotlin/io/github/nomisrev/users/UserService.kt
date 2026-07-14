@@ -27,10 +27,10 @@ data class Update(
 
 data class Login(val email: Email, val password: Password) {
     fun toUser(token: JwtToken, info: UserInfo): User =
-        User(email.value, token.value, info.username, info.bio, info.image)
+        User(email.value, token.value, info.username.value, info.bio, info.image)
 }
 
-data class UserInfo(val email: String, val username: String, val bio: String, val image: String)
+data class UserInfo(val email: Email, val username: Username, val bio: String, val image: String)
 
 class UserService(
     private val repo: UserPersistence,

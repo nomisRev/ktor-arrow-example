@@ -39,8 +39,8 @@ class UserPersistence(
         return catch({
             usersQueries
                 .insertAndGetId(
-                    username = register.username.value,
-                    email = register.email.value,
+                    username = register.username,
+                    email = register.email,
                     salt = salt,
                     hashed_password = key,
                     bio = "",
@@ -55,13 +55,13 @@ class UserPersistence(
     context(_: Raise<UserError>)
     fun verifyPassword(email: Email, password: Password): UserIdAndInfo {
         val (id, username, salt, hashed_password, bio, image) =
-            ensureNotNull(usersQueries.selectSecurityByEmail(email.value).executeAsOneOrNull()) {
+            ensureNotNull(usersQueries.selectSecurityByEmail(email).executeAsOneOrNull()) {
                 UserNotFound("email=$email")
             }
 
         val hash = generateKey(password.raw(), salt)
         ensure(hash contentEquals hashed_password) { PasswordNotMatched }
-        return UserIdAndInfo(id, UserInfo(email.value, username, bio, image))
+        return UserIdAndInfo(id, UserInfo(email, username, bio, image))
     }
 
     context(_: Raise<UserNotFound>)
@@ -76,13 +76,13 @@ class UserPersistence(
     }
 
     context(_: Raise<UserNotFound>)
-    fun select(username: String): UserInfo {
+    fun select(username: Username): UserInfo {
         val userInfo = usersQueries.selectByUsername(username, ::UserInfo).executeAsOneOrNull()
         return ensureNotNull(userInfo) { UserNotFound("username=$username") }
     }
 
     context(_: Raise<UserNotFound>)
-    fun selectProfile(username: String, viewerId: UserId? = null): Profile {
+    fun selectProfile(username: Username, viewerId: UserId? = null): Profile {
         val profileInfo =
             when (viewerId) {
                 null -> usersQueries.selectProfile(username, ::toProfile).executeAsOneOrNull()
@@ -107,13 +107,13 @@ class UserPersistence(
                     bio,
                     image,
                     following ->
-                    id to Profile(username, bio, image, following > 0)
+                    id to Profile(username.value, bio, image, following > 0)
                 }
                 .executeAsList()
                 .toMap()
 
-    private fun toProfile(username: String, bio: String, image: String, following: Int): Profile =
-        Profile(username, bio, image, following > 0)
+    private fun toProfile(username: Username, bio: String, image: String, following: Int): Profile =
+        Profile(username.value, bio, image, following > 0)
 
     @Suppress("LongParameterList")
     context(_: Raise<UserError>)
@@ -145,13 +145,13 @@ class UserPersistence(
         return ensureNotNull(info) { UserNotFound("userId=${update.userId}") }
     }
 
-    suspend fun unfollowProfile(followedUsername: String, followerId: UserId) {
+    suspend fun unfollowProfile(followedUsername: Username, followerId: UserId) {
         followingQueries.delete(followedUsername, followerId.serial).await()
     }
 
     context(_: Raise<UserNotFound>)
     suspend fun followProfile(
-        followedUsername: String,
+        followedUsername: Username,
         followerId: UserId,
     ): Long =
         catch({
@@ -169,8 +169,8 @@ class UserPersistence(
         email: Email?,
     ): Nothing =
         when (exception.serverErrorMessage?.constraint) {
-            "users_username_key" -> raise(UsernameAlreadyExists(username?.value.orEmpty()))
-            "users_email_key" -> raise(EmailAlreadyExists(email?.value.orEmpty()))
+            "users_username_key" -> raise(UsernameAlreadyExists(username!!))
+            "users_email_key" -> raise(EmailAlreadyExists(email!!))
             else -> throw exception
         }
 

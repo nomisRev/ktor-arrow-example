@@ -1,9 +1,11 @@
 import io.github.nomisrev.users.UserId;
+import io.github.nomisrev.Username;
+import io.github.nomisrev.Email;
 
 CREATE TABLE IF NOT EXISTS users(
     id BIGSERIAL AS UserId PRIMARY KEY,
-    email VARCHAR(200) NOT NULL UNIQUE,
-    username VARCHAR(100) NOT NULL UNIQUE,
+    email VARCHAR(200) AS Email NOT NULL UNIQUE,
+    username VARCHAR(100) AS Username NOT NULL UNIQUE,
     salt BYTEA NOT NULL,
     hashed_password BYTEA NOT NULL,
     bio VARCHAR(1000) NOT NULL DEFAULT '',

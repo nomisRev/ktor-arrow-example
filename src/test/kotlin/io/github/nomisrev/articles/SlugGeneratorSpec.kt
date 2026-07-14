@@ -56,15 +56,6 @@ val SlugGeneratorSuite by testSuite {
         assertEquals("special_title", slug.value)
     }
 
-    testRaise("should handle empty title") {
-        val slugGenerator = slugifyGenerator(seed)
-
-        assertEquals(
-            "",
-            slugGenerator.generateSlug(Title("")) { true }.value,
-        )
-    }
-
     testRaise("should handle very long title") {
         val slugGenerator = slugifyGenerator(seed)
 

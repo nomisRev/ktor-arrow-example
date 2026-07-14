@@ -101,9 +101,9 @@ fun Route.userRoutes(userService: UserService, jwtService: JwtConfig<JwtContext>
             respond(
                 UserWrapper(
                     User(
-                        info.email,
+                        info.email.value,
                         call.principal.token.value,
-                        info.username,
+                        info.username.value,
                         info.bio,
                         info.image,
                     )
@@ -117,9 +117,9 @@ fun Route.userRoutes(userService: UserService, jwtService: JwtConfig<JwtContext>
             respond(
                 UserWrapper(
                     User(
-                        info.email,
+                        info.email.value,
                         call.principal.token.value,
-                        info.username,
+                        info.username.value,
                         info.bio,
                         info.image,
                     )
