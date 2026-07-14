@@ -3,6 +3,7 @@ package io.github.nomisrev
 import arrow.core.nonEmptyListOf
 import de.infix.testBalloon.framework.core.testSuite
 import io.github.nomisrev.articles.ArticlesParameters
+import io.github.nomisrev.articles.CreateArticle
 import io.github.nomisrev.articles.FeedLimit
 import io.github.nomisrev.articles.FeedOffset
 import io.github.nomisrev.articles.FeedParameters
@@ -10,6 +11,7 @@ import io.github.nomisrev.articles.GetArticles
 import io.github.nomisrev.articles.GetFeed
 import io.github.nomisrev.articles.NewArticle
 import io.github.nomisrev.articles.NewComment
+import io.github.nomisrev.articles.Slug
 import io.github.nomisrev.users.LoginUser
 import io.github.nomisrev.users.NewUser
 import io.github.nomisrev.users.UpdateUser
@@ -126,7 +128,7 @@ val Validation by testSuite {
                 tagList = listOf("", "ok", " "),
             )
 
-        val error = assertRaised { input.validate() }
+        val error = assertRaised { input.toCreateArticle(UserId(1)) }
 
         assertEquals(
             IncorrectInput(
@@ -140,7 +142,7 @@ val Validation by testSuite {
     }
 
     test("validates body") {
-        val error = assertRaised { NewComment(body = " ").validate() }
+        val error = assertRaised { NewComment(body = " ").toCreateComment(Slug("slug"), UserId(1)) }
 
         assertEquals(
             IncorrectInput(InvalidBody(nonEmptyListOf("Cannot be blank"))),
@@ -158,7 +160,7 @@ val Validation by testSuite {
                 )
             )
 
-        val error = assertRaised { input.validate(userId) }
+        val error = assertRaised { input.toGetFeed(userId) }
 
         assertEquals(
             IncorrectInput(
@@ -178,7 +180,7 @@ val Validation by testSuite {
                 )
             )
 
-        val error = assertRaised { input.validate(currentUserId = null) }
+        val error = assertRaised { input.toGetArticles(currentUserId = null) }
 
         assertEquals(
             IncorrectInput(
@@ -195,30 +197,34 @@ val Validation by testSuite {
         assertEquals("simon@example.com", register.email.value)
 
         val article = NewArticle("title", "description", "body", listOf(" kotlin ", "arrow"))
+        val userId = UserId(42)
+
         assertEquals(
-            NewArticle("title", "description", "body", listOf("kotlin", "arrow")),
-            article.validate(),
+            CreateArticle(
+                userId,
+                Title("title"),
+                Description("description"),
+                Body("body"),
+                setOf("kotlin", "arrow"),
+            ),
+            article.toCreateArticle(userId),
         )
 
-        assertEquals(FeedOffset(0), 0.validFeedOffset())
-        assertEquals(FeedLimit(1), 1.validFeedLimit())
-
-        val userId = UserId(42)
         assertEquals(
-            GetFeed(userId = userId, limit = 3, offset = 2),
+            GetFeed(userId = userId, limit = FeedLimit(3), offset = FeedOffset(2)),
             FeedParameters(
                     mutableMapOf(
                         "offset" to listOf("2"),
                         "limit" to listOf("3"),
                     )
                 )
-                .validate(userId),
+                .toGetFeed(userId),
         )
 
         assertEquals(
             GetArticles(
-                limit = 5,
-                offset = 4,
+                limit = FeedLimit(5),
+                offset = FeedOffset(4),
                 author = null,
                 favorited = null,
                 tag = "kotlin",
@@ -231,7 +237,7 @@ val Validation by testSuite {
                         "limit" to listOf("5"),
                     )
                 )
-                .validate(userId),
+                .toGetArticles(userId),
         )
     }
 }

@@ -4,10 +4,13 @@ import arrow.core.raise.context.Raise
 import arrow.core.raise.context.ensure
 import arrow.core.raise.context.ensureNotNull
 import io.github.nomisrev.ArticleError
+import io.github.nomisrev.Body
 import io.github.nomisrev.CommentNotFound
+import io.github.nomisrev.Description
 import io.github.nomisrev.DomainErrors
 import io.github.nomisrev.NotArticleAuthor
 import io.github.nomisrev.NotCommentAuthor
+import io.github.nomisrev.Title
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.sqldelight.Articles
 import io.github.nomisrev.sqldelight.Comments
@@ -17,9 +20,9 @@ import io.github.nomisrev.users.UserPersistence
 
 data class CreateArticle(
     val userId: UserId,
-    val title: String,
-    val description: String,
-    val body: String,
+    val title: Title,
+    val description: Description,
+    val body: Body,
     val tags: Set<String>,
 )
 
@@ -37,11 +40,11 @@ data class UpdateArticleInput(
     val body: String?,
 )
 
-data class GetFeed(val userId: UserId, val limit: Int, val offset: Int)
+data class GetFeed(val userId: UserId, val limit: FeedLimit, val offset: FeedOffset)
 
 data class GetArticles(
-    val limit: Int,
-    val offset: Int,
+    val limit: FeedLimit,
+    val offset: FeedOffset,
     val author: String? = null,
     val favorited: String? = null,
     val tag: String? = null,
@@ -75,7 +78,7 @@ class ArticleService(
         val article =
             Articles(
                 id = insertAndGet.id,
-                slug = slug.value,
+                slug = slug,
                 title = input.title,
                 description = input.description,
                 body = input.body,
@@ -89,12 +92,7 @@ class ArticleService(
 
     context(_: Raise<UserNotFound>)
     fun getUserFeed(input: GetFeed): MultipleArticlesResponse {
-        val result =
-            articlePersistence.feed(
-                userId = input.userId,
-                limit = FeedLimit(input.limit),
-                offset = FeedOffset(input.offset),
-            )
+        val result = articlePersistence.feed(input)
 
         return MultipleArticlesResponse(
             articles = articles(result.articles, input.userId),
@@ -104,17 +102,7 @@ class ArticleService(
 
     context(_: Raise<UserNotFound>)
     fun getAllArticles(input: GetArticles): MultipleArticlesResponse {
-        val limit = FeedLimit(input.limit)
-        val offset = FeedOffset(input.offset)
-
-        val result =
-            articlePersistence.allArticles(
-                limit = limit,
-                offset = offset,
-                author = input.author,
-                favorited = input.favorited,
-                tag = input.tag,
-            )
+        val result = articlePersistence.allArticles(input)
 
         return MultipleArticlesResponse(
             articles = articles(result.articles, input.currentUserId),
@@ -133,7 +121,7 @@ class ArticleService(
         val article = articlePersistence.findArticleBySlug(input.slug)
 
         ensure(article.author_id == input.userId) {
-            NotArticleAuthor(input.userId.serial, input.slug.value)
+            NotArticleAuthor(input.userId.serial, input.slug)
         }
 
         val updatedArticle =
@@ -150,7 +138,7 @@ class ArticleService(
     context(_: Raise<ArticleError>)
     suspend fun deleteArticle(slug: Slug, userId: UserId) {
         val article = articlePersistence.findArticleBySlug(slug)
-        ensure(article.author_id == userId) { NotArticleAuthor(userId.serial, slug.value) }
+        ensure(article.author_id == userId) { NotArticleAuthor(userId.serial, slug) }
         articlePersistence.deleteArticle(slug)
     }
 
@@ -215,15 +203,15 @@ class ArticleService(
             Article(
                 row.id.serial,
                 row.slug,
-                row.title,
-                row.description,
-                row.body,
+                row.title.value,
+                row.description.value,
+                row.body.value,
                 profile,
                 stats.favorited,
                 stats.count,
                 row.createdAt,
                 row.updatedAt,
-                tagsByArticle[row.id].orEmpty(),
+                tagsByArticle[row.id].orEmpty().toSet(),
             )
         }
     }

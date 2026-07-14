@@ -21,8 +21,7 @@ import io.ktor.server.routing.Route
 import kotlinx.serialization.Serializable
 import opensavvy.spine.server.respond
 
-@Serializable
-data class UserWrapper<T : Any>(val user: T)
+@Serializable data class UserWrapper<T : Any>(val user: T)
 
 @Serializable
 data class NewUser(val username: String, val email: String, val password: String) {

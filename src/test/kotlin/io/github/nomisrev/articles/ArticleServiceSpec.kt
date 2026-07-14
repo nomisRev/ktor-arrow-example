@@ -18,7 +18,7 @@ val ArticleServiceSuite by testSuite {
         dependencies.articleService.createArticle(otherUser.userId)
         val feed =
             dependencies.articleService.getUserFeed(
-                input = GetFeed(userId = user.userId, limit = 20, offset = 0)
+                input = GetFeed(userId = user.userId, limit = FeedLimit(20), offset = FeedOffset(0))
             )
 
         assert(feed.articlesCount == 0)
@@ -37,7 +37,7 @@ val ArticleServiceSuite by testSuite {
 
         val feed =
             dependencies.articleService.getUserFeed(
-                input = GetFeed(userId = user.userId, limit = 20, offset = 0)
+                input = GetFeed(userId = user.userId, limit = FeedLimit(20), offset = FeedOffset(0))
             )
         assert(feed.articlesCount == 1)
         assert(feed.articles.single().slug == createdFollowedArticle.slug)
@@ -50,7 +50,7 @@ val ArticleServiceSuite by testSuite {
         val updated =
             dependencies.articleService.updateArticle(
                 UpdateArticleInput(
-                    slug = Slug(created.slug),
+                    slug = created.slug,
                     userId = author.userId,
                     title = "updated-title",
                     description = "updated description",
@@ -74,7 +74,7 @@ val ArticleServiceSuite by testSuite {
         val error = assertRaised {
             dependencies.articleService.updateArticle(
                 UpdateArticleInput(
-                    slug = Slug(created.slug),
+                    slug = created.slug,
                     userId = nonAuthor.userId,
                     title = "updated-title",
                     description = null,

@@ -4,6 +4,7 @@ import arrow.core.raise.context.Raise
 import arrow.core.raise.context.ensure
 import com.github.slugify.Slugify
 import io.github.nomisrev.CannotGenerateSlug
+import io.github.nomisrev.Title
 import kotlin.random.Random
 import kotlinx.serialization.Serializable
 
@@ -19,7 +20,7 @@ fun interface SlugGenerator {
      */
     context(_: Raise<CannotGenerateSlug>)
     suspend fun generateSlug(
-        title: String,
+        title: Title,
         verifyUnique: suspend (Slug) -> Boolean,
     ): Slug
 }
@@ -38,7 +39,7 @@ fun slugifyGenerator(
 
         context(_: Raise<CannotGenerateSlug>)
         private tailrec suspend fun recursiveGen(
-            title: String,
+            title: Title,
             verifyUnique: suspend (Slug) -> Boolean,
             maxAttempts: Int,
             isFirst: Boolean,
@@ -47,7 +48,10 @@ fun slugifyGenerator(
                 CannotGenerateSlug("Failed to generate unique slug from $title")
             }
 
-            val slug = Slug(if (isFirst) slg.slugify(title) else makeUnique(slg.slugify(title)))
+            val slug =
+                Slug(
+                    if (isFirst) slg.slugify(title.value) else makeUnique(slg.slugify(title.value))
+                )
 
             val isUnique = verifyUnique(slug)
             return if (isUnique) slug else recursiveGen(title, verifyUnique, maxAttempts - 1, false)
@@ -55,7 +59,7 @@ fun slugifyGenerator(
 
         context(_: Raise<CannotGenerateSlug>)
         override suspend fun generateSlug(
-            title: String,
+            title: Title,
             verifyUnique: suspend (Slug) -> Boolean,
         ): Slug = recursiveGen(title, verifyUnique, defaultMaxAttempts, true)
     }

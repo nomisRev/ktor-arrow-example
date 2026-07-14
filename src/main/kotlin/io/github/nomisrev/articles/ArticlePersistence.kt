@@ -3,6 +3,9 @@ package io.github.nomisrev.articles
 import arrow.core.raise.context.Raise
 import arrow.core.raise.context.ensureNotNull
 import io.github.nomisrev.ArticleBySlugNotFound
+import io.github.nomisrev.Body
+import io.github.nomisrev.Description
+import io.github.nomisrev.Title
 import io.github.nomisrev.profiles.Profile
 import io.github.nomisrev.sqldelight.*
 import io.github.nomisrev.users.UserId
@@ -24,15 +27,15 @@ class ArticlePersistence(
     fun create(
         authorId: UserId,
         slug: Slug,
-        title: String,
-        description: String,
-        body: String,
+        title: Title,
+        description: Description,
+        body: Body,
         tags: Set<String>,
     ): InsertAndReturn = articles.transactionWithResult {
         val insertAndReturn =
             articles
                 .insertAndReturn(
-                    slug.value,
+                    slug,
                     title,
                     description,
                     body,
@@ -47,13 +50,17 @@ class ArticlePersistence(
         insertAndReturn
     }
 
-    fun exists(slug: Slug): Boolean = articles.slugExists(slug.value).executeAsOne()
+    fun exists(slug: Slug): Boolean = articles.slugExists(slug).executeAsOne()
 
-    fun feed(userId: UserId, limit: FeedLimit, offset: FeedOffset): FeedResult {
+    fun feed(input: GetFeed): FeedResult {
         var totalCount = 0L
         val rows =
             articles
-                .selectFeedArticles(userId.serial, limit.limit.toLong(), offset.offset.toLong()) {
+                .selectFeedArticles(
+                    input.userId.serial,
+                    input.limit.value,
+                    input.offset.value,
+                ) {
                     articleId,
                     articleSlug,
                     articleTitle,
@@ -84,21 +91,15 @@ class ArticlePersistence(
      * `COUNT(*) OVER()`), instead of always issuing two separate, independently filtered queries
      * (one for the rows, one for `COUNT(*)`).
      */
-    fun allArticles(
-        limit: FeedLimit,
-        offset: FeedOffset,
-        author: String? = null,
-        favorited: String? = null,
-        tag: String? = null,
-    ): FeedResult {
+    fun allArticles(input: GetArticles): FeedResult {
         var totalCount = 0L
         val mapper =
             {
                 id: ArticleId,
-                slug: String,
-                title: String,
-                description: String,
-                body: String,
+                slug: Slug,
+                title: Title,
+                description: Description,
+                body: Body,
                 authorId: UserId,
                 createdAt: OffsetDateTime,
                 updatedAt: OffsetDateTime,
@@ -110,32 +111,31 @@ class ArticlePersistence(
 
         val rows =
             when {
-                !author.isNullOrBlank() ->
+                !input.author.isNullOrBlank() ->
                     articles.selectArticlesByAuthor(
-                        author,
-                        limit.limit.toLong(),
-                        offset.offset.toLong(),
+                        input.author,
+                        input.limit.value,
+                        input.offset.value,
                         mapper,
                     )
 
-                !favorited.isNullOrBlank() ->
+                !input.favorited.isNullOrBlank() ->
                     articles.selectArticlesFavoritedByUsername(
-                        favorited,
-                        limit.limit.toLong(),
-                        offset.offset.toLong(),
+                        input.favorited,
+                        input.limit.value,
+                        input.offset.value,
                         mapper,
                     )
 
-                !tag.isNullOrBlank() ->
+                !input.tag.isNullOrBlank() ->
                     articles.selectArticlesByTag(
-                        tag,
-                        limit.limit.toLong(),
-                        offset.offset.toLong(),
+                        input.tag,
+                        input.limit.value,
+                        input.offset.value,
                         mapper,
                     )
 
-                else ->
-                    articles.selectAllArticles(limit.limit.toLong(), offset.offset.toLong(), mapper)
+                else -> articles.selectAllArticles(input.limit.value, input.offset.value, mapper)
             }.executeAsList()
 
         return FeedResult(rows, totalCount)
@@ -143,7 +143,7 @@ class ArticlePersistence(
 
     context(_: Raise<ArticleBySlugNotFound>)
     fun findArticleBySlug(slug: Slug): Articles {
-        val article = articles.selectBySlug(slug.value).executeAsOneOrNull()
+        val article = articles.selectBySlug(slug).executeAsOneOrNull()
         return ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
     }
 
@@ -156,7 +156,7 @@ class ArticlePersistence(
     ): Articles {
         val article =
             articles
-                .update(title, description, body, slug.value) {
+                .update(title, description, body, slug) {
                     articleId,
                     slug,
                     title,
@@ -211,8 +211,7 @@ class ArticlePersistence(
 
     fun findCommentsForSlug(slug: Slug): List<Comment> =
         comments
-            .selectForSlug(slug.value) { commentId, body, createdAt, updatedAt, username, bio, image
-                ->
+            .selectForSlug(slug) { commentId, body, createdAt, updatedAt, username, bio, image ->
                 Comment(
                     commentId,
                     createdAt,

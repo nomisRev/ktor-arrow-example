@@ -46,17 +46,24 @@ fun <E> TestSuite.testRaise(
 fun TestSuite.testDependencies(
     @TestElementName name: String,
     testConfig: TestConfig = TestConfig,
-    test: suspend context(Dependencies, DomainErrors) Test.ExecutionScope.() -> Unit,
+    test:
+        suspend context(Dependencies, DomainErrors, Raise<InvalidField>) Test.ExecutionScope.(
+        ) -> Unit,
 ) =
     test(name, testConfig) {
         resourceScope {
             val dependencies = dependencies(Env(), PostgreSQL.dataSource)
             recover({
-                test(
-                    dependencies,
-                    contextOf<DomainErrors>(),
-                    this@test,
-                )
+                recover({
+                    test(
+                        dependencies,
+                        contextOf<DomainErrors>(),
+                        contextOf<Raise<InvalidField>>(),
+                        this@test,
+                    )
+                }) { error: InvalidField ->
+                    throw AssertionError("Expected no errors but found $error")
+                }
             }) { error: DomainError ->
                 throw AssertionError("Expected no errors but found $error")
             }
@@ -67,7 +74,12 @@ fun TestSuite.testDependencies(
 fun TestSuite.testServer(
     @TestElementName name: String,
     testConfig: TestConfig = TestConfig,
-    test: suspend context(Dependencies, HttpClient, DomainErrors) Test.ExecutionScope.() -> Unit,
+    test:
+        suspend context(
+        Dependencies,
+        HttpClient,
+        DomainErrors,
+        Raise<InvalidField>) Test.ExecutionScope.() -> Unit,
 ) =
     test(name, testConfig) {
         resourceScope {
@@ -82,12 +94,17 @@ fun TestSuite.testServer(
                 }
                     .use { client ->
                         recover({
-                            test(
-                                dependencies,
-                                client,
-                                contextOf<DomainErrors>(),
-                                this@test,
-                            )
+                            recover({
+                                test(
+                                    dependencies,
+                                    client,
+                                    contextOf<DomainErrors>(),
+                                    contextOf<Raise<InvalidField>>(),
+                                    this@test,
+                                )
+                            }) { error: InvalidField ->
+                                throw AssertionError("Expected no errors but found $error")
+                            }
                         }) { error: DomainError ->
                             throw AssertionError("Expected no errors but found $error")
                         }

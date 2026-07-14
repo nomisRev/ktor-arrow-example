@@ -6,7 +6,10 @@ import io.github.nomisrev.Api.Articles
 import io.github.nomisrev.Api.Articles.create
 import io.github.nomisrev.Api.Articles.feed
 import io.github.nomisrev.Api.Articles.list
+import io.github.nomisrev.Body
+import io.github.nomisrev.Description
 import io.github.nomisrev.GenericErrorModel
+import io.github.nomisrev.Title
 import io.github.nomisrev.articleFixture
 import io.github.nomisrev.client
 import io.github.nomisrev.createArticle
@@ -168,7 +171,7 @@ val ArticleRouteSuite by testSuite {
 
         val _ =
             dependencies.userPersistence.followProfile(articleAuthor.user.username, viewer.userId)
-        val _ = dependencies.articleService.favoriteArticle(Slug(created.slug), viewer.userId)
+        val _ = dependencies.articleService.favoriteArticle(created.slug, viewer.userId)
 
         val response =
             client.request(
@@ -300,9 +303,9 @@ val ArticleRouteSuite by testSuite {
             dependencies.articleService.createArticle(
                 CreateArticle(
                     userId,
-                    "How to train your dragon",
-                    "Ever wonder how?",
-                    "Very carefully.",
+                    Title("How to train your dragon"),
+                    Description("Ever wonder how?"),
+                    Body("Very carefully."),
                     setOf("dragons", "training"),
                 )
             )
@@ -311,9 +314,9 @@ val ArticleRouteSuite by testSuite {
             dependencies.articleService.createArticle(
                 CreateArticle(
                     userId,
-                    "Something else",
-                    "Nothing about dragons",
-                    "Still interesting.",
+                    Title("Something else"),
+                    Description("Nothing about dragons"),
+                    Body("Still interesting."),
                     setOf("kotlin"),
                 )
             )
@@ -350,7 +353,7 @@ val ArticleRouteSuite by testSuite {
                 )
             )
 
-        val _ = dependencies.articleService.favoriteArticle(Slug(created.slug), viewer.userId)
+        val _ = dependencies.articleService.favoriteArticle(created.slug, viewer.userId)
 
         val response =
             client.request(
@@ -383,7 +386,7 @@ val ArticleRouteSuite by testSuite {
                 )
             )
 
-        val _ = dependencies.articleService.favoriteArticle(Slug(created.slug), viewer.userId)
+        val _ = dependencies.articleService.favoriteArticle(created.slug, viewer.userId)
 
         val response =
             client.request(
@@ -412,9 +415,9 @@ val ArticleRouteSuite by testSuite {
                 Api / Articles / create,
                 ArticleWrapper(
                     NewArticle(
-                        article.title,
-                        article.description,
-                        article.body,
+                        article.title.value,
+                        article.description.value,
+                        article.body.value,
                         article.tags.toList(),
                     )
                 ),
@@ -423,9 +426,9 @@ val ArticleRouteSuite by testSuite {
             }
 
         val created = response.bodyOrThrow()
-        assert(created.article.title == article.title)
-        assert(created.article.description == article.description)
-        assert(created.article.body == article.body)
+        assert(created.article.title == article.title.value)
+        assert(created.article.description == article.description.value)
+        assert(created.article.body == article.body.value)
         assert(created.article.favoritesCount == 0L)
         assert(!created.article.favorited)
         assert(created.article.author.username == user.username)
@@ -441,16 +444,21 @@ val ArticleRouteSuite by testSuite {
             client.request(
                 Api / Articles / create,
                 ArticleWrapper(
-                    NewArticle(article.title, article.description, article.body, emptyList())
+                    NewArticle(
+                        article.title.value,
+                        article.description.value,
+                        article.body.value,
+                        emptyList(),
+                    )
                 ),
             ) {
                 tokenAuth(token.value)
             }
 
         val created = response.bodyOrThrow()
-        assert(created.article.title == article.title)
-        assert(created.article.description == article.description)
-        assert(created.article.body == article.body)
+        assert(created.article.title == article.title.value)
+        assert(created.article.description == article.description.value)
+        assert(created.article.body == article.body.value)
         assert(created.article.favoritesCount == 0L)
         assert(!created.article.favorited)
         assert(created.article.author.username == user.username)
@@ -465,7 +473,9 @@ val ArticleRouteSuite by testSuite {
         val response =
             client.request(
                 Api / Articles / create,
-                ArticleWrapper(NewArticle(article.title, article.description, "", emptyList())),
+                ArticleWrapper(
+                    NewArticle(article.title.value, article.description.value, "", emptyList())
+                ),
             ) {
                 tokenAuth(token.value)
             }
@@ -480,7 +490,9 @@ val ArticleRouteSuite by testSuite {
         val response =
             client.request(
                 Api / Articles / create,
-                ArticleWrapper(NewArticle(article.title, "", article.body, emptyList())),
+                ArticleWrapper(
+                    NewArticle(article.title.value, "", article.body.value, emptyList())
+                ),
             ) {
                 tokenAuth(token.value)
             }
@@ -495,7 +507,9 @@ val ArticleRouteSuite by testSuite {
         val response =
             client.request(
                 Api / Articles / create,
-                ArticleWrapper(NewArticle("", article.description, article.body, emptyList())),
+                ArticleWrapper(
+                    NewArticle("", article.description.value, article.body.value, emptyList())
+                ),
             ) {
                 tokenAuth(token.value)
             }
@@ -509,7 +523,12 @@ val ArticleRouteSuite by testSuite {
             client.request(
                 Api / Articles / create,
                 ArticleWrapper(
-                    NewArticle(article.title, article.description, article.body, emptyList())
+                    NewArticle(
+                        article.title.value,
+                        article.description.value,
+                        article.body.value,
+                        emptyList(),
+                    )
                 ),
             )
 

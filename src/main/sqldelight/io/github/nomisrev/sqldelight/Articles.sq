@@ -1,13 +1,17 @@
 import io.github.nomisrev.articles.ArticleId;
 import io.github.nomisrev.users.UserId;
+import io.github.nomisrev.Title;
+import io.github.nomisrev.Description;
+import io.github.nomisrev.Body;
+import io.github.nomisrev.articles.Slug;
 import kotlin.time.Instant;
 
 CREATE TABLE IF NOT EXISTS articles(
     id BIGSERIAL AS ArticleId PRIMARY KEY,
-    slug VARCHAR(255) UNIQUE NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    description VARCHAR(255) NOT NULL,
-    body TEXT NOT NULL,
+    slug VARCHAR(255) AS Slug UNIQUE NOT NULL,
+    title VARCHAR(255) AS Title NOT NULL,
+    description VARCHAR(255) AS Description NOT NULL,
+    body TEXT AS Body NOT NULL,
     author_id BIGINT AS UserId REFERENCES users(id) ON DELETE CASCADE NOT NULL,
     createdAt TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updatedAt TIMESTAMPTZ NOT NULL DEFAULT NOW()

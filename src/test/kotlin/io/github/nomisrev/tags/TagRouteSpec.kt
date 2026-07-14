@@ -7,8 +7,8 @@ import io.github.nomisrev.Api.Tags.list
 import io.github.nomisrev.client
 import io.github.nomisrev.createArticle
 import io.github.nomisrev.dependencies
-import io.github.nomisrev.registerUser
 import io.github.nomisrev.randomSuffix
+import io.github.nomisrev.registerUser
 import io.github.nomisrev.testServer
 import io.ktor.http.HttpStatusCode
 import opensavvy.spine.api.div

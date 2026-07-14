@@ -2,6 +2,7 @@ package io.github.nomisrev
 
 import arrow.core.NonEmptyList
 import arrow.core.raise.context.Raise
+import io.github.nomisrev.articles.Slug
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.MissingFieldException
 
@@ -42,7 +43,7 @@ data class CannotGenerateSlug(val description: String) : ArticleError
 
 data class ArticleBySlugNotFound(val slug: String) : ArticleError
 
-data class NotArticleAuthor(val userId: Long, val slug: String) : ArticleError
+data class NotArticleAuthor(val userId: Long, val slug: Slug) : ArticleError
 
 data class CommentNotFound(val commentId: Long) : ArticleError
 
