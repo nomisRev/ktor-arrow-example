@@ -124,9 +124,9 @@ value class Email private constructor(val value: String) {
 @JvmInline
 value class Username private constructor(val value: String) {
     companion object {
-        context(_: Raise<IncorrectInput>)
+        context(_: Raise<InvalidUsername>)
         operator fun invoke(value: String): Username =
-            withError({ IncorrectInput(nonEmptyListOf(InvalidUsername(it))) }) {
+            withError(::InvalidUsername) {
                 val normalized = value.trim()
                 accumulate {
                     normalized.notBlank()

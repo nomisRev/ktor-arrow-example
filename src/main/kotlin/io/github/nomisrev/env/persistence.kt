@@ -83,7 +83,7 @@ private val emailAdapter =
 
 private val usernameAdapter =
     columnAdapter(Username::value) { value ->
-        requireAll({ e -> e.errors.flatMap { it.errors } }) { Username(value) }
+        requireAll({ e -> e.errors }) { Username(value) }
     }
 
 private inline fun <A : Any, B> columnAdapter(

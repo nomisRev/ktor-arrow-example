@@ -32,7 +32,7 @@ val UserServiceSuite by testSuite {
             )
         }
 
-        assertEquals(IncorrectInput(InvalidUsername(errors)), error)
+        assertEquals(InvalidUsername(errors), error)
     }
 
     testDependencies("username longer than 25 chars") {
@@ -46,7 +46,7 @@ val UserServiceSuite by testSuite {
             )
         }
 
-        assertEquals(IncorrectInput(InvalidUsername(errors)), error)
+        assertEquals(InvalidUsername(errors), error)
     }
 
     testDependencies("email cannot be empty") {
@@ -73,7 +73,7 @@ val UserServiceSuite by testSuite {
             )
         }
 
-        assertEquals(IncorrectInput(InvalidEmail(errors)), error)
+        assertEquals(InvalidEmail(errors), error)
     }
 
     testDependencies("email is not valid") {
@@ -87,7 +87,7 @@ val UserServiceSuite by testSuite {
             )
         }
 
-        assertEquals(IncorrectInput(InvalidEmail(errors)), error)
+        assertEquals(InvalidEmail(errors), error)
     }
 
     testDependencies("password cannot be empty") {
@@ -107,7 +107,7 @@ val UserServiceSuite by testSuite {
             dependencies.userService.register(RegisterUser(validUsername, validEmail, Password("")))
         }
 
-        assertEquals(IncorrectInput(InvalidPassword(errors)), error)
+        assertEquals(InvalidPassword(errors), error)
     }
 
     testDependencies("password can be max 100") {
