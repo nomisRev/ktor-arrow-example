@@ -52,6 +52,26 @@ val Validation by testSuite {
         )
     }
 
+    test("accumulates size-limit validation errors") {
+        val input =
+            NewUser(
+                username = "A".repeat(26),
+                email = "${"A".repeat(341)}@domain.com",
+                password = "A" + "a".repeat(98) + "1!",
+            )
+
+        val error = assertRaised { input.toRegisterUser() }
+
+        assertEquals(
+            IncorrectInput(
+                InvalidUsername(nonEmptyListOf("is too long (maximum is 25 characters)")),
+                InvalidEmail(nonEmptyListOf("is too long (maximum is 350 characters)")),
+                InvalidPassword(nonEmptyListOf("is too long (maximum is 100 characters)")),
+            ),
+            error,
+        )
+    }
+
     test("accumulates email and password validation errors") {
         val input = LoginUser(email = "", password = "")
 
@@ -70,6 +90,24 @@ val Validation by testSuite {
                         "At least one special character",
                     )
                 ),
+            ),
+            error,
+        )
+    }
+
+    test("accumulates non-blank invalid email and password errors on login") {
+        val input =
+            LoginUser(
+                email = "AAAA",
+                password = "A" + "a".repeat(98) + "1!",
+            )
+
+        val error = assertRaised { input.toLogin() }
+
+        assertEquals(
+            IncorrectInput(
+                InvalidEmail(nonEmptyListOf("'AAAA' is invalid email")),
+                InvalidPassword(nonEmptyListOf("is too long (maximum is 100 characters)")),
             ),
             error,
         )
@@ -117,6 +155,37 @@ val Validation by testSuite {
         assertEquals(null, update.username)
         assertEquals(null, update.email)
         assertEquals(null, update.password)
+    }
+
+    testRaise("normalizes and maps valid user inputs at their length limits") {
+        val username = "u".repeat(25)
+        val email = "a".repeat(345) + "@a.co"
+        val password = "A" + "a".repeat(97) + "1!"
+
+        val register = NewUser(" $username ", " $email ", password).toRegisterUser()
+        assertEquals(username, register.username.value)
+        assertEquals(email, register.email.value)
+        assertEquals(password, register.password.raw())
+
+        val login = LoginUser(" $email ", password).toLogin()
+        assertEquals(email, login.email.value)
+        assertEquals(password, login.password.raw())
+
+        val update =
+            UpdateUser(
+                    username = " $username ",
+                    email = " $email ",
+                    password = password,
+                    bio = "bio",
+                    image = "image",
+                )
+                .toUpdate(UserId(1))
+        assertEquals(UserId(1), update.userId)
+        assertEquals(username, update.username?.value)
+        assertEquals(email, update.email?.value)
+        assertEquals(password, update.password?.raw())
+        assertEquals("bio", update.bio)
+        assertEquals("image", update.image)
     }
 
     test("accumulates title description body and every invalid tag") {

@@ -162,13 +162,13 @@ val ProfileRouteSuite by testSuite {
         )
     }
 
-    testServer("get profile by username missing username") {
+    testServer("get profile by username blank username") {
         val response = client.request(Api / Profiles / Username("%20") / get)
 
         assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
         assert(
             response.httpResponse.body<GenericErrorModel>().errors.body ==
-                ["Missing username cannot be null or blank parameter in request"]
+                ["username: Cannot be blank, is too short (minimum is 1 characters)"]
         )
     }
 }

@@ -72,7 +72,7 @@ val UserRouteSuite by testSuite {
 
     testServer("can update user") {
         val (user, token) = registerUser()
-        val newUsername = "new-${user.username}"
+        val newUsername = "new-${user.username.value}"
 
         val response =
             client.request(

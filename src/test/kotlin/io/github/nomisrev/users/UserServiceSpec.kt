@@ -1,17 +1,10 @@
 package io.github.nomisrev.users
 
-import arrow.core.nonEmptyListOf
 import de.infix.testBalloon.framework.core.testSuite
-import io.github.nomisrev.Email
 import io.github.nomisrev.EmailAlreadyExists
 import io.github.nomisrev.EmptyUpdate
-import io.github.nomisrev.IncorrectInput
-import io.github.nomisrev.InvalidEmail
-import io.github.nomisrev.InvalidPassword
-import io.github.nomisrev.InvalidUsername
 import io.github.nomisrev.Password
 import io.github.nomisrev.PasswordNotMatched
-import io.github.nomisrev.Username
 import io.github.nomisrev.UsernameAlreadyExists
 import io.github.nomisrev.assertRaised
 import io.github.nomisrev.dependencies
@@ -22,107 +15,6 @@ import org.junit.Assert.assertEquals
 
 @Suppress("RETURN_VALUE_NOT_USED_COERCION")
 val UserServiceSuite by testSuite {
-    testDependencies("username cannot be empty") {
-        val validEmail = Email("valid@domain.com")
-        val errors = nonEmptyListOf("Cannot be blank", "is too short (minimum is 1 characters)")
-
-        val error = assertRaised {
-            dependencies.userService.register(
-                RegisterUser(Username(""), validEmail, Password("Aa123456!"))
-            )
-        }
-
-        assertEquals(InvalidUsername(errors), error)
-    }
-
-    testDependencies("username longer than 25 chars") {
-        val validEmail = Email("valid@domain.com")
-        val name = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        val errors = nonEmptyListOf("is too long (maximum is 25 characters)")
-
-        val error = assertRaised {
-            dependencies.userService.register(
-                RegisterUser(Username(name), validEmail, Password("Aa123456!"))
-            )
-        }
-
-        assertEquals(InvalidUsername(errors), error)
-    }
-
-    testDependencies("email cannot be empty") {
-        val validUsername = userFixture().username
-        val errors = nonEmptyListOf("Cannot be blank", "'' is invalid email")
-
-        val error = assertRaised {
-            dependencies.userService.register(
-                RegisterUser(validUsername, Email(""), Password("Aa123456!"))
-            )
-        }
-
-        assertEquals(IncorrectInput(InvalidEmail(errors)), error)
-    }
-
-    testDependencies("email too long") {
-        val validUsername = userFixture().username
-        val email = "${(0..340).joinToString("") { "A" }}@domain.com"
-        val errors = nonEmptyListOf("is too long (maximum is 350 characters)")
-
-        val error = assertRaised {
-            dependencies.userService.register(
-                RegisterUser(validUsername, Email(email), Password("Aa123456!"))
-            )
-        }
-
-        assertEquals(InvalidEmail(errors), error)
-    }
-
-    testDependencies("email is not valid") {
-        val validUsername = userFixture().username
-        val email = Email("AAAA")
-        val errors = nonEmptyListOf("'$email' is invalid email")
-
-        val error = assertRaised {
-            dependencies.userService.register(
-                RegisterUser(validUsername, email, Password("Aa123456!"))
-            )
-        }
-
-        assertEquals(InvalidEmail(errors), error)
-    }
-
-    testDependencies("password cannot be empty") {
-        val validUsername = userFixture().username
-        val validEmail = Email("valid@domain.com")
-        val errors =
-            nonEmptyListOf(
-                "Cannot be blank",
-                "is too short (minimum is 8 characters)",
-                "At least one uppercase letter",
-                "At least one lowercase letter",
-                "At least one number",
-                "At least one special character",
-            )
-
-        val error = assertRaised {
-            dependencies.userService.register(RegisterUser(validUsername, validEmail, Password("")))
-        }
-
-        assertEquals(InvalidPassword(errors), error)
-    }
-
-    testDependencies("password can be max 100") {
-        val validUsername = userFixture().username
-        val validEmail = Email("valid@domain.com")
-        val password = Password("A" + "a".repeat(98) + "1!")
-        val errors = nonEmptyListOf("is too long (maximum is 100 characters)")
-
-        val error = assertRaised {
-            dependencies.userService.register(RegisterUser(validUsername, validEmail, password))
-        }
-
-        assertEquals(IncorrectInput(InvalidPassword(errors)), error)
-    }
-
     testDependencies("all valid returns a token") {
         val user = userFixture()
         val token =
@@ -159,69 +51,6 @@ val UserServiceSuite by testSuite {
         }
 
         assertEquals(EmailAlreadyExists(first.email), error)
-    }
-
-    testDependencies("email cannot be empty on login") {
-        val errors = nonEmptyListOf("Cannot be blank", "'' is invalid email")
-
-        val error = assertRaised {
-            dependencies.userService.login(Login(Email(""), Password("Aa123456!")))
-        }
-
-        assertEquals(IncorrectInput(InvalidEmail(errors)), error)
-    }
-
-    testDependencies("email too long on login") {
-        val email = "${(0..340).joinToString("") { "A" }}@domain.com"
-        val errors = nonEmptyListOf("is too long (maximum is 350 characters)")
-
-        val error = assertRaised {
-            dependencies.userService.login(Login(Email(email), Password("Aa123456!")))
-        }
-
-        assertEquals(IncorrectInput(InvalidEmail(errors)), error)
-    }
-
-    testDependencies("email is not valid on login") {
-        val email = "AAAA"
-        val errors = nonEmptyListOf("'$email' is invalid email")
-
-        val error = assertRaised {
-            dependencies.userService.login(Login(Email(email), Password("Aa123456!")))
-        }
-
-        assertEquals(IncorrectInput(InvalidEmail(errors)), error)
-    }
-
-    testDependencies("password cannot be empty on login") {
-        val validEmail = Email("valid@domain.com")
-        val errors =
-            nonEmptyListOf(
-                "Cannot be blank",
-                "is too short (minimum is 8 characters)",
-                "At least one uppercase letter",
-                "At least one lowercase letter",
-                "At least one number",
-                "At least one special character",
-            )
-
-        val error = assertRaised {
-            dependencies.userService.login(Login(validEmail, Password("")))
-        }
-
-        assertEquals(IncorrectInput(InvalidPassword(errors)), error)
-    }
-
-    testDependencies("password can be max 100 on login") {
-        val validEmail = Email("valid@domain.com")
-        val password = Password("A" + "a".repeat(98) + "1!")
-        val errors = nonEmptyListOf("is too long (maximum is 100 characters)")
-
-        val error = assertRaised {
-            dependencies.userService.login(Login(validEmail, password))
-        }
-
-        assertEquals(IncorrectInput(InvalidPassword(errors)), error)
     }
 
     testDependencies("all valid login returns a token") {
