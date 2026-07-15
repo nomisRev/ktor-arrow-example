@@ -30,18 +30,27 @@ io.github.nomisrev/
 Keep the boundary explicit per feature:
 
 ```
-<Feature>Routes -> <Feature>Service -> <Feature>Persistence -> SqlDelight (generated queries) -> JDBC/Hikari
+wire DTO -> validate/map -> service input -> <Feature>Service -> <Feature>Persistence -> SqlDelight -> JDBC/Hikari
 ```
 
+- Wire models are the `@Serializable` request/response types used by Ktor/Spine. They represent the HTTP contract and
+  therefore use wire-friendly primitives such as `String` and nullable fields.
+- A request DTO owns a `toXxx(...)` conversion when it needs route context (for example `NewUser.toRegisterUser()` or
+  `NewArticle.toCreateArticle(userId)`). The conversion validates and normalizes every relevant field, accumulates
+  all invalid fields into `IncorrectInput`, and constructs the service input. Do not pass the wire DTO into a service.
+- Service inputs are ordinary, non-serializable business models. They use validated value classes (`Email`, `Password`,
+  `Username`, etc.) and domain identifiers, so the service can assume field invariants. Nullable optional wire fields
+  remain nullable only after each provided value has been validated.
+- Services apply business rules and compose service inputs for persistence. Persistence functions accept these business
+  models and unwrap value classes only at the SQL boundary (`.value`/`.raw()`); they must not repeat HTTP validation.
 - `*Persistence` classes wrap generated SqlDelight `*Queries` objects; they are the only place SQL/`PSQLException`
   handling happens (see `UserPersistence.raiseUniqueViolation`).
-- `*Service` classes hold business rules that span persistence calls (validation, ownership checks, composing
-  profiles/tags/favorites onto an article). Simple pass-throughs stay in the narrowest `Raise` type; only widen to
-  `DomainErrors` when a function genuinely combines multiple error families — see
-  `references/routes-and-validation.md`.
-- `*Routes` files only decode/encode DTOs and call into a service — no persistence access, no manual error mapping.
-- Small features with no extra business logic (`tags`, `profiles`) skip the `*Service` layer entirely: their routes
-  call `*Persistence` directly.
+- `*Service` classes hold business rules that span persistence calls (ownership checks, empty-update checks, composing
+  profiles/tags/favorites). Simple pass-throughs stay in the narrowest `Raise` type; only widen to `DomainErrors` when
+  a function genuinely combines multiple error families — see `references/routes-and-validation.md`.
+- `*Routes` files decode wire DTOs, call their conversion/validation boundary, and call a service. They do not access
+  persistence or perform manual error mapping. Small features with no extra business logic (`tags`, `profiles`) may
+  skip the service layer and pass an already-validated business input to persistence.
 
 ## App bootstrap pattern
 

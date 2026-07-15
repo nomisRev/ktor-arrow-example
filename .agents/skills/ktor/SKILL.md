@@ -17,6 +17,8 @@ Read [references/service-architecture.md](references/service-architecture.md) wh
 
 Read [references/package-structure.md](references/package-structure.md) when creating, moving, or reorganizing files within a service module. Follow domain-driven feature packages, not technical layers.
 
-## Routes and validation
+## Routes, validation, and model boundaries
 
 Read [references/routes-and-validation.md](references/routes-and-validation.md) when editing HTTP contracts (Spine `Api.kt` endpoints), route handlers, `DomainError` modelling/mapping, or `accumulate`-based validation.
+
+Use the boundary pattern described there: **wire model -> validated business model -> service/persistence**. Serializable request DTOs contain wire primitives; their conversion functions validate and normalize the whole DTO, accumulate `IncorrectInput`, and construct the non-serializable service input. Services and persistence must accept business models (including validated value classes), not raw request DTOs or unvalidated strings.

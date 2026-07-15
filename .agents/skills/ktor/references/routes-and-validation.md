@@ -1,74 +1,160 @@
-# Routes and Validation
+# Routes, validation, and model boundaries
 
-This project defines its HTTP contracts with [Spine](https://gitlab.com/opensavvy/spine) instead of raw Ktor
-`routing { }` blocks, and models failures as `DomainErrors` (Arrow) instead of exceptions. Keep that
-combination in mind whenever you add or change an endpoint.
+This project defines its HTTP contracts with [Spine](https://gitlab.com/opensavvy/spine) and models expected
+failures as Arrow `DomainError`s. Keep the HTTP/wire boundary separate from the business layer:
+
+```
+JSON -> @Serializable wire DTO -> validate/map -> business/service input -> service -> persistence
+```
 
 ## Define the contract in `Api.kt`
 
-Every endpoint is declared once, as data, in `Api.kt`. Route handlers do not decide status codes or paths — they
-implement an already-declared `Endpoint`.
+Every endpoint is declared once, as data, in `Api.kt`. Route handlers implement an already-declared `Endpoint`; they
+do not choose paths or status codes.
 
-- The root object extends `opensavvy.spine.api.RootResource` (aliased `SpineRootResource`).
-- Nested resources are `StaticResource<Parent>("segment", Parent)` for fixed path segments, or
-  `DynamicResource<Parent>("name", Parent)` for path parameters (`:name`).
-- Each endpoint is a `by` delegate built from `get()`, `post()`, `put()`, `delete()`, optionally chained with:
-  - `.request<Body>()` — expected JSON request body.
-  - `.parameters(::MyParameters)` — typed query parameters (see below).
-  - `.response<Body>()` — success response body.
-  - `.failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)` — the error payload/status this project
-    always uses for domain failures.
+- The root object extends `opensavvy.spine.api.RootResource` (aliased as `SpineRootResource`).
+- Use `StaticResource<Parent>("segment", Parent)` for fixed path segments and
+  `DynamicResource<Parent>("name", Parent)` for path parameters.
+- Declare request and response types with `.request<Body>()` and `.response<Body>()`.
+- Domain failures use `.failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)`.
+
+Every endpoint uses `GenericErrorModel` at `422 Unprocessable Entity`; do not invent a per-endpoint error payload
+according to the [Conduit Spec](/api/openapi.yml). Example:
 
 ```kotlin
 object Articles : StaticResource<Api>("articles", Api) {
     val list by
-        get()
-            .parameters(::ArticlesParameters)
-            .response<MultipleArticlesResponse>()
-            .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+    get()
+        .parameters(::ArticlesParameters)
+        .response<MultipleArticlesResponse>()
+        .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
 
     object Slug : DynamicResource<Articles>("slug", Articles) {
         val update by
-            put()
-                .request<ArticleWrapper<UpdateArticle>>()
-                .response<SingleArticleResponse>()
-                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+        put()
+            .request<ArticleWrapper<UpdateArticle>>()
+            .response<SingleArticleResponse>()
+            .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
     }
 }
 ```
 
-Every endpoint in this codebase fails the same way: `GenericErrorModel` at `422 Unprocessable Entity`. Do not invent
-per-endpoint error payloads — map new error cases into `GenericErrorModel` instead (see below).
+## Route handlers and the wire boundary
 
-## Wiring a route handler
+Route files contain the HTTP adaptation, not business or persistence logic. A request model decoded from JSON is a
+wire model: it is normally `@Serializable`, uses primitive values (`String`, `Int`, nullable fields), and mirrors the
+HTTP payload. It must not be passed directly to a service.
 
-Route files (`UserRoutes.kt`, `ArticleRoutes.kt`, ...) implement each `Endpoint` with the `route(endpoint) { ... }`
-DSL from `io.github.nomisrev.route` (`ErrorRoutes.kt`), not the one from `opensavvy.spine.server` directly:
+When a request needs validation or route context, put a conversion function on the wire DTO. The conversion should:
+
+1. validate and normalize all supplied fields;
+2. accumulate errors for independent fields with `accumulate`/`accumulating`;
+3. raise one `IncorrectInput` when validation fails; and
+4. construct a non-serializable business input using validated value classes and domain identifiers.
+
+Example:
 
 ```kotlin
-fun Route.userRoutes(userService: UserService, jwtService: JwtConfig<JwtContext>) {
-    route(Api.Users.register) {
-        val (username, email, password) = body.user
-        val token = userService.register(RegisterUser(username, email, password))
-        respond(UserWrapper(User(email, token.value, username, "", "")), HttpStatusCode.Created)
+@Serializable
+data class NewUser(val username: String, val email: String, val password: String) {
+    context(_: Raise<IncorrectInput>)
+    fun toRegisterUser() = withError(::IncorrectInput) {
+        accumulate {
+            val username by accumulating { Username(username) }
+            val email by accumulating { Email(email) }
+            val password by accumulating { Password(password) }
+            RegisterUser(username, email, password)
+        }
     }
 }
 ```
 
-Inside the block:
+Typical route code is therefore:
 
-- `body` is the decoded, typed request (from `.request<...>()`).
-- `parameters`/`idOf(Resource)` give typed query/path parameters.
-- `respond(dto, status)` writes the typed response declared with `.response<...>()`.
-- Call service/repository functions directly — there is no `try/catch`. Domain failures `raise` a `DomainError`
-  and are handled once, generically, by the `route` wrapper.
-- Wrap authenticated groups with `authenticateWith(jwtService) { ... }` (or `.orAnonymous()` for endpoints that
-  behave differently for guests vs. logged-in users) and read `call.principal`.
+```kotlin
+route(Users.register) {
+    val register = body.user.toRegisterUser() // Raise<IncorrectInput>
+    val token = userService.register(register)
+    respond(UserWrapper(register.toUser(token)), HttpStatusCode.Created)
+}
+```
 
-## `ErrorRoutes.kt`: how failures become HTTP responses
+The service input is an ordinary business model, not a wire DTO. Its types express invariants: for example,
+`RegisterUser` contains `Username`, `Email`, and `Password`, whose constructors are private and can only be reached
+through their validating factory functions. Services and persistence should accept these business models and should
+not repeat HTTP validation. Unwrap value classes only at the persistence/SQL boundary (`.value` or `.raw()`).
+Note: `Password` also hides the sensitive information by overriding `toString()`.  Example:
 
-`Route.route(endpoint) { block }` in `ErrorRoutes.kt` runs `block` inside `arrow.core.raise.recover` with the
-handler's body scoped to `context(DomainErrors)`:
+```kotlin
+data class RegisterUser(val username: Username, val email: Email, val password: Password)
+
+@JvmInline
+value class Username private constructor(val value: String) {
+    companion object {
+        context(_: Raise<InvalidUsername>)
+        operator fun invoke(value: String): Username = withError(::InvalidUsername) {
+            val normalized = value.trim()
+            accumulate {
+                normalized.notBlank()
+                normalized.minSize(MIN_USERNAME_LENGTH)
+                normalized.maxSize(MAX_USERNAME_LENGTH)
+                Username(normalized)
+            }
+        }
+    }
+}
+
+@JvmInline
+value class Email private constructor(val value: String) {
+    companion object {
+        context(_: Raise<InvalidEmail>)
+        operator fun invoke(value: String): Email = withError(::InvalidEmail) {
+            val normalized = value.trim()
+            accumulate {
+                normalized.notBlank()
+                normalized.maxSize(MAX_EMAIL_LENGTH)
+                normalized.looksLikeEmail()
+                Email(normalized)
+            }
+        }
+    }
+}
+
+@JvmInline
+value class Password private constructor(private val value: String) {
+    fun raw(): String = value
+    override fun toString(): String = "Password(*****)"
+
+    companion object {
+        context(_: Raise<InvalidPassword>)
+        operator fun invoke(value: String): Password = withError(::InvalidPassword) {
+            accumulate {
+                value.notBlank()
+                value.minSize(MIN_PASSWORD_LENGTH)
+                value.maxSize(MAX_PASSWORD_LENGTH)
+                ensureOrAccumulate(value.contains(uppercase)) { "At least one uppercase letter" }
+                ensureOrAccumulate(value.contains(lowercase)) { "At least one lowercase letter" }
+                ensureOrAccumulate(value.contains(number)) { "At least one number" }
+                ensureOrAccumulate(value.contains(special)) { "At least one special character" }
+                Password(value)
+            }
+        }
+    }
+}
+```
+
+`opensavvy.spine.api.Parameters` classes follow the same boundary. `parameters.validate(...)` converts `ArticlesParameters` or
+`FeedParameters` into `GetArticles`/`GetFeed` before calling the service. Path values and authenticated user IDs are
+also converted into domain identifiers at this boundary.
+
+Route handlers call services directly and never use `try/catch` for expected failures. `route(endpoint) { ... }`
+provides `context(DomainErrors)`; `raise`, `ensure`, `ensureNotNull`, and Arrow `catch` are the expected-failure
+vocabulary.
+
+## `ErrorRoutes.kt`: mapping failures to HTTP
+
+`Route.route(endpoint) { block }` runs the block inside `arrow.core.raise.recover` and maps the resulting
+`DomainError` through `DomainError.toGenericErrorModel()`:
 
 ```kotlin
 inline fun <...> Route.route(
@@ -83,150 +169,82 @@ inline fun <...> Route.route(
     }
 ```
 
-This is the **only** place that converts a raised `DomainError` into an HTTP response, via
-`DomainError.toGenericErrorModel()` in `DomainError.kt`. Route bodies never call `fail`/`respond` for error cases
-themselves. When you add a new `DomainError` subtype, add a matching branch to `toGenericErrorModel` — it is an
-exhaustive `when`, so the compiler forces you to handle it.
+This is the only place that turns a domain failure into an HTTP error response. When adding a `DomainError` subtype,
+add its exhaustive branch to `toGenericErrorModel`.
 
-## `DomainError`: fine-grained errors that grow into `DomainError`
+## Error hierarchy and `Raise` scope
 
-`DomainError` is the top-level `sealed interface`. Every concrete error is grouped under a feature-specific sealed
-interface that extends it:
+`DomainError` is the top-level sealed interface. Feature-specific errors extend it:
 
 ```kotlin
 sealed interface DomainError
-
 sealed interface ValidationError : DomainError
 data class IncorrectInput(val errors: NonEmptyList<InvalidField>) : ValidationError
-data class MissingParameter(val name: String) : ValidationError
-// ...
-
 sealed interface UserError : DomainError
 data class UserNotFound(val property: String) : UserError
-data class EmailAlreadyExists(val email: String) : UserError
-data object PasswordNotMatched : UserError
-
 sealed interface ArticleError : DomainError
-data class ArticleBySlugNotFound(val slug: String) : ArticleError
-data class NotArticleAuthor(val userId: Long, val slug: String) : ArticleError
-// ...
 ```
 
-**Rule: declare the narrowest `Raise` context a function actually needs.** Persistence and small helper functions
-`raise` only the errors they can actually produce, e.g.:
+Declare the narrowest `Raise` context a function needs. Persistence functions should raise only their feature error
+(or a single specific error). A service uses `DomainErrors` when it combines validation, persistence, JWT, or other
+error families. Route blocks use `DomainErrors` because they are the HTTP error boundary.
+
+## Validation in `Validation.kt`
+
+Validation must report every invalid field and every broken rule for that field. Use Arrow's experimental
+`accumulate` API rather than manually building `NonEmptyList`s.
+
+### Field validation
+
+A field validator raises one `InvalidField` and accumulates its rule messages with `RaiseAccumulate<String>`:
 
 ```kotlin
-// UserPersistence.kt — can only fail with a UserError
-context(_: Raise<UserError>)
-fun verifyPassword(email: String, password: String): UserIdAndInfo { ... }
-
-context(_: Raise<UserNotFound>)
-fun select(userId: UserId): UserInfo { ... }
-```
-
-Because `UserError`, `ArticleError`, `ValidationError`, etc. are all subtypes of `DomainError`, and Arrow's
-`context(Raise<E>)` is contravariant in the way it composes, a function written as `context(_: DomainErrors)`
-can call any function that raises a narrower error type directly — no wrapping, no `mapLeft`, no manual lifting.
-This is how the error type **grows** as you move up the call stack:
-
-```kotlin
-class UserService(private val repo: UserPersistence, private val jwtService: JwtService) {
-    // register only fails with UserError (repo.insert) plus IncorrectInput (validate) -> DomainError
-    context(_: DomainErrors)
-    fun register(input: RegisterUser): JwtToken {
-        val (username, email, password) = input.validate()   // Raise<IncorrectInput>
-        val userId = repo.insert(username, email, password)  // Raise<UserError>
-        return jwtService.generateJwtToken(userId)            // Raise<JwtError>
+context(_: Raise<InvalidEmail>)
+operator fun Email.Companion.invoke(value: String): Email =
+    withError(::InvalidEmail) {
+        val normalized = value.trim()
+        accumulate {
+            normalized.notBlank()
+            normalized.maxSize(MAX_EMAIL_LENGTH)
+            normalized.looksLikeEmail()
+            Email(normalized)
+        }
     }
-
-    // getUser only ever needs UserNotFound — keep that narrow context, do not widen unnecessarily
-    context(_: Raise<UserNotFound>)
-    fun getUser(userId: UserId): UserInfo = repo.select(userId)
-}
 ```
 
-Guidelines:
+In this project `Email`, `Username`, and `Password` are `@JvmInline value class`es with private constructors.
+Their validating factories normalize where appropriate and are the only way to create those business values. Reuse
+small `RaiseAccumulate<String>` rules (`notBlank`, `minSize`, `maxSize`, `looksLikeEmail`) instead of duplicating
+rule logic.
 
-- Repository/persistence functions: narrowest possible error type (`UserError`, `ArticleError`, a single
-  variant like `UserNotFound`, ...).
-- Service functions: `DomainErrors` **only when they genuinely combine multiple error families** (validation
-  + persistence + JWT, etc.). If a service function only ever delegates to one narrow-error repository call, keep
-  that narrow type instead of widening to `DomainError` for no reason.
-- Route handlers (the `route(endpoint) { ... }` block body): always `context(DomainErrors)` — this is the
-  edge of the service, where any remaining domain error must be convertible to `GenericErrorModel` via
-  `toGenericErrorModel`.
-- Never introduce exceptions for expected failures. `raise`/`ensure`/`ensureNotNull`/`catch` (Arrow) are the only
-  vocabulary for expected error paths; reserve real exceptions (letting them propagate) for truly unexpected
-  failures (e.g. an unmapped `PSQLException`).
+For ordinary text fields, use a field-specific validator such as `validTitle`, `validDescription`, or `validBody`.
+Lists use `mapOrAccumulate`; optional fields use `field?.let { ... }` inside an accumulating block so `null` does not
+raise a validation error.
 
-## Validation: `accumulate` in `Validation.kt`
+### DTO-to-business validation
 
-Input validation never short-circuits on the first failing field — it must report every invalid field (and every
-rule broken within a field) in one response. This is done with Arrow's experimental accumulation API
-(`arrow.core.raise.context.accumulate`), not manual `NonEmptyList` building.
+Each DTO conversion validates fields independently and reconstructs a business model from the validated results:
 
-There are two accumulation levels, nested:
+```kotlin
+context(_: Raise<IncorrectInput>)
+fun NewUser.toRegisterUser(): RegisterUser =
+    withError(::IncorrectInput) {
+        accumulate {
+            val username by accumulating { Username(username) }
+            val email by accumulating { Email(email) }
+            val password by accumulating { Password(password) }
+            RegisterUser(username, email, password)
+        }
+    }
+```
 
-1. **Field level** — rules for a single `String`/`Int` accumulate into `NonEmptyList<String>` messages, using
-   `RaiseAccumulate<String>` and `ensureOrAccumulate`:
+Use the same shape for updates and other requests. Keep HTTP names and serialization annotations on the wire DTO;
+keep invariants, value classes, and business-specific input composition on the business model. A conversion may also
+include trusted route context, such as `userId` or `slug`, but it must not move business rules that belong in the
+service.
 
-   ```kotlin
-   context(_: Raise<NonEmptyList<String>>)
-   private fun String.passwordRules(): String = accumulate {
-       notBlank()
-       minSize(MIN_PASSWORD_LENGTH)
-       maxSize(MAX_PASSWORD_LENGTH)
-       this@passwordRules
-   }
-
-   context(_: RaiseAccumulate<String>)
-   private fun String.notBlank(): String = also {
-       val _ = ensureOrAccumulate(isNotBlank()) { "Cannot be blank" }
-   }
-   ```
-
-   `withError(::InvalidPassword)` then wraps that `NonEmptyList<String>` into a single `InvalidField`
-   (`InvalidPassword`), attaching the field name:
-
-   ```kotlin
-   context(_: Raise<InvalidField>)
-   private fun String.validPassword(): String = passwordValidation()
-
-   context(_: Raise<InvalidField>)
-   private fun String.passwordValidation(): String = withError(::InvalidPassword) { passwordRules() }
-   ```
-
-2. **Object level** — each field of an input DTO is validated independently and accumulated with
-   `val x by accumulating { ... }`, so that failures in `username`, `email`, and `password` are all collected
-   before raising, instead of stopping at the first one:
-
-   ```kotlin
-   context(_: Raise<IncorrectInput>)
-   fun RegisterUser.validate(): RegisterUser =
-       withError(::IncorrectInput) {
-           accumulate {
-               val username by accumulating { username.validUsername() }
-               val email by accumulating { email.validEmail() }
-               val password by accumulating { password.validPassword() }
-               RegisterUser(username, email, password)
-           }
-       }
-   ```
-
-   Here `accumulate { }` collects into `NonEmptyList<InvalidField>`, and the outer `withError(::IncorrectInput)`
-   turns that list into the single `IncorrectInput : ValidationError : DomainError` that routes/services raise.
-
-Patterns to follow when adding a new validated input:
-
-- Define one `InvalidField` subtype per field (`InvalidTitle`, `InvalidTag`, ...), carrying
-  `errors: NonEmptyList<String>` and a fixed `field` name — this is what ends up in the `GenericErrorModel` body
-  (`"$field: ${errors.joinToString()}"`).
-- Write small, reusable `RaiseAccumulate<String>` rule functions (`notBlank`, `minSize`, `maxSize`,
-  `looksLikeEmail`) and compose them inside a field's `accumulate { }` block.
-- Expose a single `context(_: Raise<InvalidField>) fun T.validXxx(): T` per field, and a
-  `context(_: Raise<IncorrectInput>) fun Dto.validate(): Dto` per input DTO that accumulates all its fields and
-  reconstructs the (now-validated) DTO.
-- Lists validate with `mapOrAccumulate` (see `List<String>.validTags()`); optional fields validate with
-  `field?.validXxx()` inside the same `accumulating { }` block so `null` short-circuits without raising.
-- Query parameters (`ArticlesParameters`, `FeedParameters` in `ArticleRoutes.kt`) validate the same way, right next
-  to their `Parameters` class, producing the plain input type the service expects (`GetArticles`, `GetFeed`).
+- Define one `InvalidField` subtype per validated field, carrying `NonEmptyList<String>` and a fixed field name.
+- Wrap the accumulated fields in `IncorrectInput`.
+- Preserve normalized values in the returned business model.
+- Keep business rules such as “an update must change at least one field” in the service (`Update`), not in the wire
+  DTO conversion.
