@@ -17,7 +17,7 @@
 | Resource management | [SuspendApp](https://arrow-kt.io/ecosystem/suspendapp/) + Arrow Fx `ResourceScope` |
 | Persistence | [SqlDelight](https://sqldelight.github.io/sqldelight/) with PostgreSQL and HikariCP |
 | Authentication | [Ktor Auth JWT](https://ktor.io/docs/server-jwt.html) + [kJWT](https://github.com/nefilim/kjwt) |
-| Health checks | [Cohort](https://github.com/sksamuel/cohort) (`/healthz/startup`, `/healthz/liveness`, `/healthz/readiness`) |
+| Health checks | [Cohort](https://github.com/sksamuel/cohort) (`/readiness`) |
 | Testing | [Kotest](https://kotest.io/) assertions, [TestBalloon](https://github.com/infix-de/testBalloon), [Testcontainers](https://testcontainers.com/) |
 
 ## Architecture
@@ -46,7 +46,7 @@ Each feature follows the same pattern:
 ```shell
 docker-compose up -d
 ./gradlew run
-curl -i 0.0.0.0:8080/healthz/readiness
+curl -i 0.0.0.0:8080/readiness
 ```
 
 !!! warning

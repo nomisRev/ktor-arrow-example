@@ -2,11 +2,12 @@
 arrow = "2.2.3"
 cohort = "2.9.10"
 detekt = "1.23.8"
-dev-tools = "0.0.1"
+dev-tools = "0.0.3"
 hikari = "7.1.0"
 kjwt = "1.0.0"
 kotlin = "2.4.0"
 kover = "0.9.8"
+knit = "0.5.1"
 ktor = "3.5.1"
 logback = "1.5.37"
 postgresql = "42.7.13"
@@ -19,6 +20,8 @@ spine = "0.12.0"
 testballoon = "1.0.1-K2.4.0"
 
 [libraries]
+kotlinx-knit = { module = "org.jetbrains.kotlinx:kotlinx-knit", version.ref = "knit" }
+kotlinx-knit-test = { module = "org.jetbrains.kotlinx:kotlinx-knit-test", version.ref = "knit" }
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
 arrow-fx = { module = "io.arrow-kt:arrow-fx-coroutines", version.ref = "arrow" }
 suspendapp = { module = "io.arrow-kt:suspendapp", version.ref = "arrow" }
@@ -57,7 +60,8 @@ dev-tools = { id = "io.github.nomisrev.dev-tools", version.ref = "dev-tools" }
 kotlin-assert = { id = "org.jetbrains.kotlin.plugin.power-assert", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+kotlinx-kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+kotlinx-knit = { id = "org.jetbrains.kotlinx.knit", version.ref = "knit" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }

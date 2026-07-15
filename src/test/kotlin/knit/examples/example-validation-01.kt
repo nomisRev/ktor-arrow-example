@@ -3,19 +3,10 @@ package io.github.nomisrev.knit.exampleValidation01
 
 import arrow.core.NonEmptyList
 
-sealed interface InvalidField {
-    val errors: NonEmptyList<String>
-    val field: String
-}
-
-data class InvalidPassword(override val errors: NonEmptyList<String>) : InvalidField {
-    constructor(error: String) : this(nonEmptyListOf(error))
-
-    override val field: String = "password"
-}
+data class InvalidPassword(val errors: NonEmptyList<String>)
 
 @JvmInline
-value class Password private constructor(private val value: String) {
+value class Password(private val value: String) {
     fun raw(): String = value
     override fun toString(): String = "Password(*****)"
 }

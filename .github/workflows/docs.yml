@@ -8,12 +8,16 @@ on:
       - "docs/**"
       - "mkdocs.yml"
       - "requirements-docs.txt"
+      - "knit.properties"
+      - "build.gradle.kts"
       - ".github/workflows/docs.yml"
   pull_request:
     paths:
       - "docs/**"
       - "mkdocs.yml"
       - "requirements-docs.txt"
+      - "knit.properties"
+      - "build.gradle.kts"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 
@@ -34,6 +38,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: "21"
+
+      - name: Verify generated documentation examples
+        uses: gradle/gradle-build-action@v3
+        with:
+          arguments: knitCheck --quiet
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -48,6 +63,12 @@ jobs:
 
       - name: Build documentation
         run: mkdocs build --strict
+
+      - name: Check documentation links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --verbose --no-progress './docs/**/*.md' './README.MD'
+          fail: true
 
       - name: Upload Pages artifact
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

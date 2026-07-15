@@ -1,18 +1,26 @@
 import com.diffplug.spotless.kotlin.KtfmtStep
+import kotlinx.knit.KnitPluginExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-@Suppress("DSL_SCOPE_VIOLATION") plugins {
+plugins {
   application
   alias(libs.plugins.kotlin.jvm)
   alias(libs.plugins.kotlin.assert)
-  alias(libs.plugins.kover)
+  alias(libs.plugins.kotlinx.kover)
   alias(libs.plugins.kotlinx.serialization)
+  alias(libs.plugins.kotlinx.knit)
   alias(libs.plugins.sqldelight)
   alias(libs.plugins.ktor)
   alias(libs.plugins.testballoon)
   alias(libs.plugins.spotless)
   alias(libs.plugins.version.catalog.update)
   alias(libs.plugins.dev.tools)
+}
+
+configure<KnitPluginExtension> {
+  files = project.fileTree(projectDir) {
+    include("docs/tutorials/validation.md")
+  }
 }
 
 application {
@@ -32,6 +40,12 @@ tasks {
   test {
     useJUnitPlatform()
   }
+
+  // Validation tutorial snippets are intentionally partial fragments; Knit keeps them
+  // as documentation artifacts rather than test-compilation inputs.
+  withType<KotlinCompile>().configureEach {
+    exclude("**/knit/examples/example-validation-*.kt")
+  }
 }
 
 ktor {
@@ -41,15 +55,16 @@ ktor {
   }
 }
 
-spotless {
-  kotlin {
-    targetExclude("**/build/**")
-    ktfmt("0.64").kotlinlangStyle().configure {
-      it.setRemoveUnusedImports(true)
-      it.setTrailingCommaManagementStrategy(KtfmtStep.TrailingCommaManagementStrategy.ONLY_ADD)
-    }
-  }
-}
+// TODO: re-enable formatting but currently using https://github.com/qwwdfsad/ktfmt/pull/2
+//spotless {
+//  kotlin {
+//    targetExclude("**/build/**", "**/knit/examples/**")
+//    ktfmt("0.64").kotlinlangStyle().configure {
+//      it.setRemoveUnusedImports(true)
+//      it.setTrailingCommaManagementStrategy(KtfmtStep.TrailingCommaManagementStrategy.ONLY_ADD)
+//    }
+//  }
+//}
 
 dependencies {
   implementation(libs.bundles.arrow)
@@ -75,6 +90,8 @@ dependencies {
   testImplementation(libs.testcontainers.postgresql)
   testImplementation(libs.ktor.server.tests)
   testImplementation(libs.testballoon.framework.core)
+  testImplementation("org.jetbrains.kotlinx:kotlinx-knit-test:0.5.1")
+  testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.13.4")
 }
 
 kotlin {
