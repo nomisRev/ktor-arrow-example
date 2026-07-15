@@ -25,6 +25,35 @@ import opensavvy.spine.api.RootResource as SpineRootResource
 import opensavvy.spine.api.StaticResource
 
 object Api : SpineRootResource("api") {
+    object Users : StaticResource<Api>("users", Api) {
+        val register by
+            post()
+                .request<UserWrapper<NewUser>>()
+                .response<UserWrapper<User>>()
+                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+
+        object Login : StaticResource<Users>("login", Users) {
+            val authenticate by
+                post()
+                    .request<UserWrapper<LoginUser>>()
+                    .response<UserWrapper<User>>()
+                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+        }
+    }
+
+    object CurrentUser : StaticResource<Api>("user", Api) {
+        val get by
+            get()
+                .response<UserWrapper<User>>()
+                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+
+        val update by
+            put()
+                .request<UserWrapper<UpdateUser>>()
+                .response<UserWrapper<User>>()
+                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+    }
+
     object Tags : StaticResource<Api>("tags", Api) {
         val list by
             get()
@@ -121,34 +150,5 @@ object Api : SpineRootResource("api") {
                         .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
             }
         }
-    }
-
-    object Users : StaticResource<Api>("users", Api) {
-        val register by
-            post()
-                .request<UserWrapper<NewUser>>()
-                .response<UserWrapper<User>>()
-                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-
-        object Login : StaticResource<Users>("login", Users) {
-            val authenticate by
-                post()
-                    .request<UserWrapper<LoginUser>>()
-                    .response<UserWrapper<User>>()
-                    .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-        }
-    }
-
-    object CurrentUser : StaticResource<Api>("user", Api) {
-        val get by
-            get()
-                .response<UserWrapper<User>>()
-                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
-
-        val update by
-            put()
-                .request<UserWrapper<UpdateUser>>()
-                .response<UserWrapper<User>>()
-                .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
     }
 }

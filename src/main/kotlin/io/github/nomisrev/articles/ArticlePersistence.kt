@@ -11,13 +11,6 @@ import io.github.nomisrev.sqldelight.*
 import io.github.nomisrev.users.UserId
 import java.time.OffsetDateTime
 
-@JvmInline value class ArticleId(val serial: Long)
-
-data class FeedResult(
-    val articles: List<Articles>,
-    val articlesCount: Long,
-)
-
 class ArticlePersistence(
     private val articles: ArticlesQueries,
     private val comments: CommentsQueries,
@@ -142,7 +135,7 @@ class ArticlePersistence(
     }
 
     context(_: Raise<ArticleBySlugNotFound>)
-    fun findArticleBySlug(slug: Slug): Articles {
+    fun findArticleBySlug(slug: Slug): io.github.nomisrev.sqldelight.Articles {
         val article = articles.selectBySlug(slug).executeAsOneOrNull()
         return ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
     }

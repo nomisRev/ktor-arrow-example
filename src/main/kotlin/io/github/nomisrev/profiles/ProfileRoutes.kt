@@ -5,7 +5,6 @@ package io.github.nomisrev.profiles
 import arrow.core.nonEmptyListOf
 import arrow.core.raise.context.Raise
 import arrow.core.raise.context.withError
-import io.github.nomisrev.Api
 import io.github.nomisrev.IncorrectInput
 import io.github.nomisrev.Username
 import io.github.nomisrev.auth.JwtConfig
@@ -30,16 +29,16 @@ data class Profile(
 
 fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtConfig<JwtContext>) {
     authenticateWith(jwtService.orAnonymous()) {
-        route(Api.Profiles.Username.get) {
-            val username = username(idOf(Api.Profiles.Username))
+        route(Profiles.Username.get) {
+            val username = username(idOf(Profiles.Username))
             val profile = userPersistence.selectProfile(username, call.principal?.userId)
             respond(ProfileWrapper(profile))
         }
     }
 
     authenticateWith(jwtService) {
-        route(Api.Profiles.Username.Follow.add) {
-            val username = username(idOf(Api.Profiles.Username))
+        route(Profiles.Username.Follow.add) {
+            val username = username(idOf(Profiles.Username))
             val _ = userPersistence.followProfile(username, call.principal.userId)
             val userFollowed = userPersistence.select(username)
             respond(
@@ -54,8 +53,8 @@ fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtConfig<
             )
         }
 
-        route(Api.Profiles.Username.Follow.remove) {
-            val username = username(idOf(Api.Profiles.Username))
+        route(Profiles.Username.Follow.remove) {
+            val username = username(idOf(Profiles.Username))
             userPersistence.unfollowProfile(username, call.principal.userId)
             val userUnfollowed = userPersistence.select(username)
             respond(

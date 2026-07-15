@@ -11,10 +11,10 @@ import io.github.nomisrev.Username
 import io.github.nomisrev.auth.JwtService
 import io.github.nomisrev.auth.JwtToken
 
-data class RegisterUser(val username: Username, val email: Email, val password: Password) {
-    fun toUser(token: JwtToken, info: UserInfo? = null): User =
-        User(email.value, token.value, username.value, info?.bio, info?.image)
-}
+@JvmInline
+value class UserId(val serial: Long)
+
+data class RegisterUser(val username: Username, val email: Email, val password: Password)
 
 data class Update(
     val userId: UserId,
@@ -23,14 +23,15 @@ data class Update(
     val password: Password?,
     val bio: String?,
     val image: String?,
-)
-
-data class Login(val email: Email, val password: Password) {
-    fun toUser(token: JwtToken, info: UserInfo): User =
-        User(email.value, token.value, info.username.value, info.bio, info.image)
+) {
+    fun isNotEmpty() = username != null || email != null || password != null || bio != null || image != null
 }
 
 data class UserInfo(val email: Email, val username: Username, val bio: String, val image: String)
+
+data class TokenAndUserInfo(val token: JwtToken, val info: UserInfo)
+
+data class Login(val email: Email, val password: Password)
 
 class UserService(
     private val repo: UserPersistence,
@@ -44,11 +45,8 @@ class UserService(
 
     context(_: DomainErrors)
     fun update(input: Update): UserInfo {
-        val (userId, username, email, password, bio, image) = input
-        ensure(
-            email != null || username != null || password != null || bio != null || image != null
-        ) {
-            EmptyUpdate("Cannot update user with $userId with only null values")
+        ensure(input.isNotEmpty()) {
+            EmptyUpdate("Cannot update user with ${input.userId} with only null values")
         }
         return repo.update(input)
     }
@@ -63,7 +61,3 @@ class UserService(
     context(_: Raise<UserNotFound>)
     fun getUser(userId: UserId): UserInfo = repo.select(userId)
 }
-
-data class UserIdAndInfo(val id: UserId, val info: UserInfo)
-
-data class TokenAndUserInfo(val token: JwtToken, val info: UserInfo)

@@ -38,7 +38,7 @@ import opensavvy.spine.server.route
  * `GenericErrorModel` and run our [DomainErrors] instead.
  *
  * ```kotlin
- * route(Api.Articles.list) {
+ * route(Articles.list) {
  *     val input = parameters.validate(call.principal?.userId)
  *     val articles = articleService.getAllArticles(input)
  *     respond(articles)
