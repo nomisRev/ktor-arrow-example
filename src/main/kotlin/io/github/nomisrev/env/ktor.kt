@@ -27,18 +27,16 @@ val kotlinXSerializersModule = SerializersModule {
 fun Application.configure(jwtConfig: JwtConfig<JwtContext>) {
     install(DefaultHeaders)
     install(ContentNegotiation) {
-        json(
-            Json {
-                serializersModule = kotlinXSerializersModule
-                isLenient = true
-                ignoreUnknownKeys = true
-            }
-        )
+        json(Json {
+            serializersModule = kotlinXSerializersModule
+            isLenient = true
+            ignoreUnknownKeys = true
+        })
     }
     install(CORS) {
         allowHeader(HttpHeaders.Authorization)
         allowHeader(HttpHeaders.ContentType)
-        anyHost() // TODO fix
+        anyHost() // TODO fix to specific domain url
         anyMethod()
         allowNonSimpleContentTypes = true
         maxAgeDuration = 3.days

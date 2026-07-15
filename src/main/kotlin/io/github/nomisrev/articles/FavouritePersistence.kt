@@ -15,16 +15,15 @@ class FavouritePersistence(
         articleIds: Collection<ArticleId>,
     ): Map<ArticleId, FavoriteStats> =
         if (articleIds.isEmpty()) emptyMap()
-        else
-            favouriteQueries
-                .selectFavoriteStatsForArticles(
-                    userId?.serial ?: NO_USER,
-                    articleIds.distinct().map { it.serial },
-                ) { articleId, count, favorited ->
-                    ArticleId(articleId) to FavoriteStats(count, favorited)
-                }
-                .executeAsList()
-                .toMap()
+        else favouriteQueries
+            .selectFavoriteStatsForArticles(
+                userId?.serial ?: NO_USER,
+                articleIds.distinct().map { it.serial },
+            ) { articleId, count, favorited ->
+                ArticleId(articleId) to FavoriteStats(count, favorited)
+            }
+            .executeAsList()
+            .toMap()
 
     suspend fun favoriteArticle(userId: UserId, articleId: ArticleId) =
         favouriteQueries.insert(articleId.serial, userId.serial).await()

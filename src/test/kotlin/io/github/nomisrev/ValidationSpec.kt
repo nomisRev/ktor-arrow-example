@@ -1,5 +1,6 @@
 package io.github.nomisrev
 
+import arrow.core.NonEmptyList
 import arrow.core.nonEmptyListOf
 import de.infix.testBalloon.framework.core.testSuite
 import io.github.nomisrev.articles.ArticlesParameters
@@ -30,35 +31,30 @@ val Validation by testSuite {
 
         assertEquals(
             IncorrectInput(
-                InvalidUsername(
-                    nonEmptyListOf(
-                        "Cannot be blank",
-                        "is too short (minimum is 1 characters)",
-                    )
-                ),
+                InvalidUsername(nonEmptyListOf(
+                    "Cannot be blank",
+                    "is too short (minimum is 1 characters)",
+                )),
                 InvalidEmail(nonEmptyListOf("'not-an-email' is invalid email")),
-                InvalidPassword(
-                    nonEmptyListOf(
-                        "Cannot be blank",
-                        "is too short (minimum is 8 characters)",
-                        "At least one uppercase letter",
-                        "At least one lowercase letter",
-                        "At least one number",
-                        "At least one special character",
-                    )
-                ),
+                InvalidPassword(nonEmptyListOf(
+                    "Cannot be blank",
+                    "is too short (minimum is 8 characters)",
+                    "At least one uppercase letter",
+                    "At least one lowercase letter",
+                    "At least one number",
+                    "At least one special character",
+                )),
             ),
             error,
         )
     }
 
     test("accumulates size-limit validation errors") {
-        val input =
-            NewUser(
-                username = "A".repeat(26),
-                email = "${"A".repeat(341)}@domain.com",
-                password = "A" + "a".repeat(98) + "1!",
-            )
+        val input = NewUser(
+            username = "A".repeat(26),
+            email = "${"A".repeat(341)}@domain.com",
+            password = "A" + "a".repeat(98) + "1!",
+        )
 
         val error = assertRaised { input.toRegisterUser() }
 
@@ -80,27 +76,24 @@ val Validation by testSuite {
         assertEquals(
             IncorrectInput(
                 InvalidEmail(nonEmptyListOf("Cannot be blank", "'' is invalid email")),
-                InvalidPassword(
-                    nonEmptyListOf(
-                        "Cannot be blank",
-                        "is too short (minimum is 8 characters)",
-                        "At least one uppercase letter",
-                        "At least one lowercase letter",
-                        "At least one number",
-                        "At least one special character",
-                    )
-                ),
+                InvalidPassword(nonEmptyListOf(
+                    "Cannot be blank",
+                    "is too short (minimum is 8 characters)",
+                    "At least one uppercase letter",
+                    "At least one lowercase letter",
+                    "At least one number",
+                    "At least one special character",
+                )),
             ),
             error,
         )
     }
 
     test("accumulates non-blank invalid email and password errors on login") {
-        val input =
-            LoginUser(
-                email = "AAAA",
-                password = "A" + "a".repeat(98) + "1!",
-            )
+        val input = LoginUser(
+            email = "AAAA",
+            password = "A" + "a".repeat(98) + "1!",
+        )
 
         val error = assertRaised { input.toLogin() }
 
@@ -114,34 +107,29 @@ val Validation by testSuite {
     }
 
     test("accumulates errors for every provided invalid nullable field") {
-        val input =
-            UpdateUser(
-                username = "",
-                email = "invalid-email",
-                password = "short",
-                bio = null,
-                image = null,
-            )
+        val input = UpdateUser(
+            username = "",
+            email = "invalid-email",
+            password = "short",
+            bio = null,
+            image = null,
+        )
 
         val error = assertRaised { input.toUpdate(UserId(1)) }
 
         assertEquals(
             IncorrectInput(
-                InvalidUsername(
-                    nonEmptyListOf(
-                        "Cannot be blank",
-                        "is too short (minimum is 1 characters)",
-                    )
-                ),
+                InvalidUsername(nonEmptyListOf(
+                    "Cannot be blank",
+                    "is too short (minimum is 1 characters)",
+                )),
                 InvalidEmail(nonEmptyListOf("'invalid-email' is invalid email")),
-                InvalidPassword(
-                    nonEmptyListOf(
-                        "is too short (minimum is 8 characters)",
-                        "At least one uppercase letter",
-                        "At least one number",
-                        "At least one special character",
-                    )
-                ),
+                InvalidPassword(nonEmptyListOf(
+                    "is too short (minimum is 8 characters)",
+                    "At least one uppercase letter",
+                    "At least one number",
+                    "At least one special character",
+                )),
             ),
             error,
         )
@@ -171,15 +159,14 @@ val Validation by testSuite {
         assertEquals(email, login.email.value)
         assertEquals(password, login.password.raw())
 
-        val update =
-            UpdateUser(
-                    username = " $username ",
-                    email = " $email ",
-                    password = password,
-                    bio = "bio",
-                    image = "image",
-                )
-                .toUpdate(UserId(1))
+        val update = UpdateUser(
+            username = " $username ",
+            email = " $email ",
+            password = password,
+            bio = "bio",
+            image = "image",
+        )
+            .toUpdate(UserId(1))
         assertEquals(UserId(1), update.userId)
         assertEquals(username, update.username?.value)
         assertEquals(email, update.email?.value)
@@ -189,13 +176,12 @@ val Validation by testSuite {
     }
 
     test("accumulates title description body and every invalid tag") {
-        val input =
-            NewArticle(
-                title = "",
-                description = " ",
-                body = "",
-                tagList = listOf("", "ok", " "),
-            )
+        val input = NewArticle(
+            title = "",
+            description = " ",
+            body = "",
+            tagList = listOf("", "ok", " "),
+        )
 
         val error = assertRaised { input.toCreateArticle(UserId(1)) }
 
@@ -221,13 +207,10 @@ val Validation by testSuite {
 
     test("accumulates offset and limit errors") {
         val userId = UserId(1)
-        val input =
-            FeedParameters(
-                mutableMapOf(
-                    "offset" to listOf("-1"),
-                    "limit" to listOf("0"),
-                )
-            )
+        val input = FeedParameters(mutableMapOf(
+            "offset" to listOf("-1"),
+            "limit" to listOf("0"),
+        ))
 
         val error = assertRaised { input.toGetFeed(userId) }
 
@@ -241,13 +224,10 @@ val Validation by testSuite {
     }
 
     test("accumulates offset and limit errors") {
-        val input =
-            ArticlesParameters(
-                mutableMapOf(
-                    "offset" to listOf("-1"),
-                    "limit" to listOf("0"),
-                )
-            )
+        val input = ArticlesParameters(mutableMapOf(
+            "offset" to listOf("-1"),
+            "limit" to listOf("0"),
+        ))
 
         val error = assertRaised { input.toGetArticles(currentUserId = null) }
 
@@ -281,12 +261,10 @@ val Validation by testSuite {
 
         assertEquals(
             GetFeed(userId = userId, limit = FeedLimit(3), offset = FeedOffset(2)),
-            FeedParameters(
-                    mutableMapOf(
-                        "offset" to listOf("2"),
-                        "limit" to listOf("3"),
-                    )
-                )
+            FeedParameters(mutableMapOf(
+                "offset" to listOf("2"),
+                "limit" to listOf("3"),
+            ))
                 .toGetFeed(userId),
         )
 
@@ -299,13 +277,11 @@ val Validation by testSuite {
                 tag = "kotlin",
                 currentUserId = userId,
             ),
-            ArticlesParameters(
-                    mutableMapOf(
-                        "tag" to listOf("kotlin"),
-                        "offset" to listOf("4"),
-                        "limit" to listOf("5"),
-                    )
-                )
+            ArticlesParameters(mutableMapOf(
+                "tag" to listOf("kotlin"),
+                "offset" to listOf("4"),
+                "limit" to listOf("5"),
+            ))
                 .toGetArticles(userId),
         )
     }

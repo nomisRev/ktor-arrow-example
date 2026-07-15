@@ -7,7 +7,8 @@ import io.ktor.server.routing.Route
 import kotlinx.serialization.Serializable
 import opensavvy.spine.server.respond
 
-@Serializable data class TagsResponse(val tags: List<String>)
+@Serializable
+data class TagsResponse(val tags: List<String>)
 
 fun Route.tagRoutes(tagPersistence: TagPersistence) {
     route(Tags.list) {

@@ -29,23 +29,16 @@ class UserPersistence(
     private val followingQueries: FollowingQueries,
     private val defaultIterations: Int = 64000,
     private val defaultKeyLength: Int = 512,
-    private val secretKeysFactory: SecretKeyFactory =
-        SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512"),
+    private val secretKeysFactory: SecretKeyFactory = SecretKeyFactory.getInstance(
+        "PBKDF2WithHmacSHA512",
+    ),
 ) {
     context(_: Raise<UserError>)
     fun insert(register: RegisterUser): UserId {
         val salt = generateSalt()
         val key = generateKey(register.password.raw(), salt)
         return catch({
-            usersQueries
-                .insertAndGetId(
-                    username = register.username,
-                    email = register.email,
-                    salt = salt,
-                    hashed_password = key,
-                    bio = "",
-                    image = "",
-                )
+            usersQueries.insertAndGetId(username = register.username, email = register.email, salt = salt, hashed_password = key, bio = "", image = "")
                 .executeAsOne()
         }) { e: PSQLException ->
             raiseUniqueViolation(e, register.username, register.email)
@@ -66,12 +59,9 @@ class UserPersistence(
 
     context(_: Raise<UserNotFound>)
     fun select(userId: UserId): UserInfo {
-        val userInfo =
-            usersQueries
-                .selectById(userId) { email, username, _, _, bio, image ->
-                    UserInfo(email, username, bio, image)
-                }
-                .executeAsOneOrNull()
+        val userInfo = usersQueries.selectById(userId) { email, username, _, _, bio, image ->
+            UserInfo(email, username, bio, image)
+        }.executeAsOneOrNull()
         return ensureNotNull(userInfo) { UserNotFound("userId=$userId") }
     }
 
@@ -83,34 +73,27 @@ class UserPersistence(
 
     context(_: Raise<UserNotFound>)
     fun selectProfile(username: Username, viewerId: UserId? = null): Profile {
-        val profileInfo =
-            when (viewerId) {
-                null -> usersQueries.selectProfile(username, ::toProfile).executeAsOneOrNull()
-                else ->
-                    usersQueries
-                        .selectProfileByViewer(viewerId.serial, username, ::toProfile)
-                        .executeAsOneOrNull()
-            }
+        val profileInfo = when (viewerId) {
+            null -> usersQueries.selectProfile(username, ::toProfile).executeAsOneOrNull()
+            else -> usersQueries
+                .selectProfileByViewer(viewerId.serial, username, ::toProfile)
+                .executeAsOneOrNull()
+        }
         return ensureNotNull(profileInfo) { UserNotFound("username=$username") }
     }
 
     fun selectAuthorProfiles(
         viewerId: UserId?,
         authorIds: Collection<UserId>,
-    ): Map<UserId, Profile> =
-        if (authorIds.isEmpty()) emptyMap()
-        else
-            usersQueries
-                .selectProfilesByViewer(viewerId?.serial ?: NO_USER, authorIds.distinct()) {
-                    id,
-                    username,
-                    bio,
-                    image,
-                    following ->
-                    id to Profile(username.value, bio, image, following > 0)
-                }
-                .executeAsList()
-                .toMap()
+    ): Map<UserId, Profile> = if (authorIds.isEmpty()) emptyMap()
+        else usersQueries.selectProfilesByViewer(
+            viewerId?.serial ?: NO_USER,
+            authorIds.distinct(),
+        ) { id, username, bio, image, following ->
+            id to Profile(username.value, bio, image, following > 0)
+        }
+            .executeAsList()
+            .toMap()
 
     private fun toProfile(username: Username, bio: String, image: String, following: Int): Profile =
         Profile(username.value, bio, image, following > 0)
@@ -118,29 +101,17 @@ class UserPersistence(
     @Suppress("LongParameterList")
     context(_: Raise<UserError>)
     fun update(update: Update): UserInfo {
-        val passwordUpdate =
-            update.password?.let { password ->
-                val salt = generateSalt()
-                salt to generateKey(password.raw(), salt)
-            }
+        val passwordUpdate = update.password?.let { password ->
+            val salt = generateSalt()
+            salt to generateKey(password.raw(), salt)
+        }
 
-        val info =
-            catch({
-                usersQueries
-                    .update(
-                        email = update.email?.value,
-                        username = update.username?.value,
-                        salt = passwordUpdate?.first,
-                        hashed_password = passwordUpdate?.second,
-                        bio = update.bio,
-                        image = update.image,
-                        userId = update.userId,
-                        ::UserInfo,
-                    )
-                    .executeAsOneOrNull()
-            }) { e: PSQLException ->
-                raiseUniqueViolation(e, update.username, update.email)
-            }
+        val info = catch({
+            usersQueries.update(email = update.email?.value, username = update.username?.value, salt = passwordUpdate?.first, hashed_password = passwordUpdate?.second, bio = update.bio, image = update.image, userId = update.userId, ::UserInfo)
+                .executeAsOneOrNull()
+        }) { e: PSQLException ->
+            raiseUniqueViolation(e, update.username, update.email)
+        }
 
         return ensureNotNull(info) { UserNotFound("userId=${update.userId}") }
     }
@@ -153,26 +124,24 @@ class UserPersistence(
     suspend fun followProfile(
         followedUsername: Username,
         followerId: UserId,
-    ): Long =
-        catch({
-            followingQueries.insertByUsername(followedUsername, followerId.serial).await()
-        }) { e: PSQLException ->
-            if (e.sqlState == PSQLState.NOT_NULL_VIOLATION.state)
-                raise(UserNotFound("username=$followedUsername"))
-            else throw e
-        }
+    ): Long = catch({
+        followingQueries.insertByUsername(followedUsername, followerId.serial).await()
+    }) { e: PSQLException ->
+        if (e.sqlState == PSQLState.NOT_NULL_VIOLATION.state)
+            raise(UserNotFound("username=$followedUsername"))
+        else throw e
+    }
 
     context(_: Raise<UserError>)
     private fun raiseUniqueViolation(
         exception: PSQLException,
         username: Username?,
         email: Email?,
-    ): Nothing =
-        when (exception.serverErrorMessage?.constraint) {
-            "users_username_key" -> raise(UsernameAlreadyExists(username!!))
-            "users_email_key" -> raise(EmailAlreadyExists(email!!))
-            else -> throw exception
-        }
+    ): Nothing = when (exception.serverErrorMessage?.constraint) {
+        "users_username_key" -> raise(UsernameAlreadyExists(username!!))
+        "users_email_key" -> raise(EmailAlreadyExists(email!!))
+        else -> throw exception
+    }
 
     private fun generateSalt(): ByteArray = UUID.randomUUID().toString().toByteArray()
 

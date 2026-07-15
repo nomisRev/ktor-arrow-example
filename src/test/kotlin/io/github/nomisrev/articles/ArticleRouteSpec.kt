@@ -27,13 +27,8 @@ val ArticleRouteSuite by testSuite {
     testServer("Check for empty feed") {
         val (token) = registerUser()
 
-        val response =
-            client.request(
-                endpoint = Api / Articles / feed,
-                parameters = {
-                    offset = 0
-                },
-            ) {
+        val response = client
+            .request(endpoint = Api / Articles / feed, parameters = { offset = 0 }) {
                 tokenAuth(token.value)
             }
 
@@ -45,16 +40,15 @@ val ArticleRouteSuite by testSuite {
     testServer("ٰValidate correct both offset and limit value") {
         val (token) = registerUser()
 
-        val response =
-            client.request(
-                Api / Articles / feed,
-                parameters = {
-                    offset = 0
-                    limit = 5
-                },
-            ) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(
+            Api / Articles / feed,
+            parameters = {
+                offset = 0
+                limit = 5
+            },
+        ) {
+            tokenAuth(token.value)
+        }
 
         val body = response.bodyOrThrow()
         assert(body.articles == emptyList<Article>())
@@ -64,90 +58,83 @@ val ArticleRouteSuite by testSuite {
     testServer("ٰValidate wrong offset value") {
         val (token) = registerUser()
 
-        val response =
-            client.request(
-                Api / Articles / feed,
-                parameters = {
-                    offset = -1
-                },
-            ) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(
+            Api / Articles / feed,
+            parameters = {
+                offset = -1
+            },
+        ) {
+            tokenAuth(token.value)
+        }
 
         assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
         assert(
             response.httpResponse.body<GenericErrorModel>().errors.body ==
-                ["feed offset: too small, minimum is 0, and found -1"]
+            ["feed offset: too small, minimum is 0, and found -1"],
         )
     }
 
     testServer("ٰValidate wrong limit value") {
         val (token) = registerUser()
 
-        val response =
-            client.request(
-                Api / Articles / feed,
-                parameters = {
-                    offset = 0
-                    limit = 0
-                },
-            ) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(
+            Api / Articles / feed,
+            parameters = {
+                offset = 0
+                limit = 0
+            },
+        ) {
+            tokenAuth(token.value)
+        }
 
         assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
         assert(
             response.httpResponse.body<GenericErrorModel>().errors.body ==
-                ["feed limit: too small, minimum is 1, and found 0"]
+            ["feed limit: too small, minimum is 1, and found 0"],
         )
     }
 
     testServer("ٰValidate wrong both limit and value") {
         val (token) = registerUser()
 
-        val response =
-            client.request(
-                Api / Articles / feed,
-                parameters = {
-                    offset = -1
-                    limit = 0
-                },
-            ) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(
+            Api / Articles / feed,
+            parameters = {
+                offset = -1
+                limit = 0
+            },
+        ) {
+            tokenAuth(token.value)
+        }
 
         assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
         assert(
             response.httpResponse.body<GenericErrorModel>().errors.body ==
-                [
-                    "feed offset: too small, minimum is 0, and found -1",
-                    "feed limit: too small, minimum is 1, and found 0",
-                ]
+            [
+                "feed offset: too small, minimum is 0, and found -1",
+                "feed limit: too small, minimum is 1, and found 0",
+            ],
         )
     }
 
     testServer("article list accepts OpenAPI offset and limit query parameters") {
         val (userId) = registerUser()
         val article = articleFixture()
-        val created =
-            dependencies.articleService.createArticle(
-                CreateArticle(
-                    userId,
-                    article.title,
-                    article.description,
-                    article.body,
-                    article.tags,
-                )
-            )
+        val created = dependencies.articleService.createArticle(CreateArticle(
+            userId,
+            article.title,
+            article.description,
+            article.body,
+            article.tags,
+        ))
 
-        val response =
-            client.request(
-                Api / Articles / list,
-                parameters = {
-                    offset = 0
-                    limit = 1
-                },
-            )
+        val response = client.request(
+            Api / Articles / list,
+            parameters = {
+                offset = 0
+                limit = 1
+            },
+        )
 
         val body = response.bodyOrThrow()
         assert(body.articlesCount == 1)
@@ -158,30 +145,28 @@ val ArticleRouteSuite by testSuite {
         val articleAuthor = registerUser()
         val viewer = registerUser()
         val article = articleFixture()
-        val created =
-            dependencies.articleService.createArticle(
-                CreateArticle(
-                    articleAuthor.userId,
-                    article.title,
-                    article.description,
-                    article.body,
-                    article.tags,
-                )
-            )
+        val created = dependencies.articleService.createArticle(CreateArticle(
+            articleAuthor.userId,
+            article.title,
+            article.description,
+            article.body,
+            article.tags,
+        ))
 
-        val _ =
-            dependencies.userPersistence.followProfile(articleAuthor.user.username, viewer.userId)
+        val _ = dependencies.userPersistence.followProfile(
+            articleAuthor.user.username,
+            viewer.userId,
+        )
         val _ = dependencies.articleService.favoriteArticle(created.slug, viewer.userId)
 
-        val response =
-            client.request(
-                endpoint = Api / Articles / list,
-                parameters = {
-                    author = articleAuthor.user.username.value
-                },
-            ) {
-                tokenAuth(viewer.token.value)
-            }
+        val response = client.request(
+            endpoint = Api / Articles / list,
+            parameters = {
+                author = articleAuthor.user.username.value
+            },
+        ) {
+            tokenAuth(viewer.token.value)
+        }
 
         val body: MultipleArticlesResponse = response.bodyOrThrow()
         val articleResponse = body.articles.single()
@@ -198,20 +183,21 @@ val ArticleRouteSuite by testSuite {
 
         val _ = dependencies.userPersistence.followProfile(followed.user.username, reader.userId)
 
-        val createdFollowedArticle =
-            dependencies.articleService.createArticle(followed.userId, articleFixture())
+        val createdFollowedArticle = dependencies.articleService.createArticle(
+            followed.userId,
+            articleFixture(),
+        )
         val _ = dependencies.articleService.createArticle(unrelated.userId, articleFixture())
 
-        val response =
-            client.request(
-                endpoint = Api / Articles / feed,
-                parameters = {
-                    offset = 0
-                    limit = 20
-                },
-            ) {
-                tokenAuth(reader.token.value)
-            }
+        val response = client.request(
+            endpoint = Api / Articles / feed,
+            parameters = {
+                offset = 0
+                limit = 20
+            },
+        ) {
+            tokenAuth(reader.token.value)
+        }
 
         val body: MultipleArticlesResponse = response.bodyOrThrow()
         assert(body.articlesCount == 1)
@@ -223,36 +209,29 @@ val ArticleRouteSuite by testSuite {
         val otherAuthor = registerUser()
 
         val article = articleFixture()
-        val created =
-            dependencies.articleService.createArticle(
-                CreateArticle(
-                    author.userId,
-                    article.title,
-                    article.description,
-                    article.body,
-                    article.tags,
-                )
-            )
+        val created = dependencies.articleService.createArticle(CreateArticle(
+            author.userId,
+            article.title,
+            article.description,
+            article.body,
+            article.tags,
+        ))
 
         val otherArticle = articleFixture()
-        val _ =
-            dependencies.articleService.createArticle(
-                CreateArticle(
-                    otherAuthor.userId,
-                    otherArticle.title,
-                    otherArticle.description,
-                    otherArticle.body,
-                    otherArticle.tags,
-                )
-            )
+        val _ = dependencies.articleService.createArticle(CreateArticle(
+            otherAuthor.userId,
+            otherArticle.title,
+            otherArticle.description,
+            otherArticle.body,
+            otherArticle.tags,
+        ))
 
-        val response =
-            client.request(
-                Api / Articles / list,
-                parameters = {
-                    this.author = author.user.username.value
-                },
-            )
+        val response = client.request(
+            Api / Articles / list,
+            parameters = {
+                this.author = author.user.username.value
+            },
+        )
 
         val body: MultipleArticlesResponse = response.bodyOrThrow()
         assert(body.articlesCount == 1)
@@ -265,28 +244,24 @@ val ArticleRouteSuite by testSuite {
         val viewer = registerUser()
 
         val article = articleFixture()
-        val created =
-            dependencies.articleService.createArticle(
-                CreateArticle(
-                    author.userId,
-                    article.title,
-                    article.description,
-                    article.body,
-                    article.tags,
-                )
-            )
+        val created = dependencies.articleService.createArticle(CreateArticle(
+            author.userId,
+            article.title,
+            article.description,
+            article.body,
+            article.tags,
+        ))
 
         val _ = dependencies.userPersistence.followProfile(author.user.username, viewer.userId)
 
-        val response =
-            client.request(
-                Api / Articles / list,
-                parameters = {
-                    this.author = author.user.username.value
-                },
-            ) {
-                tokenAuth(viewer.token.value)
-            }
+        val response = client.request(
+            Api / Articles / list,
+            parameters = {
+                this.author = author.user.username.value
+            },
+        ) {
+            tokenAuth(viewer.token.value)
+        }
 
         val body: MultipleArticlesResponse = response.bodyOrThrow()
         val articleResponse = body.articles.single()
@@ -299,35 +274,28 @@ val ArticleRouteSuite by testSuite {
     testServer("article list filters by tag") {
         val (userId) = registerUser()
 
-        val created =
-            dependencies.articleService.createArticle(
-                CreateArticle(
-                    userId,
-                    Title("How to train your dragon"),
-                    Description("Ever wonder how?"),
-                    Body("Very carefully."),
-                    setOf("dragons", "training"),
-                )
-            )
+        val created = dependencies.articleService.createArticle(CreateArticle(
+            userId,
+            Title("How to train your dragon"),
+            Description("Ever wonder how?"),
+            Body("Very carefully."),
+            setOf("dragons", "training"),
+        ))
 
-        val _ =
-            dependencies.articleService.createArticle(
-                CreateArticle(
-                    userId,
-                    Title("Something else"),
-                    Description("Nothing about dragons"),
-                    Body("Still interesting."),
-                    setOf("kotlin"),
-                )
-            )
+        val _ = dependencies.articleService.createArticle(CreateArticle(
+            userId,
+            Title("Something else"),
+            Description("Nothing about dragons"),
+            Body("Still interesting."),
+            setOf("kotlin"),
+        ))
 
-        val response =
-            client.request(
-                Api / Articles / list,
-                parameters = {
-                    tag = "dragons"
-                },
-            )
+        val response = client.request(
+            Api / Articles / list,
+            parameters = {
+                tag = "dragons"
+            },
+        )
 
         val body: MultipleArticlesResponse = response.bodyOrThrow()
         assert(body.articlesCount == 1)
@@ -342,26 +310,22 @@ val ArticleRouteSuite by testSuite {
         val viewer = registerUser()
 
         val article = articleFixture()
-        val created =
-            dependencies.articleService.createArticle(
-                CreateArticle(
-                    author.userId,
-                    article.title,
-                    article.description,
-                    article.body,
-                    article.tags,
-                )
-            )
+        val created = dependencies.articleService.createArticle(CreateArticle(
+            author.userId,
+            article.title,
+            article.description,
+            article.body,
+            article.tags,
+        ))
 
         val _ = dependencies.articleService.favoriteArticle(created.slug, viewer.userId)
 
-        val response =
-            client.request(
-                Api / Articles / list,
-                parameters = {
-                    favorited = viewer.user.username.value
-                },
-            )
+        val response = client.request(
+            Api / Articles / list,
+            parameters = {
+                favorited = viewer.user.username.value
+            },
+        )
 
         val body: MultipleArticlesResponse = response.bodyOrThrow()
         assert(body.articlesCount == 1)
@@ -375,28 +339,24 @@ val ArticleRouteSuite by testSuite {
         val viewer = registerUser()
 
         val article = articleFixture()
-        val created =
-            dependencies.articleService.createArticle(
-                CreateArticle(
-                    author.userId,
-                    article.title,
-                    article.description,
-                    article.body,
-                    article.tags,
-                )
-            )
+        val created = dependencies.articleService.createArticle(CreateArticle(
+            author.userId,
+            article.title,
+            article.description,
+            article.body,
+            article.tags,
+        ))
 
         val _ = dependencies.articleService.favoriteArticle(created.slug, viewer.userId)
 
-        val response =
-            client.request(
-                Api / Articles / list,
-                parameters = {
-                    favorited = viewer.user.username.value
-                },
-            ) {
-                tokenAuth(viewer.token.value)
-            }
+        val response = client.request(
+            Api / Articles / list,
+            parameters = {
+                favorited = viewer.user.username.value
+            },
+        ) {
+            tokenAuth(viewer.token.value)
+        }
 
         val body: MultipleArticlesResponse = response.bodyOrThrow()
         assert(body.articlesCount == 1)
@@ -410,20 +370,17 @@ val ArticleRouteSuite by testSuite {
         val (user, token) = registerUser()
         val article = articleFixture()
 
-        val response =
-            client.request(
-                Api / Articles / create,
-                ArticleWrapper(
-                    NewArticle(
-                        article.title.value,
-                        article.description.value,
-                        article.body.value,
-                        article.tags.toList(),
-                    )
-                ),
-            ) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(
+            Api / Articles / create,
+            ArticleWrapper(NewArticle(
+                article.title.value,
+                article.description.value,
+                article.body.value,
+                article.tags.toList(),
+            )),
+        ) {
+            tokenAuth(token.value)
+        }
 
         val created = response.bodyOrThrow()
         assert(created.article.title == article.title.value)
@@ -440,20 +397,17 @@ val ArticleRouteSuite by testSuite {
         val (user, token) = registerUser()
         val article = articleFixture()
 
-        val response =
-            client.request(
-                Api / Articles / create,
-                ArticleWrapper(
-                    NewArticle(
-                        article.title.value,
-                        article.description.value,
-                        article.body.value,
-                        emptyList(),
-                    )
-                ),
-            ) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(
+            Api / Articles / create,
+            ArticleWrapper(NewArticle(
+                article.title.value,
+                article.description.value,
+                article.body.value,
+                emptyList(),
+            )),
+        ) {
+            tokenAuth(token.value)
+        }
 
         val created = response.bodyOrThrow()
         assert(created.article.title == article.title.value)
@@ -470,15 +424,17 @@ val ArticleRouteSuite by testSuite {
         val (token) = registerUser()
         val article = articleFixture()
 
-        val response =
-            client.request(
-                Api / Articles / create,
-                ArticleWrapper(
-                    NewArticle(article.title.value, article.description.value, "", emptyList())
-                ),
-            ) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(
+            Api / Articles / create,
+            ArticleWrapper(NewArticle(
+                article.title.value,
+                article.description.value,
+                "",
+                emptyList(),
+            )),
+        ) {
+            tokenAuth(token.value)
+        }
 
         assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
     }
@@ -487,15 +443,12 @@ val ArticleRouteSuite by testSuite {
         val (token) = registerUser()
         val article = articleFixture()
 
-        val response =
-            client.request(
-                Api / Articles / create,
-                ArticleWrapper(
-                    NewArticle(article.title.value, "", article.body.value, emptyList())
-                ),
-            ) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(
+            Api / Articles / create,
+            ArticleWrapper(NewArticle(article.title.value, "", article.body.value, emptyList())),
+        ) {
+            tokenAuth(token.value)
+        }
 
         assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
     }
@@ -504,33 +457,32 @@ val ArticleRouteSuite by testSuite {
         val (token) = registerUser()
         val article = articleFixture()
 
-        val response =
-            client.request(
-                Api / Articles / create,
-                ArticleWrapper(
-                    NewArticle("", article.description.value, article.body.value, emptyList())
-                ),
-            ) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(
+            Api / Articles / create,
+            ArticleWrapper(NewArticle(
+                "",
+                article.description.value,
+                article.body.value,
+                emptyList(),
+            )),
+        ) {
+            tokenAuth(token.value)
+        }
 
         assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
     }
 
     testServer("Unauthorized user cannot create article") {
         val article = articleFixture()
-        val response =
-            client.request(
-                Api / Articles / create,
-                ArticleWrapper(
-                    NewArticle(
-                        article.title.value,
-                        article.description.value,
-                        article.body.value,
-                        emptyList(),
-                    )
-                ),
-            )
+        val response = client.request(
+            Api / Articles / create,
+            ArticleWrapper(NewArticle(
+                article.title.value,
+                article.description.value,
+                article.body.value,
+                emptyList(),
+            )),
+        )
 
         assert(response.httpResponse.status == HttpStatusCode.Unauthorized)
     }

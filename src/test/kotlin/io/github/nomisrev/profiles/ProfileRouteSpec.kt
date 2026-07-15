@@ -29,10 +29,9 @@ val ProfileRouteSuite by testSuite {
         val followed = userFixture()
         registerUser(followed)
 
-        val response =
-            client.request(Api / Profiles / followed.username / Follow / add) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(Api / Profiles / followed.username / Follow / add) {
+            tokenAuth(token.value)
+        }
 
         assert(response.httpResponse.status == HttpStatusCode.OK)
         with(response.bodyOrThrow().profile) {
@@ -48,10 +47,9 @@ val ProfileRouteSuite by testSuite {
         val followed = userFixture()
         registerUser(followed)
 
-        val response =
-            client.request(Api / Profiles / followed.username / Follow / remove) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(Api / Profiles / followed.username / Follow / remove) {
+            tokenAuth(token.value)
+        }
 
         assert(response.httpResponse.status == HttpStatusCode.OK)
         with(response.bodyOrThrow().profile) {
@@ -75,10 +73,9 @@ val ProfileRouteSuite by testSuite {
     testServer("username invalid to follow") {
         val (token) = registerUser()
 
-        val response =
-            client.request(Api / Profiles / userFixture().username / Follow / add) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(Api / Profiles / userFixture().username / Follow / add) {
+            tokenAuth(token.value)
+        }
 
         assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
     }
@@ -86,10 +83,9 @@ val ProfileRouteSuite by testSuite {
     testServer("username invalid to unfollow") {
         val (token) = registerUser()
 
-        val response =
-            client.request(Api / Profiles / userFixture().username / Follow / remove) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(Api / Profiles / userFixture().username / Follow / remove) {
+            tokenAuth(token.value)
+        }
 
         assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
     }
@@ -117,10 +113,9 @@ val ProfileRouteSuite by testSuite {
             tokenAuth(token.value)
         }
 
-        val response =
-            client.request(Api / Profiles / followed.username / get) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(Api / Profiles / followed.username / get) {
+            tokenAuth(token.value)
+        }
 
         assert(response.httpResponse.status == HttpStatusCode.OK)
         with(response.bodyOrThrow().profile) {
@@ -138,10 +133,9 @@ val ProfileRouteSuite by testSuite {
             tokenAuth(follower.token.value)
         }
 
-        val response =
-            client.request(Api / Profiles / followed.user.username / get) {
-                tokenAuth(viewer.token.value)
-            }
+        val response = client.request(Api / Profiles / followed.user.username / get) {
+            tokenAuth(viewer.token.value)
+        }
 
         assert(response.httpResponse.status == HttpStatusCode.OK)
         with(response.bodyOrThrow().profile) {
@@ -158,7 +152,7 @@ val ProfileRouteSuite by testSuite {
         assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
         assert(
             response.httpResponse.body<GenericErrorModel>().errors.body ==
-                listOf("User with username=$invalidUsername not found")
+            ["User with username=$invalidUsername not found"],
         )
     }
 
@@ -168,7 +162,7 @@ val ProfileRouteSuite by testSuite {
         assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
         assert(
             response.httpResponse.body<GenericErrorModel>().errors.body ==
-                ["username: Cannot be blank, is too short (minimum is 1 characters)"]
+            ["username: Cannot be blank, is too short (minimum is 1 characters)"],
         )
     }
 }

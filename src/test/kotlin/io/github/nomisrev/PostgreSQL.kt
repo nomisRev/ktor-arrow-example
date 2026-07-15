@@ -14,7 +14,7 @@ class PostgreSQL private constructor() : PostgreSQLContainer<PostgreSQL>("postgr
                     username = container.username
                     password = container.password
                     driverClassName = container.driverClassName
-                }
+                },
             )
         }
     }

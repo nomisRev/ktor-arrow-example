@@ -38,7 +38,7 @@ val ArticlesRouteSuite by testSuite {
         assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
         assert(
             response.httpResponse.body<GenericErrorModel>().errors.body ==
-                ["Article by slug slug not found"]
+            ["Article by slug slug not found"],
         )
     }
 
@@ -72,10 +72,9 @@ val ArticlesRouteSuite by testSuite {
         val _ = dependencies.userPersistence.followProfile(author.user.username, viewer.userId)
         val _ = dependencies.articleService.favoriteArticle(created.slug, viewer.userId)
 
-        val response =
-            client.request(Api / Articles / created.slug / get) {
-                tokenAuth(viewer.token.value)
-            }
+        val response = client.request(Api / Articles / created.slug / get) {
+            tokenAuth(viewer.token.value)
+        }
 
         val body: SingleArticleResponse = response.bodyOrThrow()
         with(body.article) {
@@ -89,13 +88,12 @@ val ArticlesRouteSuite by testSuite {
         val author = registerUser()
         val created = dependencies.articleService.createArticle(author.userId, articleFixture())
 
-        val response =
-            client.request(
-                Api / Articles / created.slug / updateArticle,
-                ArticleWrapper(UpdateArticle(body = "With two hands")),
-            ) {
-                tokenAuth(author.token.value)
-            }
+        val response = client.request(
+            Api / Articles / created.slug / updateArticle,
+            ArticleWrapper(UpdateArticle(body = "With two hands")),
+        ) {
+            tokenAuth(author.token.value)
+        }
 
         assert(response.httpResponse.status == HttpStatusCode.OK)
         val body: SingleArticleResponse = response.bodyOrThrow()
@@ -111,15 +109,14 @@ val ArticlesRouteSuite by testSuite {
         val viewer = registerUser()
         val created = dependencies.articleService.createArticle(author.userId, articleFixture())
 
-        val favoriteResponse =
-            client.request(Api / Articles / created.slug / Favorite / favoriteArticle) {
+        val favoriteResponse = client
+            .request(Api / Articles / created.slug / Favorite / favoriteArticle) {
                 tokenAuth(viewer.token.value)
             }
 
-        val readResponse =
-            client.request(Api / Articles / created.slug / get) {
-                tokenAuth(viewer.token.value)
-            }
+        val readResponse = client.request(Api / Articles / created.slug / get) {
+            tokenAuth(viewer.token.value)
+        }
 
         val favoriteBody: SingleArticleResponse = favoriteResponse.bodyOrThrow()
         with(favoriteBody.article) {
@@ -139,20 +136,18 @@ val ArticlesRouteSuite by testSuite {
         val viewer = registerUser()
         val created = dependencies.articleService.createArticle(author.userId, articleFixture())
 
-        val _ =
-            client.request(Api / Articles / created.slug / Favorite / favoriteArticle) {
+        val _ = client.request(Api / Articles / created.slug / Favorite / favoriteArticle) {
+            tokenAuth(viewer.token.value)
+        }
+
+        val secondFavoriteResponse = client
+            .request(Api / Articles / created.slug / Favorite / favoriteArticle) {
                 tokenAuth(viewer.token.value)
             }
 
-        val secondFavoriteResponse =
-            client.request(Api / Articles / created.slug / Favorite / favoriteArticle) {
-                tokenAuth(viewer.token.value)
-            }
-
-        val readResponse =
-            client.request(Api / Articles / created.slug / get) {
-                tokenAuth(viewer.token.value)
-            }
+        val readResponse = client.request(Api / Articles / created.slug / get) {
+            tokenAuth(viewer.token.value)
+        }
 
         val secondFavoriteBody: SingleArticleResponse = secondFavoriteResponse.bodyOrThrow()
         with(secondFavoriteBody.article) {
@@ -172,20 +167,18 @@ val ArticlesRouteSuite by testSuite {
         val viewer = registerUser()
         val created = dependencies.articleService.createArticle(author.userId, articleFixture())
 
-        val _ =
-            client.request(Api / Articles / created.slug / Favorite / favoriteArticle) {
+        val _ = client.request(Api / Articles / created.slug / Favorite / favoriteArticle) {
+            tokenAuth(viewer.token.value)
+        }
+
+        val unfavoriteResponse = client
+            .request(Api / Articles / created.slug / Favorite / unfavoriteArticle) {
                 tokenAuth(viewer.token.value)
             }
 
-        val unfavoriteResponse =
-            client.request(Api / Articles / created.slug / Favorite / unfavoriteArticle) {
-                tokenAuth(viewer.token.value)
-            }
-
-        val readResponse =
-            client.request(Api / Articles / created.slug / get) {
-                tokenAuth(viewer.token.value)
-            }
+        val readResponse = client.request(Api / Articles / created.slug / get) {
+            tokenAuth(viewer.token.value)
+        }
 
         val unfavoriteBody: SingleArticleResponse = unfavoriteResponse.bodyOrThrow()
         with(unfavoriteBody.article) {
@@ -204,10 +197,9 @@ val ArticlesRouteSuite by testSuite {
         val user = registerUser()
         val created = dependencies.articleService.createArticle(user.userId, articleFixture())
 
-        val response =
-            client.request(Api / Articles / created.slug / Comments / list) {
-                tokenAuth(user.token.value)
-            }
+        val response = client.request(Api / Articles / created.slug / Comments / list) {
+            tokenAuth(user.token.value)
+        }
 
         val body = response.bodyOrThrow()
         assert(body.comments == emptyList<Comment>())
@@ -227,18 +219,16 @@ val ArticlesRouteSuite by testSuite {
         val (user, token, userId) = registerUser()
         val created = dependencies.articleService.createArticle(userId, articleFixture())
 
-        val _ =
-            client.request(
-                Api / Articles / created.slug / Comments / create,
-                CommentWrapper(NewComment("Thank you so much!")),
-            ) {
-                tokenAuth(token.value)
-            }
+        val _ = client.request(
+            Api / Articles / created.slug / Comments / create,
+            CommentWrapper(NewComment("Thank you so much!")),
+        ) {
+            tokenAuth(token.value)
+        }
 
-        val response =
-            client.request(Api / Articles / created.slug / Comments / list) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(Api / Articles / created.slug / Comments / list) {
+            tokenAuth(token.value)
+        }
 
         val body: MultipleCommentsResponse = response.bodyOrThrow()
         assert(body.comments.size == 1)
@@ -251,13 +241,12 @@ val ArticlesRouteSuite by testSuite {
         val (user, token, userId) = registerUser()
         val created = dependencies.articleService.createArticle(userId, articleFixture())
 
-        val _ =
-            client.request(
-                Api / Articles / created.slug / Comments / create,
-                CommentWrapper(NewComment("Thank you so much!")),
-            ) {
-                tokenAuth(token.value)
-            }
+        val _ = client.request(
+            Api / Articles / created.slug / Comments / create,
+            CommentWrapper(NewComment("Thank you so much!")),
+        ) {
+            tokenAuth(token.value)
+        }
 
         val response = client.request(Api / Articles / created.slug / Comments / list)
 
@@ -273,13 +262,12 @@ val ArticlesRouteSuite by testSuite {
         val comment = "This is a comment ${user.username}"
         val created = dependencies.articleService.createArticle(userId, articleFixture())
 
-        val response =
-            client.request(
-                Api / Articles / created.slug / Comments / create,
-                CommentWrapper(NewComment(comment)),
-            ) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(
+            Api / Articles / created.slug / Comments / create,
+            CommentWrapper(NewComment(comment)),
+        ) {
+            tokenAuth(token.value)
+        }
 
         val body = response.bodyOrThrow()
         assert(body.comment.body == comment)
@@ -290,13 +278,12 @@ val ArticlesRouteSuite by testSuite {
         val (userId) = registerUser()
         val created = dependencies.articleService.createArticle(userId, articleFixture())
 
-        val response =
-            client.request(
-                Api / Articles / created.slug / Comments / create,
-                CommentWrapper(NewComment("This is a comment")),
-            ) {
-                tokenAuth("invalid-token")
-            }
+        val response = client.request(
+            Api / Articles / created.slug / Comments / create,
+            CommentWrapper(NewComment("This is a comment")),
+        ) {
+            tokenAuth("invalid-token")
+        }
 
         assert(response.httpResponse.status == HttpStatusCode.Unauthorized)
     }
@@ -305,13 +292,12 @@ val ArticlesRouteSuite by testSuite {
         val user = registerUser()
         val created = dependencies.articleService.createArticle(user.userId, articleFixture())
 
-        val response =
-            client.request(
-                Api / Articles / created.slug / Comments / create,
-                CommentWrapper(NewComment("")),
-            ) {
-                tokenAuth(user.token.value)
-            }
+        val response = client.request(
+            Api / Articles / created.slug / Comments / create,
+            CommentWrapper(NewComment("")),
+        ) {
+            tokenAuth(user.token.value)
+        }
 
         assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
     }
@@ -320,34 +306,31 @@ val ArticlesRouteSuite by testSuite {
         val user = registerUser()
         val created = dependencies.articleService.createArticle(user.userId, articleFixture())
 
-        val createdComment =
-            client
-                .request(
-                    Api / Articles / created.slug / Comments / create,
-                    CommentWrapper(NewComment("Thank you so much!")),
-                ) {
-                    tokenAuth(user.token.value)
-                }
-                .bodyOrThrow()
-
-        val deleteResponse =
-            client.request(
-                Api /
-                    Articles /
-                    created.slug /
-                    Comments /
-                    Id(createdComment.comment.id.toString()) /
-                    deleteComment
+        val createdComment = client
+            .request(
+                Api / Articles / created.slug / Comments / create,
+                CommentWrapper(NewComment("Thank you so much!")),
             ) {
                 tokenAuth(user.token.value)
             }
+            .bodyOrThrow()
+
+        val deleteResponse = client.request(
+            Api /
+            Articles /
+            created.slug /
+            Comments /
+            Id(createdComment.comment.id.toString()) /
+            deleteComment,
+        ) {
+            tokenAuth(user.token.value)
+        }
 
         assert(deleteResponse.httpResponse.status == HttpStatusCode.OK)
 
-        val listResponse =
-            client.request(Api / Articles / created.slug / Comments / list) {
-                tokenAuth(user.token.value)
-            }
+        val listResponse = client.request(Api / Articles / created.slug / Comments / list) {
+            tokenAuth(user.token.value)
+        }
         val listed: MultipleCommentsResponse = listResponse.bodyOrThrow()
         assert(listed.comments.isEmpty())
     }
@@ -356,21 +339,20 @@ val ArticlesRouteSuite by testSuite {
         val user = registerUser()
         val created = dependencies.articleService.createArticle(user.userId, articleFixture())
 
-        val deleteResponse =
-            client.request(Api / Articles / created.slug / deleteArticle) {
-                tokenAuth(user.token.value)
-            }
+        val deleteResponse = client.request(Api / Articles / created.slug / deleteArticle) {
+            tokenAuth(user.token.value)
+        }
         assert(deleteResponse.httpResponse.status == HttpStatusCode.OK)
 
         val getResponse = client.request(Api / Articles / created.slug / get)
         assert(getResponse.httpResponse.status == HttpStatusCode.UnprocessableEntity)
         assert(
             getResponse.httpResponse.body<GenericErrorModel>().errors.body ==
-                ["Article by slug ${created.slug.value} not found"]
+            ["Article by slug ${created.slug.value} not found"],
         )
     }
 }
 
 operator fun ResolvedResource<Articles>.div(
-    slug: io.github.nomisrev.articles.Slug
+    slug: io.github.nomisrev.articles.Slug,
 ): ResolvedResource<Slug> = div(Slug(slug.value))

@@ -24,7 +24,8 @@ import io.github.nomisrev.tags.TagPersistence
 import io.github.nomisrev.users.UserId
 import io.github.nomisrev.users.UserPersistence
 
-@JvmInline value class ArticleId(val serial: Long)
+@JvmInline
+value class ArticleId(val serial: Long)
 
 data class FeedResult(
     val articles: List<Articles>,
@@ -38,7 +39,7 @@ value class FeedOffset private constructor(val value: Long) {
 
         context(_: Raise<InvalidFeedOffset>)
         operator fun invoke(offset: Int): FeedOffset =
-            withError<InvalidFeedOffset, String, FeedOffset>({
+            withError({
                 InvalidFeedOffset(nonEmptyListOf(it))
             }) {
                 ensure(offset >= MIN_FEED_OFFSET) {
@@ -55,11 +56,12 @@ value class FeedLimit private constructor(val value: Long) {
         private const val MIN_FEED_LIMIT = 1
 
         context(_: Raise<InvalidFeedLimit>)
-        operator fun invoke(limit: Int): FeedLimit =
-            withError<InvalidFeedLimit, String, FeedLimit>(::InvalidFeedLimit) {
-                ensure(limit >= MIN_FEED_LIMIT) { "too small, minimum is 1, and found $limit" }
-                FeedLimit(limit.toLong())
-            }
+        operator fun invoke(limit: Int): FeedLimit = withError<_, String, _>(
+            ::InvalidFeedLimit,
+        ) {
+            ensure(limit >= MIN_FEED_LIMIT) { "too small, minimum is 1, and found $limit" }
+            FeedLimit(limit.toLong())
+        }
     }
 }
 
@@ -105,32 +107,29 @@ class ArticleService(
 ) {
     context(_: Raise<CannotGenerateSlug>, _: Raise<UserNotFound>)
     suspend fun createArticle(input: CreateArticle): Article {
-        val slug =
-            slugGenerator.generateSlug(input.title) { slug ->
-                articlePersistence.exists(slug).not()
-            }
+        val slug = slugGenerator.generateSlug(input.title) { slug ->
+            articlePersistence.exists(slug).not()
+        }
 
-        val insertAndGet =
-            articlePersistence.create(
-                input.userId,
-                slug,
-                input.title,
-                input.description,
-                input.body,
-                input.tags,
-            )
+        val insertAndGet = articlePersistence.create(
+            input.userId,
+            slug,
+            input.title,
+            input.description,
+            input.body,
+            input.tags,
+        )
 
-        val article =
-            Articles(
-                id = insertAndGet.id,
-                slug = slug,
-                title = input.title,
-                description = input.description,
-                body = input.body,
-                author_id = input.userId,
-                createdAt = insertAndGet.createdAt,
-                updatedAt = insertAndGet.updatedAt,
-            )
+        val article = Articles(
+            id = insertAndGet.id,
+            slug = slug,
+            title = input.title,
+            description = input.description,
+            body = input.body,
+            author_id = input.userId,
+            createdAt = insertAndGet.createdAt,
+            updatedAt = insertAndGet.updatedAt,
+        )
 
         return article(article, input.userId)
     }
@@ -169,13 +168,12 @@ class ArticleService(
             NotArticleAuthor(input.userId.serial, input.slug)
         }
 
-        val updatedArticle =
-            articlePersistence.updateArticle(
-                input.slug,
-                input.title,
-                input.description,
-                input.body,
-            )
+        val updatedArticle = articlePersistence.updateArticle(
+            input.slug,
+            input.title,
+            input.description,
+            input.body,
+        )
 
         return article(updatedArticle, input.userId)
     }
@@ -238,12 +236,11 @@ class ArticleService(
         val favoriteStatsByArticle = favouritePersistence.favoriteStats(currentUserId, articleIds)
 
         return articleRows.map { row ->
-            val profile =
-                ensureNotNull(profilesByAuthor[row.author_id]) {
-                    UserNotFound("userId=${row.author_id}")
-                }
-            val stats =
-                favoriteStatsByArticle[row.id] ?: FavoriteStats(count = 0, favorited = false)
+            val profile = ensureNotNull(profilesByAuthor[row.author_id]) {
+                UserNotFound("userId=${row.author_id}")
+            }
+
+            val stats = favoriteStatsByArticle[row.id] ?: FavoriteStats(count = 0, favorited = false)
 
             Article(
                 row.id.serial,

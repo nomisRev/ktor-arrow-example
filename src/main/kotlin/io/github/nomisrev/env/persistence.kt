@@ -31,7 +31,7 @@ suspend fun ResourceScope.hikari(env: Env.DataSource): HikariDataSource = autoCl
             username = env.username
             password = env.password
             driverClassName = env.driver
-        }
+        },
     )
 }
 
@@ -57,41 +57,35 @@ private val articleIdAdapter = columnAdapter(ArticleId::serial, ::ArticleId)
 private val userIdAdapter = columnAdapter(UserId::serial, ::UserId)
 private val slugAdapter = columnAdapter(Slug::value, ::Slug)
 
-fun <Error, A> requireAll(transform: (Error) -> NonEmptyList<String>, block: Raise<Error>.() -> A) =
+private fun <Error, A> requireAll(transform: (Error) -> NonEmptyList<String>, block: Raise<Error>.() -> A) =
     recover(block) { error ->
         val messages = transform(error)
         throw IllegalArgumentException(messages.joinToString())
     }
 
-private val titleAdapter =
-    columnAdapter(Title::value) {
-        requireAll({ it.errors }) { Title(it) }
-    }
-private val descriptionAdapter =
-    columnAdapter(Description::value) {
-        requireAll({ it.errors }) { Description(it) }
-    }
-private val bodyAdapter =
-    columnAdapter(Body::value) {
-        requireAll({ it.errors }) { Body(it) }
-    }
+private val titleAdapter = columnAdapter(Title::value) {
+    requireAll({ it.errors }) { Title(it) }
+}
+private val descriptionAdapter = columnAdapter(Description::value) {
+    requireAll({ it.errors }) { Description(it) }
+}
+private val bodyAdapter = columnAdapter(Body::value) {
+    requireAll({ it.errors }) { Body(it) }
+}
 
-private val emailAdapter =
-    columnAdapter(Email::value) {
-        requireAll({ it.errors }) { Email(it) }
-    }
+private val emailAdapter = columnAdapter(Email::value) {
+    requireAll({ it.errors }) { Email(it) }
+}
 
-private val usernameAdapter =
-    columnAdapter(Username::value) { value ->
-        requireAll({ e -> e.errors }) { Username(value) }
-    }
+private val usernameAdapter = columnAdapter(Username::value) { value ->
+    requireAll({ e -> e.errors }) { Username(value) }
+}
 
 private inline fun <A : Any, B> columnAdapter(
     crossinline encode: (value: A) -> B,
     crossinline decode: (databaseValue: B) -> A,
-): ColumnAdapter<A, B> =
-    object : ColumnAdapter<A, B> {
-        override fun decode(databaseValue: B): A = decode(databaseValue)
+): ColumnAdapter<A, B> = object : ColumnAdapter<A, B> {
+    override fun decode(databaseValue: B): A = decode(databaseValue)
 
-        override fun encode(value: A): B = encode(value)
-    }
+    override fun encode(value: A): B = encode(value)
+}

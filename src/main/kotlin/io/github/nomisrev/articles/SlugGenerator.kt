@@ -8,7 +8,9 @@ import io.github.nomisrev.Title
 import kotlin.random.Random
 import kotlinx.serialization.Serializable
 
-@Serializable @JvmInline value class Slug(val value: String)
+@Serializable
+@JvmInline
+value class Slug(val value: String)
 
 fun interface SlugGenerator {
     /**
@@ -19,10 +21,7 @@ fun interface SlugGenerator {
      *   that slug is actually unique for domain.
      */
     context(_: Raise<CannotGenerateSlug>)
-    suspend fun generateSlug(
-        title: Title,
-        verifyUnique: suspend (Slug) -> Boolean,
-    ): Slug
+    suspend fun generateSlug(title: Title, verifyUnique: suspend (Slug) -> Boolean): Slug
 }
 
 fun slugifyGenerator(
@@ -30,36 +29,35 @@ fun slugifyGenerator(
     defaultMaxAttempts: Int = 5,
     minRandomSuffix: Int = 2,
     maxRandomSuffix: Int = 255,
-): SlugGenerator =
-    object : SlugGenerator {
-        private val slg = Slugify.builder().lowerCase(true).underscoreSeparator(true).build()
+): SlugGenerator = object : SlugGenerator {
+    private val slg = Slugify.builder().lowerCase(true).underscoreSeparator(true).build()
 
-        private fun makeUnique(slug: String): String =
-            "${slug}_${random.nextInt(minRandomSuffix, maxRandomSuffix)}"
+    private fun makeUnique(slug: String): String =
+        "${slug}_${random.nextInt(minRandomSuffix, maxRandomSuffix)}"
 
-        context(_: Raise<CannotGenerateSlug>)
-        private tailrec suspend fun recursiveGen(
-            title: Title,
-            verifyUnique: suspend (Slug) -> Boolean,
-            maxAttempts: Int,
-            isFirst: Boolean,
-        ): Slug {
-            ensure(maxAttempts != 0) {
-                CannotGenerateSlug("Failed to generate unique slug from $title")
-            }
-
-            val slug =
-                Slug(
-                    if (isFirst) slg.slugify(title.value) else makeUnique(slg.slugify(title.value))
-                )
-
-            val isUnique = verifyUnique(slug)
-            return if (isUnique) slug else recursiveGen(title, verifyUnique, maxAttempts - 1, false)
+    context(_: Raise<CannotGenerateSlug>)
+    private tailrec suspend fun recursiveGen(
+        title: Title,
+        verifyUnique: suspend (Slug) -> Boolean,
+        maxAttempts: Int,
+        isFirst: Boolean,
+    ): Slug {
+        ensure(maxAttempts != 0) {
+            CannotGenerateSlug("Failed to generate unique slug from $title")
         }
 
-        context(_: Raise<CannotGenerateSlug>)
-        override suspend fun generateSlug(
-            title: Title,
-            verifyUnique: suspend (Slug) -> Boolean,
-        ): Slug = recursiveGen(title, verifyUnique, defaultMaxAttempts, true)
+        val slug = Slug(
+            if (isFirst) slg.slugify(title.value)
+            else makeUnique(slg.slugify(title.value))
+        )
+
+        val isUnique = verifyUnique(slug)
+        return if (isUnique) slug else recursiveGen(title, verifyUnique, maxAttempts - 1, false)
     }
+
+    context(_: Raise<CannotGenerateSlug>)
+    override suspend fun generateSlug(
+        title: Title,
+        verifyUnique: suspend (Slug) -> Boolean,
+    ): Slug = recursiveGen(title, verifyUnique, defaultMaxAttempts, true)
+}

@@ -69,28 +69,24 @@ value class Password private constructor(private val value: String) {
 
     companion object {
         context(_: Raise<InvalidPassword>)
-        operator fun invoke(value: String): Password =
-            withError(::InvalidPassword) {
-                accumulate {
-                    value.notBlank()
-                    value.minSize(MIN_PASSWORD_LENGTH)
-                    value.maxSize(MAX_PASSWORD_LENGTH)
-                    val _ =
-                        ensureOrAccumulate(value.contains(uppercase)) {
-                            "At least one uppercase letter"
-                        }
-                    val _ =
-                        ensureOrAccumulate(value.contains(lowercase)) {
-                            "At least one lowercase letter"
-                        }
-                    val _ = ensureOrAccumulate(value.contains(number)) { "At least one number" }
-                    val _ =
-                        ensureOrAccumulate(value.contains(special)) {
-                            "At least one special character"
-                        }
-                    Password(value)
+        operator fun invoke(value: String): Password = withError(::InvalidPassword) {
+            accumulate {
+                value.notBlank()
+                value.minSize(MIN_PASSWORD_LENGTH)
+                value.maxSize(MAX_PASSWORD_LENGTH)
+                val _ = ensureOrAccumulate(value.contains(uppercase)) {
+                    "At least one uppercase letter"
                 }
+                val _ = ensureOrAccumulate(value.contains(lowercase)) {
+                    "At least one lowercase letter"
+                }
+                val _ = ensureOrAccumulate(value.contains(number)) { "At least one number" }
+                val _ = ensureOrAccumulate(value.contains(special)) {
+                    "At least one special character"
+                }
+                Password(value)
             }
+        }
     }
 }
 
@@ -105,19 +101,17 @@ value class Email private constructor(val value: String) {
         private val emailPattern = ".+@.+\\..+".toRegex()
 
         context(_: Raise<InvalidEmail>)
-        operator fun invoke(value: String): Email =
-            withError(::InvalidEmail) {
-                val normalized = value.trim()
-                accumulate {
-                    normalized.notBlank()
-                    normalized.maxSize(MAX_EMAIL_LENGTH)
-                    val _ =
-                        ensureOrAccumulate(emailPattern.matches(normalized)) {
-                            "'$normalized' is invalid email"
-                        }
-                    Email(normalized)
+        operator fun invoke(value: String): Email = withError(::InvalidEmail) {
+            val normalized = value.trim()
+            accumulate {
+                normalized.notBlank()
+                normalized.maxSize(MAX_EMAIL_LENGTH)
+                val _ = ensureOrAccumulate(emailPattern.matches(normalized)) {
+                    "'$normalized' is invalid email"
                 }
+                Email(normalized)
             }
+        }
     }
 }
 
@@ -125,16 +119,15 @@ value class Email private constructor(val value: String) {
 value class Username private constructor(val value: String) {
     companion object {
         context(_: Raise<InvalidUsername>)
-        operator fun invoke(value: String): Username =
-            withError(::InvalidUsername) {
-                val normalized = value.trim()
-                accumulate {
-                    normalized.notBlank()
-                    normalized.minSize(MIN_USERNAME_LENGTH)
-                    normalized.maxSize(MAX_USERNAME_LENGTH)
-                    Username(normalized)
-                }
+        operator fun invoke(value: String): Username = withError(::InvalidUsername) {
+            val normalized = value.trim()
+            accumulate {
+                normalized.notBlank()
+                normalized.minSize(MIN_USERNAME_LENGTH)
+                normalized.maxSize(MAX_USERNAME_LENGTH)
+                Username(normalized)
             }
+        }
     }
 }
 
@@ -164,12 +157,11 @@ value class Body private constructor(val value: String) {
 }
 
 context(_: Raise<E>)
-private fun <E> String.trimNotBlank(withError: (String) -> E): String =
-    withError(withError) {
-        val value = trim()
-        ensure(value.isNotBlank()) { "Cannot be blank" }
-        value
-    }
+private fun <E> String.trimNotBlank(withError: (String) -> E): String = withError(withError) {
+    val value = trim()
+    ensure(value.isNotBlank()) { "Cannot be blank" }
+    value
+}
 
 @IgnorableReturnValue
 context(_: RaiseAccumulate<String>)

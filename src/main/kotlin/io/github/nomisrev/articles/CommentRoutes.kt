@@ -26,39 +26,32 @@ fun Route.commentRoutes(
 
     authenticateWith(jwtService) {
         route(Articles.Slug.Comments.create) {
-            val comment =
-                articleService.insertComment(
-                    body.comment.toCreateComment(
-                        slug = Slug(idOf(Articles.Slug)),
-                        userId = call.principal.userId,
-                    )
-                )
+            val comment = articleService.insertComment(
+                body.comment.toCreateComment(
+                    slug = Slug(idOf(Articles.Slug)),
+                    userId = call.principal.userId,
+                ),
+            )
             val user = userService.getUser(UserId(comment.author))
 
-            respond(
-                SingleCommentResponse(
-                    Comment(
-                        id = comment.id,
-                        createdAt = comment.createdAt,
-                        updatedAt = comment.updatedAt,
-                        body = comment.body,
-                        author =
-                            Profile(
-                                username = user.username.value,
-                                bio = user.bio,
-                                image = user.image,
-                                following = false,
-                            ),
-                    )
-                )
-            )
+            respond(SingleCommentResponse(Comment(
+                id = comment.id,
+                createdAt = comment.createdAt,
+                updatedAt = comment.updatedAt,
+                body = comment.body,
+                author = Profile(
+                    username = user.username.value,
+                    bio = user.bio,
+                    image = user.image,
+                    following = false,
+                ),
+            )))
         }
 
         route(Articles.Slug.Comments.Id.delete) {
-            val commentId =
-                ensureNotNull(idOf(Articles.Slug.Comments.Id).toLongOrNull()) {
-                    MissingParameter("commentId must be a number")
-                }
+            val commentId = ensureNotNull(idOf(Articles.Slug.Comments.Id).toLongOrNull()) {
+                MissingParameter("commentId must be a number")
+            }
             articleService.deleteComment(commentId = commentId, userId = call.principal.userId)
             respond(code = io.ktor.http.HttpStatusCode.OK)
         }

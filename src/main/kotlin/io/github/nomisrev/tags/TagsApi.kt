@@ -6,8 +6,7 @@ import io.ktor.http.HttpStatusCode
 import opensavvy.spine.api.StaticResource
 
 object Tags : StaticResource<Api>("tags", Api) {
-    val list by
-        get()
-            .response<TagsResponse>()
-            .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
+    val list by get()
+        .response<TagsResponse>()
+        .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
 }

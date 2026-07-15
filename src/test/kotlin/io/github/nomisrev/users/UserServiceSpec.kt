@@ -17,10 +17,11 @@ import org.junit.Assert.assertEquals
 val UserServiceSuite by testSuite {
     testDependencies("all valid returns a token") {
         val user = userFixture()
-        val token =
-            dependencies.userService.register(
-                RegisterUser(user.username, user.email, user.password)
-            )
+        val token = dependencies.userService.register(RegisterUser(
+            user.username,
+            user.email,
+            user.password,
+        ))
 
         assertEquals(true, token.value.isNotBlank())
     }
@@ -31,9 +32,11 @@ val UserServiceSuite by testSuite {
         dependencies.userService.register(RegisterUser(first.username, first.email, first.password))
 
         val error = assertRaised {
-            dependencies.userService.register(
-                RegisterUser(first.username, second.email, second.password)
-            )
+            dependencies.userService.register(RegisterUser(
+                first.username,
+                second.email,
+                second.password,
+            ))
         }
 
         assertEquals(UsernameAlreadyExists(first.username), error)
@@ -45,9 +48,11 @@ val UserServiceSuite by testSuite {
         dependencies.userService.register(RegisterUser(first.username, first.email, first.password))
 
         val error = assertRaised {
-            dependencies.userService.register(
-                RegisterUser(second.username, first.email, second.password)
-            )
+            dependencies.userService.register(RegisterUser(
+                second.username,
+                first.email,
+                second.password,
+            ))
         }
 
         assertEquals(EmailAlreadyExists(first.email), error)
@@ -78,8 +83,14 @@ val UserServiceSuite by testSuite {
         val (user, userId) = registerUser(userFixture())
         val newPassword = Password("Bb987654!")
 
-        val updated =
-            dependencies.userService.update(Update(userId, null, null, newPassword, null, null))
+        val updated = dependencies.userService.update(Update(
+            userId,
+            null,
+            null,
+            newPassword,
+            null,
+            null,
+        ))
 
         assertEquals(user.email, updated.email)
         assertEquals(user.username, updated.username)

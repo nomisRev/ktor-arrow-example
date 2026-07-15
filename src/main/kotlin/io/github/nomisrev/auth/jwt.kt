@@ -20,7 +20,8 @@ class JwtConfig<T>(
 ) {
     val name: String = "JWT"
 
-    @Suppress("UNCHECKED_CAST") fun orAnonymous(): JwtConfig<T?> = this as JwtConfig<T?>
+    @Suppress("UNCHECKED_CAST")
+    fun orAnonymous(): JwtConfig<T?> = this as JwtConfig<T?>
 }
 
 interface AuthenticateContext<T> {
@@ -28,38 +29,36 @@ interface AuthenticateContext<T> {
 }
 
 context(ctx: AuthenticateContext<T>)
-val <T> ApplicationCall.principal: T
-    get() = ctx.principal(this)
+val <T> ApplicationCall.principal: T get() = ctx.principal(this)
 
 @IgnorableReturnValue
 inline fun <reified T : Any> Route.authenticateWith(
     jwt: JwtConfig<T>,
     crossinline block: context(AuthenticateContext<T>) Route.() -> Unit,
-): Route =
-    authenticate(jwt.name) {
-        block.invoke(
-            object : AuthenticateContext<T> {
-                override fun principal(call: ApplicationCall): T = call.principal<T>()!!
-            },
-            this,
-        )
-    }
+): Route = authenticate(jwt.name) {
+    block(
+        object : AuthenticateContext<T> {
+            override fun principal(call: ApplicationCall): T = call.principal<T>()!!
+        },
+        this,
+    )
+}
 
 @IgnorableReturnValue
 @JvmName("authenticateOptionallyWith")
 inline fun <reified T : Any> Route.authenticateWith(
     jwt: JwtConfig<T?>,
     crossinline block: context(AuthenticateContext<T?>) Route.() -> Unit,
-): Route =
-    authenticate(jwt.name, optional = true) {
-        block.invoke(
-            object : AuthenticateContext<T?> {
-                override fun principal(call: ApplicationCall): T? = call.principal<T>()
-            },
-            this,
-        )
-    }
+): Route = authenticate(jwt.name, optional = true) {
+    block(
+        object : AuthenticateContext<T?> {
+            override fun principal(call: ApplicationCall): T? = call.principal<T>()
+        },
+        this,
+    )
+}
 
-@JvmInline value class JwtToken(val value: String)
+@JvmInline
+value class JwtToken(val value: String)
 
 data class JwtContext(val token: JwtToken, val userId: UserId)

@@ -23,11 +23,10 @@ import opensavvy.spine.client.request
 val UserRouteSuite by testSuite {
     testServer("can register user") {
         val user = userFixture()
-        val response =
-            client.request(
-                Api / Users / register,
-                UserWrapper(user.toNewUser()),
-            )
+        val response = client.request(
+            Api / Users / register,
+            UserWrapper(user.toNewUser()),
+        )
 
         assert(response.httpResponse.status == HttpStatusCode.Created)
         with(response.httpResponse.body<UserWrapper<User>>().user) {
@@ -41,11 +40,10 @@ val UserRouteSuite by testSuite {
     testServer("can log in a registered user") {
         val (user) = registerUser()
 
-        val response =
-            client.request(
-                Api / Users / Login / authenticate,
-                UserWrapper(LoginUser(user.email.value, user.password.raw())),
-            )
+        val response = client.request(
+            Api / Users / Login / authenticate,
+            UserWrapper(LoginUser(user.email.value, user.password.raw())),
+        )
 
         assert(response.httpResponse.status == HttpStatusCode.OK)
         with(response.httpResponse.body<UserWrapper<User>>().user) {
@@ -74,13 +72,12 @@ val UserRouteSuite by testSuite {
         val (user, token) = registerUser()
         val newUsername = "new-${user.username.value}"
 
-        val response =
-            client.request(
-                Api / CurrentUser / update,
-                UserWrapper(UpdateUser(username = newUsername)),
-            ) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(
+            Api / CurrentUser / update,
+            UserWrapper(UpdateUser(username = newUsername)),
+        ) {
+            tokenAuth(token.value)
+        }
 
         assert(response.httpResponse.status == HttpStatusCode.OK)
         val body = response.httpResponse.body<UserWrapper<User>>().user
@@ -95,18 +92,17 @@ val UserRouteSuite by testSuite {
         val (token) = registerUser()
         val invalidEmail = "invalidEmail"
 
-        val response =
-            client.request(
-                Api / CurrentUser / update,
-                UserWrapper(UpdateUser(email = invalidEmail)),
-            ) {
-                tokenAuth(token.value)
-            }
+        val response = client.request(
+            Api / CurrentUser / update,
+            UserWrapper(UpdateUser(email = invalidEmail)),
+        ) {
+            tokenAuth(token.value)
+        }
 
         assert(response.httpResponse.status == HttpStatusCode.UnprocessableEntity)
         assert(
             response.httpResponse.body<GenericErrorModel>().errors.body ==
-                listOf("email: 'invalidEmail' is invalid email")
+            ["email: 'invalidEmail' is invalid email"],
         )
     }
 }

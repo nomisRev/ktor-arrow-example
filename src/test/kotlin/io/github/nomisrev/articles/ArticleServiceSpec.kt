@@ -16,10 +16,11 @@ val ArticleServiceSuite by testSuite {
         val otherUser = registerUser()
 
         dependencies.articleService.createArticle(otherUser.userId)
-        val feed =
-            dependencies.articleService.getUserFeed(
-                input = GetFeed(userId = user.userId, limit = FeedLimit(20), offset = FeedOffset(0))
-            )
+        val feed = dependencies.articleService.getUserFeed(input = GetFeed(
+            userId = user.userId,
+            limit = FeedLimit(20),
+            offset = FeedOffset(0),
+        ))
 
         assert(feed.articlesCount == 0)
     }
@@ -35,10 +36,11 @@ val ArticleServiceSuite by testSuite {
 
         dependencies.articleService.createArticle(unrelated.userId)
 
-        val feed =
-            dependencies.articleService.getUserFeed(
-                input = GetFeed(userId = user.userId, limit = FeedLimit(20), offset = FeedOffset(0))
-            )
+        val feed = dependencies.articleService.getUserFeed(input = GetFeed(
+            userId = user.userId,
+            limit = FeedLimit(20),
+            offset = FeedOffset(0),
+        ))
         assert(feed.articlesCount == 1)
         assert(feed.articles.single().slug == createdFollowedArticle.slug)
     }
@@ -47,16 +49,13 @@ val ArticleServiceSuite by testSuite {
         val author = registerUser()
         val created = dependencies.articleService.createArticle(author.userId)
 
-        val updated =
-            dependencies.articleService.updateArticle(
-                UpdateArticleInput(
-                    slug = created.slug,
-                    userId = author.userId,
-                    title = "updated-title",
-                    description = "updated description",
-                    body = "updated body",
-                )
-            )
+        val updated = dependencies.articleService.updateArticle(UpdateArticleInput(
+            slug = created.slug,
+            userId = author.userId,
+            title = "updated-title",
+            description = "updated description",
+            body = "updated body",
+        ))
 
         assert(updated.slug == created.slug)
         assert(updated.title == "updated-title")
@@ -72,15 +71,13 @@ val ArticleServiceSuite by testSuite {
         val created = dependencies.articleService.createArticle(author.userId)
 
         val error = assertRaised {
-            dependencies.articleService.updateArticle(
-                UpdateArticleInput(
-                    slug = created.slug,
-                    userId = nonAuthor.userId,
-                    title = "updated-title",
-                    description = null,
-                    body = null,
-                )
-            )
+            dependencies.articleService.updateArticle(UpdateArticleInput(
+                slug = created.slug,
+                userId = nonAuthor.userId,
+                title = "updated-title",
+                description = null,
+                body = null,
+            ))
         }
         assertEquals(NotArticleAuthor(nonAuthor.userId.serial, created.slug), error)
     }

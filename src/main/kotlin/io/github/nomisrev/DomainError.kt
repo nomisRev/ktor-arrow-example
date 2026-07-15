@@ -49,69 +49,47 @@ data class CommentNotFound(val commentId: Long) : ArticleError
 
 data class NotCommentAuthor(val userId: Long, val commentId: Long) : ArticleError
 
-fun DomainError.toGenericErrorModel(): GenericErrorModel =
-    when (this) {
-        PasswordNotMatched ->
-            GenericErrorModel(GenericErrorModelErrors(listOf("Password not matched")))
+fun DomainError.toGenericErrorModel(): GenericErrorModel = when (this) {
+    PasswordNotMatched -> GenericErrorModel(GenericErrorModelErrors(listOf("Password not matched")))
 
-        is IncorrectInput ->
-            GenericErrorModel(
-                GenericErrorModelErrors(
-                    this.errors.map { field -> "${field.field}: ${field.errors.joinToString()}" }
-                )
-            )
+    is IncorrectInput -> GenericErrorModel(GenericErrorModelErrors(
+        this.errors.map { field -> "${field.field}: ${field.errors.joinToString()}" },
+    ))
 
-        is IncorrectJson ->
-            @OptIn(ExperimentalSerializationApi::class)
-            GenericErrorModel(
-                GenericErrorModelErrors(
-                    listOf("Json is missing fields: ${this.exception.missingFields.joinToString()}")
-                )
-            )
+    is IncorrectJson -> @OptIn(ExperimentalSerializationApi::class)
+    GenericErrorModel(GenericErrorModelErrors(listOf(
+        "Json is missing fields: ${this.exception.missingFields.joinToString()}",
+    )))
 
-        is EmptyUpdate -> GenericErrorModel(GenericErrorModelErrors(listOf(this.description)))
-        is EmailAlreadyExists ->
-            GenericErrorModel(
-                GenericErrorModelErrors(listOf("${this.email} is already registered"))
-            )
+    is EmptyUpdate -> GenericErrorModel(GenericErrorModelErrors(listOf(this.description)))
+    is EmailAlreadyExists ->
+        GenericErrorModel(GenericErrorModelErrors(listOf("${this.email} is already registered")))
 
-        is JwtGeneration -> GenericErrorModel(GenericErrorModelErrors(listOf(this.description)))
-        is UserNotFound ->
-            GenericErrorModel(
-                GenericErrorModelErrors(listOf("User with ${this.property} not found"))
-            )
+    is JwtGeneration -> GenericErrorModel(GenericErrorModelErrors(listOf(this.description)))
+    is UserNotFound ->
+        GenericErrorModel(GenericErrorModelErrors(listOf("User with ${this.property} not found")))
 
-        is UsernameAlreadyExists ->
-            GenericErrorModel(
-                GenericErrorModelErrors(listOf("Username ${this.username} already exists"))
-            )
+    is UsernameAlreadyExists -> GenericErrorModel(GenericErrorModelErrors(listOf(
+        "Username ${this.username} already exists",
+    )))
 
-        is JwtInvalid -> GenericErrorModel(GenericErrorModelErrors(listOf(this.description)))
-        is CannotGenerateSlug ->
-            GenericErrorModel(GenericErrorModelErrors(listOf(this.description)))
+    is JwtInvalid -> GenericErrorModel(GenericErrorModelErrors(listOf(this.description)))
+    is CannotGenerateSlug -> GenericErrorModel(GenericErrorModelErrors(listOf(this.description)))
 
-        is ArticleBySlugNotFound ->
-            GenericErrorModel(
-                GenericErrorModelErrors(listOf("Article by slug ${this.slug} not found"))
-            )
+    is ArticleBySlugNotFound ->
+        GenericErrorModel(GenericErrorModelErrors(listOf("Article by slug ${this.slug} not found")))
 
-        is MissingParameter ->
-            GenericErrorModel(
-                GenericErrorModelErrors(listOf("Missing ${this.name} parameter in request"))
-            )
+    is MissingParameter -> GenericErrorModel(GenericErrorModelErrors(listOf(
+        "Missing ${this.name} parameter in request",
+    )))
 
-        is NotArticleAuthor ->
-            GenericErrorModel(
-                GenericErrorModelErrors(listOf("User is not the author of the article"))
-            )
+    is NotArticleAuthor ->
+        GenericErrorModel(GenericErrorModelErrors(listOf("User is not the author of the article")))
 
-        is CommentNotFound ->
-            GenericErrorModel(
-                GenericErrorModelErrors(listOf("Comment with ID ${this.commentId} not found"))
-            )
+    is CommentNotFound -> GenericErrorModel(GenericErrorModelErrors(listOf(
+        "Comment with ID ${this.commentId} not found",
+    )))
 
-        is NotCommentAuthor ->
-            GenericErrorModel(
-                GenericErrorModelErrors(listOf("User is not the author of the comment"))
-            )
-    }
+    is NotCommentAuthor ->
+        GenericErrorModel(GenericErrorModelErrors(listOf("User is not the author of the comment")))
+}

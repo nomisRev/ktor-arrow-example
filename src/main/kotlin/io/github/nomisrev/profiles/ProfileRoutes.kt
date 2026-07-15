@@ -17,7 +17,8 @@ import io.ktor.server.routing.Route
 import kotlinx.serialization.Serializable
 import opensavvy.spine.server.respond
 
-@Serializable data class ProfileWrapper<T : Any>(val profile: T)
+@Serializable
+data class ProfileWrapper<T : Any>(val profile: T)
 
 @Serializable
 data class Profile(
@@ -41,32 +42,24 @@ fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtConfig<
             val username = username(idOf(Profiles.Username))
             val _ = userPersistence.followProfile(username, call.principal.userId)
             val userFollowed = userPersistence.select(username)
-            respond(
-                ProfileWrapper(
-                    Profile(
-                        userFollowed.username.value,
-                        userFollowed.bio,
-                        userFollowed.image,
-                        true,
-                    )
-                )
-            )
+            respond(ProfileWrapper(Profile(
+                userFollowed.username.value,
+                userFollowed.bio,
+                userFollowed.image,
+                true,
+            )))
         }
 
         route(Profiles.Username.Follow.remove) {
             val username = username(idOf(Profiles.Username))
             userPersistence.unfollowProfile(username, call.principal.userId)
             val userUnfollowed = userPersistence.select(username)
-            respond(
-                ProfileWrapper(
-                    Profile(
-                        userUnfollowed.username.value,
-                        userUnfollowed.bio,
-                        userUnfollowed.image,
-                        false,
-                    )
-                )
-            )
+            respond(ProfileWrapper(Profile(
+                userUnfollowed.username.value,
+                userUnfollowed.bio,
+                userUnfollowed.image,
+                false,
+            )))
         }
     }
 }

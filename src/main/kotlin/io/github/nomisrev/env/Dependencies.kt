@@ -33,16 +33,15 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
 suspend fun ResourceScope.dependencies(env: Env, hikari: HikariDataSource): Dependencies {
     val sqlDelight = sqlDelight(hikari)
     val userRepo = UserPersistence(sqlDelight.usersQueries, sqlDelight.followingQueries)
-    val articleRepo =
-        ArticlePersistence(
-            sqlDelight.articlesQueries,
-            sqlDelight.commentsQueries,
-            sqlDelight.tagsQueries,
-        )
+    val articleRepo = ArticlePersistence(
+        sqlDelight.articlesQueries,
+        sqlDelight.commentsQueries,
+        sqlDelight.tagsQueries,
+    )
     val tagPersistence = TagPersistence(sqlDelight.tagsQueries)
     val favouritePersistence = FavouritePersistence(sqlDelight.favoritesQueries)
 
-    val jwtService = JwtService(env.auth, userRepo)
+    val jwtService = JwtService(env.auth)
     val slugGenerator: SlugGenerator = slugifyGenerator()
     val userService = UserService(userRepo, jwtService)
 
@@ -53,14 +52,13 @@ suspend fun ResourceScope.dependencies(env: Env, hikari: HikariDataSource): Depe
     return Dependencies(
         userService = userService,
         jwtService = jwtService.config,
-        articleService =
-            ArticleService(
-                slugGenerator,
-                articleRepo,
-                userRepo,
-                tagPersistence,
-                favouritePersistence,
-            ),
+        articleService = ArticleService(
+            slugGenerator,
+            articleRepo,
+            userRepo,
+            tagPersistence,
+            favouritePersistence,
+        ),
         healthCheck = checks,
         tagPersistence = tagPersistence,
         userPersistence = userRepo,

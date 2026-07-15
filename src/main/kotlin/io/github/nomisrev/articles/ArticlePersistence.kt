@@ -25,16 +25,8 @@ class ArticlePersistence(
         body: Body,
         tags: Set<String>,
     ): InsertAndReturn = articles.transactionWithResult {
-        val insertAndReturn =
-            articles
-                .insertAndReturn(
-                    slug,
-                    title,
-                    description,
-                    body,
-                    authorId,
-                )
-                .executeAsOne()
+        val insertAndReturn = articles.insertAndReturn(slug, title, description, body, authorId)
+            .executeAsOne()
 
         tags.forEach { tag ->
             val _ = tagsQueries.insert(insertAndReturn.id, tag)
@@ -47,35 +39,23 @@ class ArticlePersistence(
 
     fun feed(input: GetFeed): FeedResult {
         var totalCount = 0L
-        val rows =
-            articles
-                .selectFeedArticles(
-                    input.userId.serial,
-                    input.limit.value,
-                    input.offset.value,
-                ) {
-                    articleId,
-                    articleSlug,
-                    articleTitle,
-                    articleDescription,
-                    articleBody,
-                    articleAuthorId,
-                    articleCreatedAt,
-                    articleUpdatedAt,
-                    fullCount ->
-                    totalCount = fullCount
-                    Articles(
-                        id = articleId,
-                        slug = articleSlug,
-                        title = articleTitle,
-                        description = articleDescription,
-                        body = articleBody,
-                        author_id = articleAuthorId,
-                        createdAt = articleCreatedAt,
-                        updatedAt = articleUpdatedAt,
-                    )
-                }
-                .executeAsList()
+        val rows = articles.selectFeedArticles(
+            input.userId.serial,
+            input.limit.value,
+            input.offset.value,
+        ) { articleId, articleSlug, articleTitle, articleDescription, articleBody, articleAuthorId, articleCreatedAt, articleUpdatedAt, fullCount ->
+            totalCount = fullCount
+            Articles(
+                id = articleId,
+                slug = articleSlug,
+                title = articleTitle,
+                description = articleDescription,
+                body = articleBody,
+                author_id = articleAuthorId,
+                createdAt = articleCreatedAt,
+                updatedAt = articleUpdatedAt,
+            )
+        }.executeAsList()
         return FeedResult(rows, totalCount)
     }
 
@@ -86,50 +66,45 @@ class ArticlePersistence(
      */
     fun allArticles(input: GetArticles): FeedResult {
         var totalCount = 0L
-        val mapper =
-            {
-                id: ArticleId,
-                slug: Slug,
-                title: Title,
-                description: Description,
-                body: Body,
-                authorId: UserId,
-                createdAt: OffsetDateTime,
-                updatedAt: OffsetDateTime,
-                fullCount: Long,
-                ->
-                totalCount = fullCount
-                Articles(id, slug, title, description, body, authorId, createdAt, updatedAt)
-            }
+        fun mapper(
+            id: ArticleId,
+            slug: Slug,
+            title: Title,
+            description: Description,
+            body: Body,
+            authorId: UserId,
+            createdAt: OffsetDateTime,
+            updatedAt: OffsetDateTime,
+            fullCount: Long,
+        ): Articles {
+            totalCount = fullCount
+            return Articles(id, slug, title, description, body, authorId, createdAt, updatedAt)
+        }
 
-        val rows =
-            when {
-                !input.author?.value.isNullOrBlank() ->
-                    articles.selectArticlesByAuthor(
-                        input.author,
-                        input.limit.value,
-                        input.offset.value,
-                        mapper,
-                    )
+        val rows = when {
+            !input.author?.value.isNullOrBlank() -> articles.selectArticlesByAuthor(
+                input.author,
+                input.limit.value,
+                input.offset.value,
+                ::mapper,
+            )
 
-                !input.favorited?.value.isNullOrBlank() ->
-                    articles.selectArticlesFavoritedByUsername(
-                        input.favorited,
-                        input.limit.value,
-                        input.offset.value,
-                        mapper,
-                    )
+            !input.favorited?.value.isNullOrBlank() -> articles.selectArticlesFavoritedByUsername(
+                input.favorited,
+                input.limit.value,
+                input.offset.value,
+                ::mapper,
+            )
 
-                !input.tag.isNullOrBlank() ->
-                    articles.selectArticlesByTag(
-                        input.tag,
-                        input.limit.value,
-                        input.offset.value,
-                        mapper,
-                    )
+            !input.tag.isNullOrBlank() -> articles.selectArticlesByTag(
+                input.tag,
+                input.limit.value,
+                input.offset.value,
+                ::mapper,
+            )
 
-                else -> articles.selectAllArticles(input.limit.value, input.offset.value, mapper)
-            }.executeAsList()
+            else -> articles.selectAllArticles(input.limit.value, input.offset.value, ::mapper)
+        }.executeAsList()
 
         return FeedResult(rows, totalCount)
     }
@@ -147,29 +122,23 @@ class ArticlePersistence(
         description: String?,
         body: String?,
     ): Articles {
-        val article =
-            articles
-                .update(title, description, body, slug) {
-                    articleId,
-                    slug,
-                    title,
-                    description,
-                    body,
-                    authorId,
-                    createdAt,
-                    updatedAt ->
-                    Articles(
-                        id = articleId,
-                        slug = slug,
-                        title = title,
-                        description = description,
-                        body = body,
-                        author_id = authorId,
-                        createdAt = createdAt,
-                        updatedAt = updatedAt,
-                    )
-                }
-                .executeAsOneOrNull()
+        val article = articles.update(
+            title,
+            description,
+            body,
+            slug,
+        ) { articleId, slug, title, description, body, authorId, createdAt, updatedAt ->
+            Articles(
+                id = articleId,
+                slug = slug,
+                title = title,
+                description = description,
+                body = body,
+                author_id = authorId,
+                createdAt = createdAt,
+                updatedAt = updatedAt,
+            )
+        }.executeAsOneOrNull()
 
         return ensureNotNull(article) { ArticleBySlugNotFound(slug.value) }
     }
@@ -184,36 +153,31 @@ class ArticlePersistence(
         userId: UserId,
         comment: String,
         articleId: ArticleId,
-    ): Comments =
-        comments
-            .insertAndGetComment(
-                article_id = articleId.serial,
-                body = comment,
-                author = userId.serial,
-            ) { id, articleId, body, author, createdAt, updatedAt ->
-                Comments(
-                    id = id,
-                    body = body,
-                    author = author,
-                    createdAt = createdAt,
-                    updatedAt = updatedAt,
-                    article_id = articleId,
-                )
-            }
-            .executeAsOne()
+    ): Comments = comments.insertAndGetComment(
+        article_id = articleId.serial,
+        body = comment,
+        author = userId.serial,
+    ) { id, articleId, body, author, createdAt, updatedAt ->
+        Comments(
+            id = id,
+            body = body,
+            author = author,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+            article_id = articleId,
+        )
+    }.executeAsOne()
 
     fun findCommentsForSlug(slug: Slug): List<Comment> =
-        comments
-            .selectForSlug(slug) { commentId, body, createdAt, updatedAt, username, bio, image ->
-                Comment(
-                    commentId,
-                    createdAt,
-                    updatedAt,
-                    body,
-                    Profile(username.value, bio, image, false),
-                )
-            }
-            .executeAsList()
+        comments.selectForSlug(slug) { commentId, body, createdAt, updatedAt, username, bio, image ->
+            Comment(
+                commentId,
+                createdAt,
+                updatedAt,
+                body,
+                Profile(username.value, bio, image, false),
+            )
+        }.executeAsList()
 
     fun findCommentAuthor(commentId: Long): UserId? =
         comments.selectAuthorId(commentId).executeAsOneOrNull()?.let { UserId(it) }

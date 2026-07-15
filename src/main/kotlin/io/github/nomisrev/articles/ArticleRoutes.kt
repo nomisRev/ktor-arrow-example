@@ -19,11 +19,10 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtConfig<Jw
         }
 
         route(Articles.Slug.get) {
-            val article =
-                articleService.getArticleBySlug(
-                    Slug(idOf(Articles.Slug)),
-                    call.principal?.userId,
-                )
+            val article = articleService.getArticleBySlug(
+                Slug(idOf(Articles.Slug)),
+                call.principal?.userId,
+            )
             respond(SingleArticleResponse(article))
         }
     }
@@ -36,14 +35,13 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtConfig<Jw
         }
 
         route(Articles.Slug.update) {
-            val input =
-                UpdateArticleInput(
-                    slug = Slug(idOf(Articles.Slug)),
-                    userId = call.principal.userId,
-                    title = body.article.title,
-                    description = body.article.description,
-                    body = body.article.body,
-                )
+            val input = UpdateArticleInput(
+                slug = Slug(idOf(Articles.Slug)),
+                userId = call.principal.userId,
+                title = body.article.title,
+                description = body.article.description,
+                body = body.article.body,
+            )
             val updatedArticle = articleService.updateArticle(input)
             respond(SingleArticleResponse(updatedArticle))
         }
@@ -54,21 +52,25 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtConfig<Jw
         }
 
         route(Articles.Slug.Favorite.add) {
-            val article =
-                articleService.favoriteArticle(Slug(idOf(Articles.Slug)), call.principal.userId)
+            val article = articleService.favoriteArticle(
+                Slug(idOf(Articles.Slug)),
+                call.principal.userId,
+            )
             respond(SingleArticleResponse(article))
         }
 
         route(Articles.Slug.Favorite.remove) {
-            val article =
-                articleService.unfavoriteArticle(
-                    Slug(idOf(Articles.Slug)), call.principal.userId)
+            val article = articleService.unfavoriteArticle(
+                Slug(idOf(Articles.Slug)),
+                call.principal.userId,
+            )
             respond(SingleArticleResponse(article))
         }
 
         route(Articles.create) {
-            val created =
-                articleService.createArticle(body.article.toCreateArticle(call.principal.userId))
+            val created = articleService.createArticle(
+                body.article.toCreateArticle(call.principal.userId),
+            )
             respond(SingleArticleResponse(created), HttpStatusCode.Created)
         }
     }

@@ -13,10 +13,9 @@ data class RegisteredUser(val user: UserFixture, val token: JwtToken, val userId
 fun HttpMessageBuilder.tokenAuth(token: String): Unit =
     header(HttpHeaders.Authorization, "Token $token")
 
-inline fun <E> assertRaised(block: Raise<E>.() -> Unit): E =
-    recover({
-        block()
-        throw AssertionError("Expected erro to be raised")
-    }) { e ->
-        e
-    }
+inline fun <E> assertRaised(block: Raise<E>.() -> Unit): E = recover({
+    block()
+    throw AssertionError("Expected erro to be raised")
+}) { e ->
+    e
+}

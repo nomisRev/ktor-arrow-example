@@ -21,11 +21,10 @@ val JwtServiceSuite by testSuite {
     testServer("registering a user returns a token that can authenticate future requests") {
         val user = userFixture()
 
-        val registerResponse =
-            client.request(
-                Api / Users / register,
-                UserWrapper(user.toNewUser()),
-            )
+        val registerResponse = client.request(
+            Api / Users / register,
+            UserWrapper(user.toNewUser()),
+        )
 
         assert(registerResponse.httpResponse.status == HttpStatusCode.Created)
 
@@ -37,10 +36,9 @@ val JwtServiceSuite by testSuite {
         assert(registeredUser.image == null)
         assert(registeredUser.token.isNotBlank())
 
-        val currentUserResponse =
-            client.request(Api / CurrentUser / get) {
-                tokenAuth(registeredUser.token)
-            }
+        val currentUserResponse = client.request(Api / CurrentUser / get) {
+            tokenAuth(registeredUser.token)
+        }
 
         assert(currentUserResponse.httpResponse.status == HttpStatusCode.OK)
 
