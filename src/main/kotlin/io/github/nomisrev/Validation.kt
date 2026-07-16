@@ -5,13 +5,18 @@ package io.github.nomisrev
 
 import arrow.core.NonEmptyList
 import arrow.core.nonEmptyListOf
+import arrow.core.raise.Accumulate
 import arrow.core.raise.ExperimentalRaiseAccumulateApi
+import arrow.core.raise.RaiseAccumulate.Value
+import arrow.core.raise.RaiseDSL
 import arrow.core.raise.context.Raise
-import arrow.core.raise.context.RaiseAccumulate
 import arrow.core.raise.context.accumulate
 import arrow.core.raise.context.ensure
-import arrow.core.raise.context.ensureOrAccumulate
 import arrow.core.raise.context.withError
+import arrow.core.raise.ensureOrAccumulate
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind.AT_MOST_ONCE
+import kotlin.contracts.contract
 import kotlin.text.contains
 import kotlin.text.isNotBlank
 import kotlin.text.trim
@@ -74,16 +79,10 @@ value class Password private constructor(private val value: String) {
                 value.notBlank()
                 value.minSize(MIN_PASSWORD_LENGTH)
                 value.maxSize(MAX_PASSWORD_LENGTH)
-                val _ = ensureOrAccumulate(value.contains(uppercase)) {
-                    "At least one uppercase letter"
-                }
-                val _ = ensureOrAccumulate(value.contains(lowercase)) {
-                    "At least one lowercase letter"
-                }
-                val _ = ensureOrAccumulate(value.contains(number)) { "At least one number" }
-                val _ = ensureOrAccumulate(value.contains(special)) {
-                    "At least one special character"
-                }
+                ensureOrAccumulate(value.contains(uppercase)) { "At least one uppercase letter" }
+                ensureOrAccumulate(value.contains(lowercase)) { "At least one lowercase letter" }
+                ensureOrAccumulate(value.contains(number)) { "At least one number" }
+                ensureOrAccumulate(value.contains(special)) { "At least one special character" }
                 Password(value)
             }
         }
@@ -164,21 +163,21 @@ private fun <E> String.trimNotBlank(withError: (String) -> E): String = withErro
 }
 
 @IgnorableReturnValue
-context(_: RaiseAccumulate<String>)
+context(_: Accumulate<String>)
 fun String.notBlank(): String = also {
-    val _ = ensureOrAccumulate(isNotBlank()) { "Cannot be blank" }
+    ensureOrAccumulate(isNotBlank()) { "Cannot be blank" }
 }
 
 @IgnorableReturnValue
-context(_: RaiseAccumulate<String>)
+context(_: Accumulate<String>)
 private fun String.minSize(size: Int): String = also {
-    val _ = ensureOrAccumulate(length >= size) { "is too short (minimum is $size characters)" }
+    ensureOrAccumulate(length >= size) { "is too short (minimum is $size characters)" }
 }
 
 @IgnorableReturnValue
-context(_: RaiseAccumulate<String>)
+context(_: Accumulate<String>)
 private fun String.maxSize(size: Int): String = also {
-    val _ = ensureOrAccumulate(length <= size) { "is too long (maximum is $size characters)" }
+    ensureOrAccumulate(length <= size) { "is too long (maximum is $size characters)" }
 }
 
 data class InvalidFeedOffset(override val errors: NonEmptyList<String>) : InvalidField {
@@ -189,4 +188,15 @@ data class InvalidFeedLimit(override val errors: NonEmptyList<String>) : Invalid
     constructor(error: String) : this(nonEmptyListOf(error))
 
     override val field: String = "feed limit"
+}
+
+@Suppress("DSL_MARKER_APPLIED_TO_WRONG_TARGET")
+@OptIn(ExperimentalContracts::class)
+@ExperimentalRaiseAccumulateApi
+@RaiseDSL
+@IgnorableReturnValue
+context(raise: Accumulate<Error>)
+inline fun <Error> ensureOrAccumulate(condition: Boolean, error: () -> Error): Value<Unit> {
+    contract { callsInPlace(error, AT_MOST_ONCE) }
+    return raise.ensureOrAccumulate(condition, error)
 }
