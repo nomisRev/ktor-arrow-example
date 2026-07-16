@@ -11,7 +11,7 @@ Apply these conventions when implementing or reviewing Ktor code in this reposit
 
 ## Service architecture and wiring
 
-Read [references/service-architecture.md](references/service-architecture.md) when changing application bootstrap (`Main.kt`/`SuspendApp`), `Env` configuration, `Dependencies` wiring, or `ResourceScope`-based resource lifecycle.
+Read [references/service-architecture.md](references/service-architecture.md) when changing application bootstrap (`Main.kt`/`SuspendApp`), `Env` configuration loaded from `application.yaml`, `Dependencies` wiring, or `ResourceScope`-based resource lifecycle.
 
 ## Package structure
 

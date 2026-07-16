@@ -28,9 +28,10 @@ val SlugGeneratorSuite by testSuite {
 
         val title = Title("Test Title")
 
-        val slug = slugGenerator.generateSlug(title) { slug ->
-            slug.value != title.value.lowercase().replace(' ', '_')
-        }
+        val slug =
+            slugGenerator.generateSlug(title) { slug ->
+                slug.value != title.value.lowercase().replace(' ', '_')
+            }
 
         assertEquals("test_title_142", slug.value)
     }

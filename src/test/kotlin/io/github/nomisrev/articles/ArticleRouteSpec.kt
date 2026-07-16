@@ -139,7 +139,7 @@ val ArticleRouteSuite by testSuite {
     }
 
     testServer("article list returns viewer specific metadata") {
-        val articleAuthor = registerUser()
+        val author = registerUser()
         val viewer = registerUser()
         val article = articleFixture()
         val created = dependencies.articleService.createArticle(CreateArticle(
@@ -151,26 +151,27 @@ val ArticleRouteSuite by testSuite {
         ))
 
         val _ = dependencies.userPersistence.followProfile(
-            articleAuthor.user.username,
+            author.user.username,
             viewer.userId,
         )
         val _ = dependencies.articleService.favoriteArticle(created.slug, viewer.userId)
 
-        val response = client.request(
-            endpoint = Api / Articles / list,
-            parameters = {
-                author = articleAuthor.user.username.value
-            },
-        ) {
-            tokenAuth(viewer.token.value)
-        }
+        val _ = dependencies.userPersistence.followProfile(author.user.username, viewer.userId)
+        val _ = dependencies.articleService.favoriteArticle(created.slug, viewer.userId)
 
-        val body: MultipleArticlesResponse = response.bodyOrThrow()
-        val articleResponse = body.articles.single()
-        assert(articleResponse.slug == created.slug)
-        assert(articleResponse.favorited)
-        assert(articleResponse.favoritesCount == 1L)
-        assert(articleResponse.author.following)
+        val response =
+            client.request(
+                endpoint = Api / Articles / list,
+                parameters = { this.author = author.user.username },
+            ) {
+                tokenAuth(viewer.token.value)
+            }
+
+        val body = response.bodyOrThrow().articles.singleOrNull()
+        assert(body?.slug == created.slug)
+        assert(body?.favorited ?: false)
+        assert(body?.favoritesCount == 1L)
+        assert(body?.author?.following ?: false)
     }
 
     testServer("feed returns articles from followed authors") {

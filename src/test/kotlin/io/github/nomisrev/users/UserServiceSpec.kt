@@ -16,13 +16,16 @@ import org.junit.Assert.assertEquals
 val UserServiceSuite by testSuite {
     testDependencies("all valid returns a token") {
         val user = userFixture()
-        val token = dependencies.userService.register(RegisterUser(
+        val token =
+            dependencies.userService.register(
+                RegisterUser(
             user.username,
             user.email,
             user.password,
         ))
 
-        assertEquals(true, token.value.isNotBlank())
+        assertEquals(true, token.value.isNotBlank()
+            )
 
         assertEquals(true, token.value.isNotBlank())
     }

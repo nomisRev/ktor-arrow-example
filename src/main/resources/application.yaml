@@ -1,0 +1,14 @@
+server:
+  host: "${HOST:0.0.0.0}"
+  port: ${SERVER_PORT:8080}
+
+datasource:
+  url: "${POSTGRES_URL:jdbc:postgresql://localhost:5432/ktor-arrow-example-database}"
+  username: "${POSTGRES_USERNAME:postgres}"
+  password: "${POSTGRES_PASSWORD:postgres}"
+  driver: "org.postgresql.Driver"
+
+auth:
+  secret: "${JWT_SECRET:MySuperStrongSecret}"
+  issuer: "${JWT_ISSUER:KtorArrowExampleIssuer}"
+  duration: ${JWT_DURATION:30d}
