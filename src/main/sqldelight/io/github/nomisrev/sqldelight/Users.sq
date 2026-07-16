@@ -1,6 +1,6 @@
 import io.github.nomisrev.users.UserId;
-import io.github.nomisrev.Username;
-import io.github.nomisrev.Email;
+import io.github.nomisrev.users.Username;
+import io.github.nomisrev.users.Email;
 
 CREATE TABLE IF NOT EXISTS users(
     id BIGSERIAL AS UserId PRIMARY KEY,

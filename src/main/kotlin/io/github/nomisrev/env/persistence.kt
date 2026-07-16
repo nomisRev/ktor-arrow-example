@@ -10,11 +10,11 @@ import arrow.fx.coroutines.autoCloseable
 import arrow.fx.coroutines.closeable
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import io.github.nomisrev.Body
-import io.github.nomisrev.Description
-import io.github.nomisrev.Email
-import io.github.nomisrev.Title
-import io.github.nomisrev.Username
+import io.github.nomisrev.articles.Body
+import io.github.nomisrev.articles.Description
+import io.github.nomisrev.users.Email
+import io.github.nomisrev.articles.Title
+import io.github.nomisrev.users.Username
 import io.github.nomisrev.articles.ArticleId
 import io.github.nomisrev.articles.Slug
 import io.github.nomisrev.sqldelight.Articles

@@ -3,13 +3,14 @@ package io.github.nomisrev.articles
 import arrow.core.raise.context.Raise
 import arrow.core.raise.context.ensureNotNull
 import io.github.nomisrev.ArticleBySlugNotFound
-import io.github.nomisrev.Body
-import io.github.nomisrev.Description
-import io.github.nomisrev.Title
+import io.github.nomisrev.articles.Body
+import io.github.nomisrev.articles.Description
+import io.github.nomisrev.articles.Title
 import io.github.nomisrev.profiles.Profile
 import io.github.nomisrev.sqldelight.*
 import io.github.nomisrev.users.UserId
 import java.time.OffsetDateTime
+import kotlin.uuid.Uuid
 
 class ArticlePersistence(
     private val articles: ArticlesQueries,

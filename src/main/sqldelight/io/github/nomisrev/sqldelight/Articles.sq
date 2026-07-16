@@ -1,8 +1,8 @@
 import io.github.nomisrev.articles.ArticleId;
 import io.github.nomisrev.users.UserId;
-import io.github.nomisrev.Title;
-import io.github.nomisrev.Description;
-import io.github.nomisrev.Body;
+import io.github.nomisrev.articles.Title;
+import io.github.nomisrev.articles.Description;
+import io.github.nomisrev.articles.Body;
 import io.github.nomisrev.articles.Slug;
 import kotlin.time.Instant;
 

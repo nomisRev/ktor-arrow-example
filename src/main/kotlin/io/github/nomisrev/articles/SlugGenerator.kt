@@ -4,7 +4,7 @@ import arrow.core.raise.context.Raise
 import arrow.core.raise.context.ensure
 import com.github.slugify.Slugify
 import io.github.nomisrev.CannotGenerateSlug
-import io.github.nomisrev.Title
+import io.github.nomisrev.articles.Title
 import kotlin.random.Random
 import kotlinx.serialization.Serializable
 

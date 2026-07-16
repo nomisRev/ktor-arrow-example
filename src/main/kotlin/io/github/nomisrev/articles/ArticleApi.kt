@@ -6,13 +6,9 @@ import arrow.core.raise.context.accumulate
 import arrow.core.raise.context.accumulating
 import arrow.core.raise.context.mapOrAccumulate
 import arrow.core.raise.context.withError
-import io.github.nomisrev.Body
-import io.github.nomisrev.Description
 import io.github.nomisrev.IncorrectInput
 import io.github.nomisrev.InvalidField
-import io.github.nomisrev.InvalidTag
-import io.github.nomisrev.Title
-import io.github.nomisrev.Username
+import io.github.nomisrev.users.Username
 import io.github.nomisrev.notBlank
 import io.github.nomisrev.profiles.Profile
 import io.github.nomisrev.users.UserId
@@ -81,7 +77,7 @@ data class Comment(
 data class MultipleCommentsResponse(val comments: List<Comment>)
 
 @Serializable
-data class NewArticle(
+data class CreateArticleRequest(
     val title: String,
     val description: String,
     val body: String,
@@ -100,7 +96,7 @@ data class NewArticle(
 
     context(_: Raise<InvalidField>)
     private fun List<String>.validTags(): Set<String> =
-        withError(::InvalidTag) { mapOrAccumulate { it.trim().notBlank() }.toSet() }
+        withError({ InvalidField(it, "tag") }) { mapOrAccumulate { it.trim().notBlank() }.toSet() }
 }
 
 @Serializable

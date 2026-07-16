@@ -6,7 +6,7 @@ import io.github.nomisrev.articles.CommentWrapper
 import io.github.nomisrev.articles.FeedParameters
 import io.github.nomisrev.articles.MultipleArticlesResponse
 import io.github.nomisrev.articles.MultipleCommentsResponse
-import io.github.nomisrev.articles.NewArticle
+import io.github.nomisrev.articles.CreateArticleRequest
 import io.github.nomisrev.articles.NewComment
 import io.github.nomisrev.articles.SingleArticleResponse
 import io.github.nomisrev.articles.SingleCommentResponse
@@ -15,7 +15,7 @@ import io.github.nomisrev.profiles.Profile
 import io.github.nomisrev.profiles.ProfileWrapper
 import io.github.nomisrev.tags.TagsResponse
 import io.github.nomisrev.users.LoginUser
-import io.github.nomisrev.users.NewUser
+import io.github.nomisrev.users.RegisterUserRequest
 import io.github.nomisrev.users.UpdateUser
 import io.github.nomisrev.users.User
 import io.github.nomisrev.users.UserWrapper
@@ -27,7 +27,7 @@ import opensavvy.spine.api.StaticResource
 object Api : SpineRootResource("api") {
     object Users : StaticResource<Api>("users", Api) {
         val register by post()
-            .request<UserWrapper<NewUser>>()
+            .request<UserWrapper<RegisterUserRequest>>()
             .response<UserWrapper<User>>()
             .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
 
@@ -63,7 +63,7 @@ object Api : SpineRootResource("api") {
             .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
 
         val create by post()
-            .request<ArticleWrapper<NewArticle>>()
+            .request<ArticleWrapper<CreateArticleRequest>>()
             .response<SingleArticleResponse>()
             .failure<GenericErrorModel>(HttpStatusCode.UnprocessableEntity)
 

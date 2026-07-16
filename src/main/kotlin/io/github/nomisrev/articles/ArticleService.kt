@@ -7,41 +7,32 @@ import arrow.core.raise.context.ensureNotNull
 import arrow.core.raise.context.withError
 import io.github.nomisrev.ArticleBySlugNotFound
 import io.github.nomisrev.ArticleError
-import io.github.nomisrev.Body
 import io.github.nomisrev.CannotGenerateSlug
 import io.github.nomisrev.CommentNotFound
-import io.github.nomisrev.Description
-import io.github.nomisrev.InvalidFeedLimit
-import io.github.nomisrev.InvalidFeedOffset
+import io.github.nomisrev.InvalidField
 import io.github.nomisrev.NotArticleAuthor
 import io.github.nomisrev.NotCommentAuthor
-import io.github.nomisrev.Title
 import io.github.nomisrev.UserNotFound
-import io.github.nomisrev.Username
 import io.github.nomisrev.sqldelight.Articles
 import io.github.nomisrev.sqldelight.Comments
 import io.github.nomisrev.tags.TagPersistence
 import io.github.nomisrev.users.UserId
 import io.github.nomisrev.users.UserPersistence
+import io.github.nomisrev.users.Username
 
 @JvmInline
 value class ArticleId(val serial: Long)
 
-data class FeedResult(
-    val articles: List<Articles>,
-    val articlesCount: Long,
-)
+data class FeedResult(val articles: List<Articles>, val articlesCount: Long)
 
 @JvmInline
 value class FeedOffset private constructor(val value: Long) {
     companion object {
         private const val MIN_FEED_OFFSET = 0
 
-        context(_: Raise<InvalidFeedOffset>)
+        context(_: Raise<InvalidField>)
         operator fun invoke(offset: Int): FeedOffset =
-            withError({
-                InvalidFeedOffset(nonEmptyListOf(it))
-            }) {
+            withError({ InvalidField(it, "feed offset") }) {
                 ensure(offset >= MIN_FEED_OFFSET) {
                     "too small, minimum is $MIN_FEED_OFFSET, and found $offset"
                 }
@@ -55,15 +46,45 @@ value class FeedLimit private constructor(val value: Long) {
     companion object {
         private const val MIN_FEED_LIMIT = 1
 
-        context(_: Raise<InvalidFeedLimit>)
-        operator fun invoke(limit: Int): FeedLimit = withError<_, String, _>(
-            ::InvalidFeedLimit,
-        ) {
+        context(_: Raise<InvalidField>)
+        operator fun invoke(limit: Int): FeedLimit = withError({ InvalidField(it, "feed limit") }) {
             ensure(limit >= MIN_FEED_LIMIT) { "too small, minimum is 1, and found $limit" }
             FeedLimit(limit.toLong())
         }
     }
 }
+
+@JvmInline
+value class Title private constructor(val value: String) {
+    companion object {
+        context(_: Raise<InvalidField>)
+        operator fun invoke(value: String): Title = Title(value.notBlankTrimmed("title"))
+    }
+}
+
+@JvmInline
+value class Description private constructor(val value: String) {
+    companion object {
+        context(_: Raise<InvalidField>)
+        operator fun invoke(value: String): Description =
+            Description(value.notBlankTrimmed("description"))
+    }
+}
+
+@JvmInline
+value class Body private constructor(val value: String) {
+    companion object {
+        context(_: Raise<InvalidField>)
+        operator fun invoke(value: String): Body = Body(value.notBlankTrimmed("body"))
+    }
+}
+
+context(_: Raise<InvalidField>)
+private fun String.notBlankTrimmed(field: String): String =
+    withError({ InvalidField(it, field) }) {
+        ensure(isNotBlank()) { "Cannot be blank" }
+        trim()
+    }
 
 data class CreateArticle(
     val userId: UserId,
@@ -107,9 +128,7 @@ class ArticleService(
 ) {
     context(_: Raise<CannotGenerateSlug>, _: Raise<UserNotFound>)
     suspend fun createArticle(input: CreateArticle): Article {
-        val slug = slugGenerator.generateSlug(input.title) { slug ->
-            articlePersistence.exists(slug).not()
-        }
+        val slug = slugGenerator.generateSlug(input.title) { !articlePersistence.exists(it) }
 
         val insertAndGet = articlePersistence.create(
             input.userId,

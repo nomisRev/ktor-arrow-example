@@ -3,6 +3,8 @@ package io.github.nomisrev
 import arrow.core.NonEmptyList
 import arrow.core.raise.context.Raise
 import io.github.nomisrev.articles.Slug
+import io.github.nomisrev.users.Email
+import io.github.nomisrev.users.Username
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.MissingFieldException
 
