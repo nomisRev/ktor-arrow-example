@@ -106,7 +106,10 @@ val UserServiceSuite by testSuite {
 
     testDependencies("all valid returns a token") {
         val user = userFixture(password = validPw)
-        val token = dependencies.userService.register(RegisterUser(user.username, user.email, user.password))
+        val token =
+            dependencies.userService.register(
+                RegisterUser(user.username, user.email, user.password)
+            )
 
         assertEquals(true, token.value.isNotBlank())
     }
@@ -211,7 +214,7 @@ val UserServiceSuite by testSuite {
 
         assertEquals(
             EmptyUpdate("Cannot update user with $userId with only null values"),
-            error
+            error,
         )
     }
 

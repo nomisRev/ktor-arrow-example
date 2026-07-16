@@ -27,5 +27,4 @@ fun articleFixture(): ArticleFixture {
     )
 }
 
-fun randomSuffix(length: Int = 12): String =
-    Uuid.random().toString().replace("-", "").take(length)
+fun randomSuffix(length: Int = 12): String = Uuid.random().toString().replace("-", "").take(length)

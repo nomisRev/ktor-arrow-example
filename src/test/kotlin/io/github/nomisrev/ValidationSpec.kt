@@ -42,7 +42,7 @@ val Validation by testSuite {
                     )
                 ),
             ),
-            error
+            error,
         )
     }
 
@@ -61,7 +61,7 @@ val Validation by testSuite {
                     )
                 ),
             ),
-            error
+            error,
         )
     }
 
@@ -89,7 +89,7 @@ val Validation by testSuite {
                 InvalidEmail(nonEmptyListOf("'invalid-email' is invalid email")),
                 InvalidPassword(nonEmptyListOf("is too short (minimum is 8 characters)")),
             ),
-            error
+            error,
         )
     }
 
@@ -125,7 +125,7 @@ val Validation by testSuite {
                 InvalidBody(nonEmptyListOf("Cannot be blank")),
                 InvalidTag(nonEmptyListOf("Cannot be blank", "Cannot be blank")),
             ),
-            error
+            error,
         )
     }
 
@@ -134,7 +134,7 @@ val Validation by testSuite {
 
         assertEquals(
             IncorrectInput(InvalidBody(nonEmptyListOf("Cannot be blank"))),
-            error
+            error,
         )
     }
 
@@ -155,7 +155,7 @@ val Validation by testSuite {
                 InvalidFeedOffset(nonEmptyListOf("too small, minimum is 0, and found -1")),
                 InvalidFeedLimit(nonEmptyListOf("too small, minimum is 1, and found 0")),
             ),
-            error
+            error,
         )
     }
 
@@ -175,7 +175,7 @@ val Validation by testSuite {
                 InvalidFeedOffset(nonEmptyListOf("too small, minimum is 0, and found -1")),
                 InvalidFeedLimit(nonEmptyListOf("too small, minimum is 1, and found 0")),
             ),
-            error
+            error,
         )
     }
 
@@ -186,7 +186,7 @@ val Validation by testSuite {
         val article = NewArticle("title", "description", "body", listOf(" kotlin ", "arrow"))
         assertEquals(
             NewArticle("title", "description", "body", listOf("kotlin", "arrow")),
-            article.validate()
+            article.validate(),
         )
 
         assertEquals(FeedOffset(0), 0.validFeedOffset())
@@ -196,12 +196,12 @@ val Validation by testSuite {
         assertEquals(
             GetFeed(userId = userId, limit = 3, offset = 2),
             FeedParameters(
-                mutableMapOf(
-                    "offset" to listOf("2"),
-                    "limit" to listOf("3"),
+                    mutableMapOf(
+                        "offset" to listOf("2"),
+                        "limit" to listOf("3"),
+                    )
                 )
-            )
-                .validate(userId)
+                .validate(userId),
         )
 
         assertEquals(
@@ -214,13 +214,13 @@ val Validation by testSuite {
                 currentUserId = userId,
             ),
             ArticlesParameters(
-                mutableMapOf(
-                    "tag" to listOf("kotlin"),
-                    "offset" to listOf("4"),
-                    "limit" to listOf("5"),
+                    mutableMapOf(
+                        "tag" to listOf("kotlin"),
+                        "offset" to listOf("4"),
+                        "limit" to listOf("5"),
+                    )
                 )
-            )
-                .validate(userId)
+                .validate(userId),
         )
     }
 }

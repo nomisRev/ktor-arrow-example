@@ -4,8 +4,8 @@ import de.infix.testBalloon.framework.core.testSuite
 import io.github.nomisrev.CannotGenerateSlug
 import io.github.nomisrev.assertRaised
 import io.github.nomisrev.testRaise
-import org.junit.Assert.assertEquals
 import kotlin.random.Random
+import org.junit.Assert.assertEquals
 
 @Suppress("RETURN_VALUE_NOT_USED_COERCION")
 val SlugGeneratorSuite by testSuite {
@@ -18,7 +18,7 @@ val SlugGeneratorSuite by testSuite {
 
         assertEquals(
             "test_title",
-            slugGenerator.generateSlug(title) { true }.value
+            slugGenerator.generateSlug(title) { true }.value,
         )
     }
 
@@ -27,9 +27,10 @@ val SlugGeneratorSuite by testSuite {
 
         val title = "Test Title"
 
-        val slug = slugGenerator.generateSlug(title) { slug ->
-            slug.value != title.lowercase().replace(' ', '_')
-        }
+        val slug =
+            slugGenerator.generateSlug(title) { slug ->
+                slug.value != title.lowercase().replace(' ', '_')
+            }
 
         assertEquals("test_title_142", slug.value)
     }
@@ -41,7 +42,7 @@ val SlugGeneratorSuite by testSuite {
 
         assertEquals(
             CannotGenerateSlug("Failed to generate unique slug from $title"),
-            assertRaised { slugGenerator.generateSlug(title) { false } }
+            assertRaised { slugGenerator.generateSlug(title) { false } },
         )
     }
 
@@ -59,7 +60,7 @@ val SlugGeneratorSuite by testSuite {
 
         assertEquals(
             "",
-            slugGenerator.generateSlug("") { true }.value
+            slugGenerator.generateSlug("") { true }.value,
         )
     }
 
@@ -69,6 +70,6 @@ val SlugGeneratorSuite by testSuite {
         val title = "Very Long Title " + "x".repeat(200)
         val slug = slugGenerator.generateSlug(title) { true }
 
-        assertEquals( "very_long_title_" + "x".repeat(200), slug.value)
+        assertEquals("very_long_title_" + "x".repeat(200), slug.value)
     }
 }

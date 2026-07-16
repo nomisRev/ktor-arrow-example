@@ -14,15 +14,17 @@ import io.github.nomisrev.profiles.profileRoutes
 import io.github.nomisrev.tags.tagRoutes
 import io.github.nomisrev.users.userRoutes
 import io.ktor.server.application.*
+import io.ktor.server.config.ApplicationConfig
+import io.ktor.server.config.getAs
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.*
 
 fun main() = SuspendApp {
-    val env = Env()
+    val env = ApplicationConfig("application.yaml").getAs<Env>()
     resourceScope {
         val dependencies = dependencies(env)
-        val _ = server(Netty, host = env.http.host, port = env.http.port) { app(dependencies) }
+        val _ = server(Netty, host = env.server.host, port = env.server.port) { app(dependencies) }
         awaitCancellation()
     }
 }

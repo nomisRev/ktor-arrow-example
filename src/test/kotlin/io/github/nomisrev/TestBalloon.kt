@@ -26,71 +26,83 @@ import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.testApplication
+import kotlin.time.Duration.Companion.days
 import kotlinx.serialization.json.Json
+
+private fun emptyEnv() =
+    Env(
+        server = Env.Server("", 0),
+        datasource = Env.DataSource("", "", "", ""),
+        auth = Env.Auth("MySuperStrongSecret", "KtorArrowExampleIssuer", 3.days),
+    )
 
 @TestRegistering
 fun <E> TestSuite.testRaise(
     @TestElementName name: String,
     testConfig: TestConfig = TestConfig,
     test: suspend context(Raise<E>) Test.ExecutionScope.() -> Unit,
-) = test(name, testConfig) {
-    recover({
-        test()
-    }) { error: E ->
-        throw AssertionError("Expected no errors but found $error")
+) =
+    test(name, testConfig) {
+        recover({
+            test()
+        }) { error: E ->
+            throw AssertionError("Expected no errors but found $error")
+        }
     }
-}
 
 @TestRegistering
 fun TestSuite.testDependencies(
     @TestElementName name: String,
     testConfig: TestConfig = TestConfig,
     test: suspend context(Dependencies, DomainErrors) Test.ExecutionScope.() -> Unit,
-) = test(name, testConfig) {
-    resourceScope {
-        val dependencies = dependencies(Env(), PostgreSQL.dataSource)
-        recover({
-            test(
-                dependencies,
-                contextOf<DomainErrors>(),
-                this@test,
-            )
-        }) { error: DomainError ->
-            throw AssertionError("Expected no errors but found $error")
+) =
+    test(name, testConfig) {
+        resourceScope {
+            val dependencies = dependencies(emptyEnv(), PostgreSQL.dataSource)
+            recover({
+                test(
+                    dependencies,
+                    contextOf<DomainErrors>(),
+                    this@test,
+                )
+            }) { error: DomainError ->
+                throw AssertionError("Expected no errors but found $error")
+            }
         }
     }
-}
 
 @TestRegistering
 fun TestSuite.testServer(
     @TestElementName name: String,
     testConfig: TestConfig = TestConfig,
     test: suspend context(Dependencies, HttpClient, DomainErrors) Test.ExecutionScope.() -> Unit,
-) = test(name, testConfig) {
-    resourceScope {
-        val dependencies = dependencies(Env(), PostgreSQL.dataSource)
-        testApplication {
-            application { app(dependencies) }
-            createClient {
-                expectSuccess = false
-                install(ContentNegotiation) {
-                    json(Json { serializersModule = kotlinXSerializersModule })
+) =
+    test(name, testConfig) {
+        resourceScope {
+            val dependencies = dependencies(emptyEnv(), PostgreSQL.dataSource)
+            testApplication {
+                application { app(dependencies) }
+                createClient {
+                    expectSuccess = false
+                    install(ContentNegotiation) {
+                        json(Json { serializersModule = kotlinXSerializersModule })
+                    }
                 }
-            }.use { client ->
-                recover({
-                    test(
-                        dependencies,
-                        client,
-                        contextOf<DomainErrors>(),
-                        this@test,
-                    )
-                }) { error: DomainError ->
-                    throw AssertionError("Expected no errors but found $error")
-                }
+                    .use { client ->
+                        recover({
+                            test(
+                                dependencies,
+                                client,
+                                contextOf<DomainErrors>(),
+                                this@test,
+                            )
+                        }) { error: DomainError ->
+                            throw AssertionError("Expected no errors but found $error")
+                        }
+                    }
             }
         }
     }
-}
 
 context(client: HttpClient)
 val client: HttpClient
@@ -101,7 +113,10 @@ val dependencies: Dependencies
     get() = dependencies
 
 context(_: DomainErrors)
-suspend fun ArticleService.createArticle(userId: UserId, article: ArticleFixture = articleFixture()): Article =
+suspend fun ArticleService.createArticle(
+    userId: UserId,
+    article: ArticleFixture = articleFixture(),
+): Article =
     createArticle(
         CreateArticle(
             userId,
@@ -114,13 +129,18 @@ suspend fun ArticleService.createArticle(userId: UserId, article: ArticleFixture
 
 context(dependencies: Dependencies, _: DomainErrors)
 fun registerUser(fixture: UserFixture = userFixture()): RegisteredUser {
-    val token = dependencies.userService.register(RegisterUser(fixture.username, fixture.email, fixture.password))
-    val jwt = withError({ JwtInvalid(it.toString()) }) {
-        JWT.decodeT(token.value, JWSHMAC512Algorithm).bind()
-    }
-    val id = ensureNotNull(jwt.claimValueAsLong("id").getOrNull()) {
-        JwtInvalid("id missing from JWT Token")
-    }
+    val token =
+        dependencies.userService.register(
+            RegisterUser(fixture.username, fixture.email, fixture.password)
+        )
+    val jwt =
+        withError({ JwtInvalid(it.toString()) }) {
+            JWT.decodeT(token.value, JWSHMAC512Algorithm).bind()
+        }
+    val id =
+        ensureNotNull(jwt.claimValueAsLong("id").getOrNull()) {
+            JwtInvalid("id missing from JWT Token")
+        }
 
     return RegisteredUser(fixture, token, UserId(id))
 }
