@@ -193,10 +193,53 @@ error families. Route blocks use `DomainErrors` because they are the HTTP error 
 
 Validation must report every invalid field and every broken rule for that field. Use Arrow's experimental
 `accumulate` API rather than manually building `NonEmptyList`s.
+Because `UserError`, `ArticleError`, `ValidationError`, etc. are all subtypes of `DomainError`, and Arrow's
+`context(Raise<E>)` is contravariant in the way it composes, a function written as `context(_: DomainErrors)`
+can call any function that raises a narrower error type directly — no wrapping, no `mapLeft`, no manual lifting.
+This is how the error type **grows** as you move up the call stack:
 
 ### Field validation
+```kotlin
+class UserService(private val repo: UserPersistence, private val jwtService: JwtService) {
+    // register only fails with UserError (repo.insert) plus IncorrectInput (validate) -> DomainError
+    context(_: DomainErrors)
+    fun register(input: RegisterUser): JwtToken {
+        val (username, email, password) = input.validate()   // Raise<IncorrectInput>
+        val userId = repo.insert(username, email, password)  // Raise<UserError>
+        return jwtService.generateJwtToken(userId)            // Raise<JwtError>
+    }
 
 A field validator raises one `InvalidField` and accumulates its rule messages with `RaiseAccumulate<String>`:
+    // getUser only ever needs UserNotFound — keep that narrow context, do not widen unnecessarily
+    context(_: Raise<UserNotFound>)
+    fun getUser(userId: UserId): UserInfo = repo.select(userId)
+}
+```
+
+Guidelines:
+
+- Repository/persistence functions: narrowest possible error type (`UserError`, `ArticleError`, a single
+  variant like `UserNotFound`, ...).
+- Service functions: `DomainErrors` **only when they genuinely combine multiple error families** (validation
+  + persistence + JWT, etc.). If a service function only ever delegates to one narrow-error repository call, keep
+  that narrow type instead of widening to `DomainError` for no reason.
+- Route handlers (the `route(endpoint) { ... }` block body): always `context(DomainErrors)` — this is the
+  edge of the service, where any remaining domain error must be convertible to `GenericErrorModel` via
+  `toGenericErrorModel`.
+- Never introduce exceptions for expected failures. `raise`/`ensure`/`ensureNotNull`/`catch` (Arrow) are the only
+  vocabulary for expected error paths; reserve real exceptions (letting them propagate) for truly unexpected
+  failures (e.g. an unmapped `PSQLException`).
+
+## Validation: `accumulate` in `Validation.kt`
+
+Input validation never short-circuits on the first failing field — it must report every invalid field (and every
+rule broken within a field) in one response. This is done with Arrow's experimental accumulation API
+(`arrow.core.raise.context.accumulate`), not manual `NonEmptyList` building.
+
+There are two accumulation levels, nested:
+
+1. **Field level** — rules for a single `String`/`Int` accumulate into `NonEmptyList<String>` messages, using
+   `RaiseAccumulate<String>` and `ensureOrAccumulate`:
 
 ```kotlin
 context(_: Raise<InvalidEmail>)

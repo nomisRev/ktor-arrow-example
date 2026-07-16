@@ -24,7 +24,6 @@ class Dependencies(
     val tagPersistence: TagPersistence,
     val userPersistence: UserPersistence,
 )
-
 suspend fun ResourceScope.dependencies(env: Env): Dependencies {
     val hikari = hikari(env.dataSource)
     return dependencies(env, hikari)

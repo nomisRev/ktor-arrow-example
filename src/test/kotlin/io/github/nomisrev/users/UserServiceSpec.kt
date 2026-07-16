@@ -23,6 +23,8 @@ val UserServiceSuite by testSuite {
         ))
 
         assertEquals(true, token.value.isNotBlank())
+
+        assertEquals(true, token.value.isNotBlank())
     }
 
     testDependencies("register with duplicate username results in") {

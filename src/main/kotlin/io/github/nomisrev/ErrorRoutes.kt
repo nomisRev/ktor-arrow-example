@@ -50,11 +50,12 @@ data class GenericErrorModelErrors(val body: List<String>)
 @Suppress("DSL_MARKER_APPLIED_TO_WRONG_TARGET")
 @KtorDsl
 inline fun <
-    reified In : Any,
-    reified Out : Any,
-    reified Failure : Or<Never, ByCode<GenericErrorModel>>,
-    reified Params : Parameters
-> Route.route(
+        reified In : Any,
+        reified Out : Any,
+        reified Failure : Or<Never, ByCode<GenericErrorModel>>,
+        reified Params : Parameters
+        >
+        Route.route(
     endpoint: Endpoint<In, Out, Failure, Params>,
     crossinline block: suspend context(DomainErrors) TypedResponseScope<In, Out, Or<Never, ByCode<GenericErrorModel>>, Params>.() -> Unit,
 ): Unit = route(endpoint) response@{

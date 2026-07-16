@@ -108,10 +108,7 @@ context(dependencies: Dependencies)
 val dependencies: Dependencies get() = dependencies
 
 context(_: DomainErrors)
-suspend fun ArticleService.createArticle(
-    userId: UserId,
-    article: ArticleFixture = articleFixture(),
-): Article = createArticle(CreateArticle(
+suspend fun ArticleService.createArticle(userId: UserId, article: ArticleFixture = articleFixture()): Article = createArticle(CreateArticle(
     userId,
     article.title,
     article.description,
