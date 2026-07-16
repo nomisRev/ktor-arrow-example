@@ -2,7 +2,7 @@ package io.github.nomisrev.articles
 
 import de.infix.testBalloon.framework.core.testSuite
 import io.github.nomisrev.CannotGenerateSlug
-import io.github.nomisrev.Title
+import io.github.nomisrev.articles.Title
 import io.github.nomisrev.assertRaised
 import io.github.nomisrev.testRaise
 import kotlin.random.Random

@@ -1,20 +1,22 @@
 package io.github.nomisrev
 
-import arrow.core.NonEmptyList
 import arrow.core.nonEmptyListOf
 import de.infix.testBalloon.framework.core.testSuite
 import io.github.nomisrev.articles.ArticlesParameters
+import io.github.nomisrev.articles.Body
 import io.github.nomisrev.articles.CreateArticle
 import io.github.nomisrev.articles.FeedLimit
 import io.github.nomisrev.articles.FeedOffset
 import io.github.nomisrev.articles.FeedParameters
 import io.github.nomisrev.articles.GetArticles
 import io.github.nomisrev.articles.GetFeed
-import io.github.nomisrev.articles.NewArticle
+import io.github.nomisrev.articles.CreateArticleRequest
+import io.github.nomisrev.articles.Description
 import io.github.nomisrev.articles.NewComment
 import io.github.nomisrev.articles.Slug
+import io.github.nomisrev.articles.Title
 import io.github.nomisrev.users.LoginUser
-import io.github.nomisrev.users.NewUser
+import io.github.nomisrev.users.RegisterUserRequest
 import io.github.nomisrev.users.UpdateUser
 import io.github.nomisrev.users.UserId
 import org.junit.Assert.assertEquals
@@ -25,32 +27,36 @@ fun IncorrectInput(head: InvalidField, vararg tail: InvalidField) =
 @Suppress("RETURN_VALUE_NOT_USED_COERCION")
 val Validation by testSuite {
     test("accumulates all invalid fields and all errors per field") {
-        val input = NewUser(username = "", email = "not-an-email", password = "")
+        val input = RegisterUserRequest(username = "", email = "not-an-email", password = "")
 
         val error = assertRaised { input.toRegisterUser() }
 
         assertEquals(
             IncorrectInput(
-                InvalidUsername(nonEmptyListOf(
-                    "Cannot be blank",
-                    "is too short (minimum is 1 characters)",
-                )),
-                InvalidEmail(nonEmptyListOf("'not-an-email' is invalid email")),
-                InvalidPassword(nonEmptyListOf(
-                    "Cannot be blank",
-                    "is too short (minimum is 8 characters)",
-                    "At least one uppercase letter",
-                    "At least one lowercase letter",
-                    "At least one number",
-                    "At least one special character",
-                )),
+                InvalidField(
+                    nonEmptyListOf(
+                        "Cannot be blank",
+                        "is too short (minimum is 1 characters)",
+                    ), "username"
+                ),
+                InvalidField(nonEmptyListOf("'not-an-email' is invalid email"), "email"),
+                InvalidField(
+                    nonEmptyListOf(
+                        "Cannot be blank",
+                        "is too short (minimum is 8 characters)",
+                        "At least one uppercase letter",
+                        "At least one lowercase letter",
+                        "At least one number",
+                        "At least one special character",
+                    ), "password"
+                ),
             ),
             error,
         )
     }
 
     test("accumulates size-limit validation errors") {
-        val input = NewUser(
+        val input = RegisterUserRequest(
             username = "A".repeat(26),
             email = "${"A".repeat(341)}@domain.com",
             password = "A" + "a".repeat(98) + "1!",
@@ -60,9 +66,9 @@ val Validation by testSuite {
 
         assertEquals(
             IncorrectInput(
-                InvalidUsername(nonEmptyListOf("is too long (maximum is 25 characters)")),
-                InvalidEmail(nonEmptyListOf("is too long (maximum is 350 characters)")),
-                InvalidPassword(nonEmptyListOf("is too long (maximum is 100 characters)")),
+                InvalidField(nonEmptyListOf("is too long (maximum is 25 characters)"), "username"),
+                InvalidField(nonEmptyListOf("is too long (maximum is 350 characters)"), "email"),
+                InvalidField(nonEmptyListOf("is too long (maximum is 100 characters)"), "password"),
             ),
             error,
         )
@@ -75,15 +81,17 @@ val Validation by testSuite {
 
         assertEquals(
             IncorrectInput(
-                InvalidEmail(nonEmptyListOf("Cannot be blank", "'' is invalid email")),
-                InvalidPassword(nonEmptyListOf(
-                    "Cannot be blank",
-                    "is too short (minimum is 8 characters)",
-                    "At least one uppercase letter",
-                    "At least one lowercase letter",
-                    "At least one number",
-                    "At least one special character",
-                )),
+                InvalidField(nonEmptyListOf("Cannot be blank", "'' is invalid email"), "email"),
+                InvalidField(
+                    nonEmptyListOf(
+                        "Cannot be blank",
+                        "is too short (minimum is 8 characters)",
+                        "At least one uppercase letter",
+                        "At least one lowercase letter",
+                        "At least one number",
+                        "At least one special character",
+                    ), "password"
+                ),
             ),
             error,
         )
@@ -99,8 +107,8 @@ val Validation by testSuite {
 
         assertEquals(
             IncorrectInput(
-                InvalidEmail(nonEmptyListOf("'AAAA' is invalid email")),
-                InvalidPassword(nonEmptyListOf("is too long (maximum is 100 characters)")),
+                InvalidField(nonEmptyListOf("'AAAA' is invalid email"), "email"),
+                InvalidField(nonEmptyListOf("is too long (maximum is 100 characters)"), "password"),
             ),
             error,
         )
@@ -119,17 +127,21 @@ val Validation by testSuite {
 
         assertEquals(
             IncorrectInput(
-                InvalidUsername(nonEmptyListOf(
-                    "Cannot be blank",
-                    "is too short (minimum is 1 characters)",
-                )),
-                InvalidEmail(nonEmptyListOf("'invalid-email' is invalid email")),
-                InvalidPassword(nonEmptyListOf(
-                    "is too short (minimum is 8 characters)",
-                    "At least one uppercase letter",
-                    "At least one number",
-                    "At least one special character",
-                )),
+                InvalidField(
+                    nonEmptyListOf(
+                        "Cannot be blank",
+                        "is too short (minimum is 1 characters)",
+                    ), "username"
+                ),
+                InvalidField(nonEmptyListOf("'invalid-email' is invalid email"), "email"),
+                InvalidField(
+                    nonEmptyListOf(
+                        "is too short (minimum is 8 characters)",
+                        "At least one uppercase letter",
+                        "At least one number",
+                        "At least one special character",
+                    ), "password"
+                ),
             ),
             error,
         )
@@ -150,7 +162,7 @@ val Validation by testSuite {
         val email = "a".repeat(345) + "@a.co"
         val password = "A" + "a".repeat(97) + "1!"
 
-        val register = NewUser(" $username ", " $email ", password).toRegisterUser()
+        val register = RegisterUserRequest(" $username ", " $email ", password).toRegisterUser()
         assertEquals(username, register.username.value)
         assertEquals(email, register.email.value)
         assertEquals(password, register.password.raw())
@@ -176,7 +188,7 @@ val Validation by testSuite {
     }
 
     test("accumulates title description body and every invalid tag") {
-        val input = NewArticle(
+        val input = CreateArticleRequest(
             title = "",
             description = " ",
             body = "",
@@ -187,10 +199,10 @@ val Validation by testSuite {
 
         assertEquals(
             IncorrectInput(
-                InvalidTitle(nonEmptyListOf("Cannot be blank")),
-                InvalidDescription(nonEmptyListOf("Cannot be blank")),
-                InvalidBody(nonEmptyListOf("Cannot be blank")),
-                InvalidTag(nonEmptyListOf("Cannot be blank", "Cannot be blank")),
+                InvalidField(nonEmptyListOf("Cannot be blank"), "title"),
+                InvalidField(nonEmptyListOf("Cannot be blank"), "description"),
+                InvalidField(nonEmptyListOf("Cannot be blank"), "body"),
+                InvalidField(nonEmptyListOf("Cannot be blank", "Cannot be blank"), "tag"),
             ),
             error,
         )
@@ -200,7 +212,7 @@ val Validation by testSuite {
         val error = assertRaised { NewComment(body = " ").toCreateComment(Slug("slug"), UserId(1)) }
 
         assertEquals(
-            IncorrectInput(InvalidBody(nonEmptyListOf("Cannot be blank"))),
+            IncorrectInput(InvalidField(nonEmptyListOf("Cannot be blank"), "body")),
             error,
         )
     }
@@ -216,8 +228,8 @@ val Validation by testSuite {
 
         assertEquals(
             IncorrectInput(
-                InvalidFeedOffset(nonEmptyListOf("too small, minimum is 0, and found -1")),
-                InvalidFeedLimit(nonEmptyListOf("too small, minimum is 1, and found 0")),
+                InvalidField(nonEmptyListOf("too small, minimum is 0, and found -1"), "feed offset"),
+                InvalidField(nonEmptyListOf("too small, minimum is 1, and found 0"), "feed limit"),
             ),
             error,
         )
@@ -233,19 +245,19 @@ val Validation by testSuite {
 
         assertEquals(
             IncorrectInput(
-                InvalidFeedOffset(nonEmptyListOf("too small, minimum is 0, and found -1")),
-                InvalidFeedLimit(nonEmptyListOf("too small, minimum is 1, and found 0")),
+                InvalidField(nonEmptyListOf("too small, minimum is 0, and found -1"), "feed offset"),
+                InvalidField(nonEmptyListOf("too small, minimum is 1, and found 0"), "feed limit"),
             ),
             error,
         )
     }
 
     testRaise("returns valid inputs unchanged or mapped to service input") {
-        val register = NewUser("simon", "simon@example.com", "Aa123456!").toRegisterUser()
+        val register = RegisterUserRequest("simon", "simon@example.com", "Aa123456!").toRegisterUser()
         assertEquals("simon", register.username.value)
         assertEquals("simon@example.com", register.email.value)
 
-        val article = NewArticle("title", "description", "body", listOf(" kotlin ", "arrow"))
+        val article = CreateArticleRequest("title", "description", "body", listOf(" kotlin ", "arrow"))
         val userId = UserId(42)
 
         assertEquals(

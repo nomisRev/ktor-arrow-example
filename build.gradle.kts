@@ -1,4 +1,3 @@
-import com.diffplug.spotless.kotlin.KtfmtStep
 import kotlinx.knit.KnitPluginExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 

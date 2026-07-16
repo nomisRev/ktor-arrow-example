@@ -55,7 +55,7 @@ fun DomainError.toGenericErrorModel(): GenericErrorModel = when (this) {
     PasswordNotMatched -> GenericErrorModel(GenericErrorModelErrors(listOf("Password not matched")))
 
     is IncorrectInput -> GenericErrorModel(GenericErrorModelErrors(
-        this.errors.map { field -> "${field.field}: ${field.errors.joinToString()}" },
+        this.errors.map { field -> "${field.name}: ${field.errors.joinToString()}" },
     ))
 
     is IncorrectJson -> @OptIn(ExperimentalSerializationApi::class)

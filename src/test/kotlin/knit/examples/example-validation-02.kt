@@ -16,6 +16,6 @@ value class Password private constructor(private val value: String) {
         fun create(value: String): Password = TODO()
 
         context(_: Raise<InvalidPassword>)
-        operator fun invoke(value: String): Password = TODO()
+        operator fun invoke(value: String): Password = create(value)
     }
 }

@@ -6,10 +6,7 @@ import io.github.nomisrev.Api.Articles
 import io.github.nomisrev.Api.Articles.create
 import io.github.nomisrev.Api.Articles.feed
 import io.github.nomisrev.Api.Articles.list
-import io.github.nomisrev.Body
-import io.github.nomisrev.Description
 import io.github.nomisrev.GenericErrorModel
-import io.github.nomisrev.Title
 import io.github.nomisrev.articleFixture
 import io.github.nomisrev.client
 import io.github.nomisrev.createArticle
@@ -372,7 +369,7 @@ val ArticleRouteSuite by testSuite {
 
         val response = client.request(
             Api / Articles / create,
-            ArticleWrapper(NewArticle(
+            ArticleWrapper(CreateArticleRequest(
                 article.title.value,
                 article.description.value,
                 article.body.value,
@@ -399,7 +396,7 @@ val ArticleRouteSuite by testSuite {
 
         val response = client.request(
             Api / Articles / create,
-            ArticleWrapper(NewArticle(
+            ArticleWrapper(CreateArticleRequest(
                 article.title.value,
                 article.description.value,
                 article.body.value,
@@ -426,7 +423,7 @@ val ArticleRouteSuite by testSuite {
 
         val response = client.request(
             Api / Articles / create,
-            ArticleWrapper(NewArticle(
+            ArticleWrapper(CreateArticleRequest(
                 article.title.value,
                 article.description.value,
                 "",
@@ -445,7 +442,7 @@ val ArticleRouteSuite by testSuite {
 
         val response = client.request(
             Api / Articles / create,
-            ArticleWrapper(NewArticle(article.title.value, "", article.body.value, emptyList())),
+            ArticleWrapper(CreateArticleRequest(article.title.value, "", article.body.value, emptyList())),
         ) {
             tokenAuth(token.value)
         }
@@ -459,7 +456,7 @@ val ArticleRouteSuite by testSuite {
 
         val response = client.request(
             Api / Articles / create,
-            ArticleWrapper(NewArticle(
+            ArticleWrapper(CreateArticleRequest(
                 "",
                 article.description.value,
                 article.body.value,
@@ -476,7 +473,7 @@ val ArticleRouteSuite by testSuite {
         val article = articleFixture()
         val response = client.request(
             Api / Articles / create,
-            ArticleWrapper(NewArticle(
+            ArticleWrapper(CreateArticleRequest(
                 article.title.value,
                 article.description.value,
                 article.body.value,

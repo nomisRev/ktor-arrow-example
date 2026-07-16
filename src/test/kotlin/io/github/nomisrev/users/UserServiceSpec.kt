@@ -3,7 +3,6 @@ package io.github.nomisrev.users
 import de.infix.testBalloon.framework.core.testSuite
 import io.github.nomisrev.EmailAlreadyExists
 import io.github.nomisrev.EmptyUpdate
-import io.github.nomisrev.Password
 import io.github.nomisrev.PasswordNotMatched
 import io.github.nomisrev.UsernameAlreadyExists
 import io.github.nomisrev.assertRaised

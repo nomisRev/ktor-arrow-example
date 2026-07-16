@@ -1,11 +1,17 @@
 package io.github.nomisrev
 
 import arrow.core.raise.recover
-import io.github.nomisrev.users.NewUser
+import io.github.nomisrev.articles.Body
+import io.github.nomisrev.articles.Description
+import io.github.nomisrev.articles.Title
+import io.github.nomisrev.users.Email
+import io.github.nomisrev.users.Password
+import io.github.nomisrev.users.RegisterUserRequest
+import io.github.nomisrev.users.Username
 import kotlin.uuid.Uuid
 
 data class UserFixture(val username: Username, val email: Email, val password: Password) {
-    fun toNewUser() = NewUser(username.value, email.value, password.raw())
+    fun toNewUser() = RegisterUserRequest(username.value, email.value, password.raw())
 }
 
 data class ArticleFixture(

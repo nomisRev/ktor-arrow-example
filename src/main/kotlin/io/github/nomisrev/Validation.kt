@@ -61,6 +61,7 @@ inline fun <Error> ensureOrAccumulate(condition: Boolean, error: () -> Error): V
     return raise.ensureOrAccumulate(condition, error)
 }
 
+@Suppress("DSL_MARKER_APPLIED_TO_WRONG_TARGET")
 @OptIn(ExperimentalContracts::class)
 @ExperimentalRaiseAccumulateApi @RaiseDSL
 context(raise: Accumulate<Error>)

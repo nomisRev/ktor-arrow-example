@@ -167,5 +167,5 @@ val ProfileRouteSuite by testSuite {
     }
 }
 
-operator fun ResolvedResource<Profiles>.div(username: io.github.nomisrev.Username) =
+operator fun ResolvedResource<Profiles>.div(username: io.github.nomisrev.users.Username) =
     div(Username(username.value))
