@@ -39,6 +39,7 @@ value class Password(private val value: String) {
     override fun toString(): String = "Password(*****)"
 }
 ```
+
 <!--- KNIT example-validation-01.kt -->
 
 Our `Password` type does a couple of things:
@@ -58,6 +59,7 @@ import arrow.core.raise.context.Raise
 
 data class InvalidPassword(val errors: NonEmptyList<String>)
 -->
+
 ```kotlin
 @JvmInline
 value class Password private constructor(private val value: String) {
@@ -69,10 +71,11 @@ value class Password private constructor(private val value: String) {
         fun create(value: String): Password = TODO()
 
         context(_: Raise<InvalidPassword>)
-        operator fun invoke(value: String): Password = TODO()
+        operator fun invoke(value: String): Password = create(value)
     }
 }
 ```
+
 <!--- KNIT example-validation-02.kt -->
 
 Now for our actual validation to validate a raw `String` into a validated `Password` with the following rules:
@@ -87,16 +90,31 @@ Now for our actual validation to validate a raw `String` into a validated `Passw
     - At least one number
     - At least one special character
 
-If any of the _rules_ is violated, we want to _accumulate_ the error messages into `InvalidPassword`'s
-`NonEmptyList<String>` property. Before we can do so we need to understand how our types will flow.
+In the `create` or `invoke` function when any of the validation _rules_ is violated, we want to _accumulate_ the errors
+into `InvalidPassword`'s `NonEmptyList<String>`. We represent an individual validation violation as a simple `String`
+message, but we could have used any other more complex domain like `data class ValidationError(...)` or
+`sealed interface ValidationError`.
+
+```kotlin
+context(_: Accumulate<String>)
+fun String.ensureNotBlank() {
+    ensureOrAccumulate(isNotBlank()) { "Password cannot be blank" }
+}
+```
+
+<!--- KNIT example-validation-03.kt -->
+
+To _raise_ errors of type `String` we use `Raise<String>`, but to _accumulate_ errors of type `String` we need
+`Accumulate<String>` so individual _condition_ can be defined using `context(_: Accumulate<String>)`. The `Accumulate`
+DSL offers functions like `ensureOrAccumulate(condition) { "message" }`, `ensureNotNull(value) { "message" }`, `mapOrAccumulate {  
+
+To ensure the operation doesn't short-circuit but continues while _accumulating_ errors, we use
+`ensureOrAccumulate(condition) { "message" }` instead of `ensure(condition) { "message" }`.
 
 An individual error is of type `String`, a simple error message, so `Raise<String>` is how we _raise_ a violation. So we
 need to get a `Raise<String>` from our `Raise<InvalidPassword>` such that an error _raised_ in `Raise<String>` gets
 accumulated into `Raise<InvalidPassword>`. We can achieve this by combining `withError`, and `accumulate`. Let’s quickly
 review both.
-
-`withError` allows creating a nested `Raise<NonEmptyList<String>>` scope for our `Raise<InvalidPassword>` scope given a
-`(NonEmptyList<String>) -> InvalidPassword` which is the `InvalidPassword` constructor.
 
 <!--- INCLUDE
 import arrow.core.NonEmptyList
@@ -106,6 +124,7 @@ import arrow.core.raise.context.ensureOrAccumulate
 import arrow.core.raise.context.raise
 import arrow.core.raise.recover
 -->
+
 ```kotlin
 context(raise: Raise<Error>)
 inline fun <Error, OtherError, A> withError(
@@ -113,6 +132,11 @@ inline fun <Error, OtherError, A> withError(
     block: context(Raise<OtherError>) () -> A
 ): A = recover(block) { raise(transform(it)) }
 ```
+
+`withError` creates a `block: Raise<NonEmptyList<String>>.() -> A` scope `block` for our `Raise<InvalidPassword>` scope
+given a
+`transform: (NonEmptyList<String>) -> InvalidPassword` which is the `InvalidPassword` constructor. This is useful so
+that we can express
 
 ```kotlin
 context(raise: Raise<NonEmptyList<Error>>)
@@ -131,7 +155,8 @@ fun String.validate() {
     ensureOrAccumulate(contains("""[$#%&^*!?{}\[\]+=<€>±§|]""".toRegex())) { "At least one special character" }
 }
 ```
-<!--- KNIT example-validation-03.kt -->
+
+<!--- KNIT example-validation-04.kt -->
 
 A lot is going on here, so lets unpack it.
 
@@ -187,7 +212,7 @@ private fun String.looksLikeEmail(): String = also {
 }
 ```
 
-<!--- KNIT example-validation-04.kt -->
+<!--- KNIT example-validation-05.kt -->
 
 `ensureOrAccumulate` is the accumulating version of `ensure`.
 
@@ -404,7 +429,6 @@ fun Update.validate(): Update =
     }
 ```
 
-
 The `?.` is doing exactly what we want. Missing values remain `null` and do not contribute errors. Present values are
 validated, and invalid present values are added to the accumulator.
 
@@ -458,7 +482,6 @@ fun Int.validFeedLimit(): FeedLimit =
     }
 ```
 
-
 `FeedOffset` and `FeedLimit` are `@JvmInline value class` wrappers. Once we have one, we know that the raw `Int` passed
 validation.
 
@@ -488,7 +511,6 @@ fun FeedParameters.validate(userId: UserId): GetFeed =
         }
     }
 ```
-
 
 This is a small pattern, but I like it a lot. The route layer receives strings and numbers from HTTP, and the service
 layer receives values that already encode their invariants.
