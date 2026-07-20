@@ -16,7 +16,7 @@ import io.github.nomisrev.sqldelight.Articles
 import io.github.nomisrev.sqldelight.Comments
 import io.github.nomisrev.tags.TagService
 import io.github.nomisrev.users.UserId
-import io.github.nomisrev.users.UserPersistence
+import io.github.nomisrev.users.UserService
 import io.github.nomisrev.users.Username
 
 @JvmInline
@@ -120,7 +120,7 @@ data class CreateComment(
 class ArticleService(
     private val slugGenerator: SlugGenerator,
     private val articlePersistence: ArticlePersistence,
-    private val userPersistence: UserPersistence,
+    private val userService: UserService,
     private val tagService: TagService,
     private val favouriteService: FavouriteService,
 ) {
@@ -248,7 +248,7 @@ class ArticleService(
         val articleIds = articleRows.map { it.id }
         val authorIds = articleRows.map { it.author_id }
 
-        val profilesByAuthor = userPersistence.selectAuthorProfiles(currentUserId, authorIds)
+        val profilesByAuthor = userService.selectAuthorProfiles(currentUserId, authorIds)
         val tagsByArticle = tagService.selectTagsOfArticles(articleIds)
         val favoriteStatsByArticle = favouriteService.favoriteStats(currentUserId, articleIds)
 

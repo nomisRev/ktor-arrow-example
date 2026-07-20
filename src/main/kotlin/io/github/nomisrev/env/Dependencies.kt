@@ -13,7 +13,6 @@ import io.github.nomisrev.auth.JwtConfig
 import io.github.nomisrev.auth.JwtContext
 import io.github.nomisrev.auth.JwtService
 import io.github.nomisrev.tags.TagService
-import io.github.nomisrev.users.UserPersistence
 import io.github.nomisrev.users.UserService
 
 class Dependencies(
@@ -22,7 +21,6 @@ class Dependencies(
     val articleService: ArticleService,
     val healthCheck: HealthCheckRegistry,
     val tagService: TagService,
-    val userPersistence: UserPersistence,
 )
 
 suspend fun ResourceScope.dependencies(env: Env): Dependencies {
@@ -32,7 +30,6 @@ suspend fun ResourceScope.dependencies(env: Env): Dependencies {
 
 suspend fun ResourceScope.dependencies(env: Env, hikari: HikariDataSource): Dependencies {
     val sqlDelight = sqlDelight(hikari)
-    val userRepo = UserPersistence(sqlDelight.usersQueries, sqlDelight.followingQueries)
     val articleRepo = ArticlePersistence(
         sqlDelight.articlesQueries,
         sqlDelight.commentsQueries,
@@ -43,7 +40,11 @@ suspend fun ResourceScope.dependencies(env: Env, hikari: HikariDataSource): Depe
 
     val jwtService = JwtService(env.auth)
     val slugGenerator: SlugGenerator = slugifyGenerator()
-    val userService = UserService(userRepo, jwtService)
+    val userService = UserService(
+        sqlDelight.usersQueries,
+        sqlDelight.followingQueries,
+        jwtService,
+    )
 
     val checks = HealthCheckRegistry {
         register(HikariConnectionsHealthCheck(hikari, minConnections = 1))
@@ -55,12 +56,11 @@ suspend fun ResourceScope.dependencies(env: Env, hikari: HikariDataSource): Depe
         articleService = ArticleService(
             slugGenerator,
             articleRepo,
-            userRepo,
+            userService,
             tagService,
             favouriteService,
         ),
         healthCheck = checks,
         tagService = tagService,
-        userPersistence = userRepo,
     )
 }

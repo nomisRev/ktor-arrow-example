@@ -11,7 +11,7 @@ import io.github.nomisrev.auth.JwtContext
 import io.github.nomisrev.auth.authenticateWith
 import io.github.nomisrev.auth.principal
 import io.github.nomisrev.route
-import io.github.nomisrev.users.UserPersistence
+import io.github.nomisrev.users.UserService
 import io.github.nomisrev.users.Username
 import io.ktor.server.routing.Route
 import kotlinx.serialization.Serializable
@@ -28,11 +28,11 @@ data class Profile(
     val following: Boolean,
 )
 
-fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtConfig<JwtContext>) {
+fun Route.profileRoutes(userService: UserService, jwtService: JwtConfig<JwtContext>) {
     authenticateWith(jwtService.orAnonymous()) {
         route(Profiles.Username.get) {
             val username = username(idOf(Profiles.Username))
-            val profile = userPersistence.selectProfile(username, call.principal?.userId)
+            val profile = userService.selectProfile(username, call.principal?.userId)
             respond(ProfileWrapper(profile))
         }
     }
@@ -40,8 +40,8 @@ fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtConfig<
     authenticateWith(jwtService) {
         route(Profiles.Username.Follow.add) {
             val username = username(idOf(Profiles.Username))
-            val _ = userPersistence.followProfile(username, call.principal.userId)
-            val userFollowed = userPersistence.select(username)
+            val _ = userService.followProfile(username, call.principal.userId)
+            val userFollowed = userService.select(username)
             respond(ProfileWrapper(Profile(
                 userFollowed.username.value,
                 userFollowed.bio,
@@ -52,8 +52,8 @@ fun Route.profileRoutes(userPersistence: UserPersistence, jwtService: JwtConfig<
 
         route(Profiles.Username.Follow.remove) {
             val username = username(idOf(Profiles.Username))
-            userPersistence.unfollowProfile(username, call.principal.userId)
-            val userUnfollowed = userPersistence.select(username)
+            userService.unfollowProfile(username, call.principal.userId)
+            val userUnfollowed = userService.select(username)
             respond(ProfileWrapper(Profile(
                 userUnfollowed.username.value,
                 userUnfollowed.bio,

@@ -150,13 +150,13 @@ val ArticleRouteSuite by testSuite {
             article.tags,
         ))
 
-        val _ = dependencies.userPersistence.followProfile(
+        val _ = dependencies.userService.followProfile(
             authorUser.username,
             viewer.userId,
         )
         val _ = dependencies.articleService.favoriteArticle(created.slug, viewer.userId)
 
-        val _ = dependencies.userPersistence.followProfile(authorUser.username, viewer.userId)
+        val _ = dependencies.userService.followProfile(authorUser.username, viewer.userId)
         val _ = dependencies.articleService.favoriteArticle(created.slug, viewer.userId)
 
         val response = client.request(
@@ -178,7 +178,7 @@ val ArticleRouteSuite by testSuite {
         val followed = registerUser()
         val unrelated = registerUser()
 
-        val _ = dependencies.userPersistence.followProfile(followed.user.username, reader.userId)
+        val _ = dependencies.userService.followProfile(followed.user.username, reader.userId)
 
         val createdFollowedArticle = dependencies.articleService.createArticle(
             followed.userId,
@@ -249,7 +249,7 @@ val ArticleRouteSuite by testSuite {
             article.tags,
         ))
 
-        val _ = dependencies.userPersistence.followProfile(author.user.username, viewer.userId)
+        val _ = dependencies.userService.followProfile(author.user.username, viewer.userId)
 
         val response = client.request(
             Api / Articles / list,

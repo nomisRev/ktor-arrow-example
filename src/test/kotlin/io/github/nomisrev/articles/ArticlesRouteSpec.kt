@@ -69,7 +69,7 @@ val ArticlesRouteSuite by testSuite {
         val viewer = registerUser()
         val created = dependencies.articleService.createArticle(author.userId, articleFixture())
 
-        val _ = dependencies.userPersistence.followProfile(author.user.username, viewer.userId)
+        val _ = dependencies.userService.followProfile(author.user.username, viewer.userId)
         val _ = dependencies.articleService.favoriteArticle(created.slug, viewer.userId)
 
         val response = client.request(Api / Articles / created.slug / get) {

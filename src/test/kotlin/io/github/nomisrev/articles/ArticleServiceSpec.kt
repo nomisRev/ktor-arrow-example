@@ -30,7 +30,7 @@ val ArticleServiceSuite by testSuite {
         val followed = registerUser()
         val unrelated = registerUser()
 
-        dependencies.userPersistence.followProfile(followed.user.username, user.userId)
+        dependencies.userService.followProfile(followed.user.username, user.userId)
 
         val createdFollowedArticle = dependencies.articleService.createArticle(followed.userId)
 

@@ -36,7 +36,7 @@ fun Application.app(module: Dependencies) {
         tagRoutes(module.tagService)
         articleRoutes(module.articleService, module.jwtService)
         commentRoutes(module.userService, module.articleService, module.jwtService)
-        profileRoutes(module.userPersistence, module.jwtService)
+        profileRoutes(module.userService, module.jwtService)
     }
     install(Cohort) { healthcheck("/readiness", module.healthCheck) }
 }
