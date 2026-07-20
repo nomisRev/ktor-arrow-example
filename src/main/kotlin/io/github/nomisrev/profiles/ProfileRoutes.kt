@@ -6,13 +6,13 @@ import arrow.core.nonEmptyListOf
 import arrow.core.raise.context.Raise
 import arrow.core.raise.context.withError
 import io.github.nomisrev.IncorrectInput
-import io.github.nomisrev.users.Username
 import io.github.nomisrev.auth.JwtConfig
 import io.github.nomisrev.auth.JwtContext
 import io.github.nomisrev.auth.authenticateWith
 import io.github.nomisrev.auth.principal
 import io.github.nomisrev.route
 import io.github.nomisrev.users.UserPersistence
+import io.github.nomisrev.users.Username
 import io.ktor.server.routing.Route
 import kotlinx.serialization.Serializable
 import opensavvy.spine.server.respond

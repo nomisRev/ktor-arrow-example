@@ -139,11 +139,11 @@ val ArticleRouteSuite by testSuite {
     }
 
     testServer("article list returns viewer specific metadata") {
-        val author = registerUser()
+        val (authorId = userId, authorUser = user) = registerUser()
         val viewer = registerUser()
         val article = articleFixture()
         val created = dependencies.articleService.createArticle(CreateArticle(
-            articleAuthor.userId,
+            authorId,
             article.title,
             article.description,
             article.body,
@@ -151,21 +151,20 @@ val ArticleRouteSuite by testSuite {
         ))
 
         val _ = dependencies.userPersistence.followProfile(
-            author.user.username,
+            authorUser.username,
             viewer.userId,
         )
         val _ = dependencies.articleService.favoriteArticle(created.slug, viewer.userId)
 
-        val _ = dependencies.userPersistence.followProfile(author.user.username, viewer.userId)
+        val _ = dependencies.userPersistence.followProfile(authorUser.username, viewer.userId)
         val _ = dependencies.articleService.favoriteArticle(created.slug, viewer.userId)
 
-        val response =
-            client.request(
-                endpoint = Api / Articles / list,
-                parameters = { this.author = author.user.username },
-            ) {
-                tokenAuth(viewer.token.value)
-            }
+        val response = client.request(
+            endpoint = Api / Articles / list,
+            parameters = { this.author = authorUser.username.value },
+        ) {
+            tokenAuth(viewer.token.value)
+        }
 
         val body = response.bodyOrThrow().articles.singleOrNull()
         assert(body?.slug == created.slug)
@@ -443,7 +442,12 @@ val ArticleRouteSuite by testSuite {
 
         val response = client.request(
             Api / Articles / create,
-            ArticleWrapper(CreateArticleRequest(article.title.value, "", article.body.value, emptyList())),
+            ArticleWrapper(CreateArticleRequest(
+                article.title.value,
+                "",
+                article.body.value,
+                emptyList(),
+            )),
         ) {
             tokenAuth(token.value)
         }

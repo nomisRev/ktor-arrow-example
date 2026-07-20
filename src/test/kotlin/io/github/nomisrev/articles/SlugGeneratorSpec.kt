@@ -2,7 +2,6 @@ package io.github.nomisrev.articles
 
 import de.infix.testBalloon.framework.core.testSuite
 import io.github.nomisrev.CannotGenerateSlug
-import io.github.nomisrev.articles.Title
 import io.github.nomisrev.assertRaised
 import io.github.nomisrev.testRaise
 import kotlin.random.Random
@@ -28,10 +27,9 @@ val SlugGeneratorSuite by testSuite {
 
         val title = Title("Test Title")
 
-        val slug =
-            slugGenerator.generateSlug(title) { slug ->
-                slug.value != title.value.lowercase().replace(' ', '_')
-            }
+        val slug = slugGenerator.generateSlug(title) { slug ->
+            slug.value != title.value.lowercase().replace(' ', '_')
+        }
 
         assertEquals("test_title_142", slug.value)
     }

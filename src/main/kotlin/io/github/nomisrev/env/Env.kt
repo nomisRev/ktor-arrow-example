@@ -10,10 +10,7 @@ data class Env(
     val auth: Auth,
 ) {
     @Serializable
-    data class Server(
-        val host: String,
-        val port: Int,
-    )
+    data class Server(val host: String, val port: Int)
 
     @Serializable
     data class DataSource(
@@ -24,9 +21,5 @@ data class Env(
     )
 
     @Serializable
-    data class Auth(
-        val secret: String,
-        val issuer: String,
-        val duration: Duration,
-    )
+    data class Auth(val secret: String, val issuer: String, val duration: Duration)
 }

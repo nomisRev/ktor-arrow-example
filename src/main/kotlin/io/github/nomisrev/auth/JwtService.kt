@@ -18,15 +18,16 @@ import java.time.Instant
 import kotlin.time.toJavaDuration
 
 class JwtService(private val env: Env.Auth) {
-    val config: JwtConfig<JwtContext> =
-        JwtConfig(require(Algorithm.HMAC512(env.secret)).withIssuer(env.issuer).build()) {
-            val id = it.getClaim("id", Long::class)
-            id?.let {
-                (request.parseAuthorizationHeader() as? HttpAuthHeader.Single)?.let { header ->
-                    JwtContext(JwtToken(header.blob), UserId(id))
-                }
+    val config: JwtConfig<JwtContext> = JwtConfig(
+        require(Algorithm.HMAC512(env.secret)).withIssuer(env.issuer).build(),
+    ) {
+        val id = it.getClaim("id", Long::class)
+        id?.let {
+            (request.parseAuthorizationHeader() as? HttpAuthHeader.Single)?.let { header ->
+                JwtContext(JwtToken(header.blob), UserId(id))
             }
         }
+    }
 
     /** Generate a new JWT token for userId. Doesn't invalidate old password */
     context(_: Raise<JwtGeneration>)

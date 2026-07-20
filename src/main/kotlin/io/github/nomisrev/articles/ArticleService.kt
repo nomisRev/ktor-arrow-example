@@ -1,6 +1,5 @@
 package io.github.nomisrev.articles
 
-import arrow.core.nonEmptyListOf
 import arrow.core.raise.context.Raise
 import arrow.core.raise.context.ensure
 import arrow.core.raise.context.ensureNotNull
@@ -15,7 +14,7 @@ import io.github.nomisrev.NotCommentAuthor
 import io.github.nomisrev.UserNotFound
 import io.github.nomisrev.sqldelight.Articles
 import io.github.nomisrev.sqldelight.Comments
-import io.github.nomisrev.tags.TagPersistence
+import io.github.nomisrev.tags.TagService
 import io.github.nomisrev.users.UserId
 import io.github.nomisrev.users.UserPersistence
 import io.github.nomisrev.users.Username
@@ -80,11 +79,10 @@ value class Body private constructor(val value: String) {
 }
 
 context(_: Raise<InvalidField>)
-private fun String.notBlankTrimmed(field: String): String =
-    withError({ InvalidField(it, field) }) {
-        ensure(isNotBlank()) { "Cannot be blank" }
-        trim()
-    }
+private fun String.notBlankTrimmed(field: String): String = withError({ InvalidField(it, field) }) {
+    ensure(isNotBlank()) { "Cannot be blank" }
+    trim()
+}
 
 data class CreateArticle(
     val userId: UserId,
@@ -123,8 +121,8 @@ class ArticleService(
     private val slugGenerator: SlugGenerator,
     private val articlePersistence: ArticlePersistence,
     private val userPersistence: UserPersistence,
-    private val tagPersistence: TagPersistence,
-    private val favouritePersistence: FavouritePersistence,
+    private val tagService: TagService,
+    private val favouriteService: FavouriteService,
 ) {
     context(_: Raise<CannotGenerateSlug>, _: Raise<UserNotFound>)
     suspend fun createArticle(input: CreateArticle): Article {
@@ -227,7 +225,7 @@ class ArticleService(
     context(_: Raise<UserNotFound>, _: Raise<ArticleBySlugNotFound>)
     suspend fun favoriteArticle(slug: Slug, userId: UserId): Article {
         val article = articlePersistence.findArticleBySlug(slug)
-        val _ = favouritePersistence.favoriteArticle(userId, article.id)
+        val _ = favouriteService.favoriteArticle(userId, article.id)
         return article(article, userId)
     }
 
@@ -235,7 +233,7 @@ class ArticleService(
     suspend fun unfavoriteArticle(slug: Slug, userId: UserId): Article {
         val article = articlePersistence.findArticleBySlug(slug)
         val articleId = article.id
-        favouritePersistence.unfavoriteArticle(userId, articleId)
+        favouriteService.unfavoriteArticle(userId, articleId)
         return article(article, userId)
     }
 
@@ -251,15 +249,16 @@ class ArticleService(
         val authorIds = articleRows.map { it.author_id }
 
         val profilesByAuthor = userPersistence.selectAuthorProfiles(currentUserId, authorIds)
-        val tagsByArticle = tagPersistence.selectTagsOfArticles(articleIds)
-        val favoriteStatsByArticle = favouritePersistence.favoriteStats(currentUserId, articleIds)
+        val tagsByArticle = tagService.selectTagsOfArticles(articleIds)
+        val favoriteStatsByArticle = favouriteService.favoriteStats(currentUserId, articleIds)
 
         return articleRows.map { row ->
             val profile = ensureNotNull(profilesByAuthor[row.author_id]) {
                 UserNotFound("userId=${row.author_id}")
             }
 
-            val stats = favoriteStatsByArticle[row.id] ?: FavoriteStats(count = 0, favorited = false)
+            val stats = favoriteStatsByArticle[row.id]
+                ?: FavoriteStats(count = 0, favorited = false)
 
             Article(
                 row.id.serial,

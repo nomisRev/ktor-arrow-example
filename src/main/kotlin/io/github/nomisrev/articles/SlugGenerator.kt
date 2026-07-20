@@ -4,7 +4,6 @@ import arrow.core.raise.context.Raise
 import arrow.core.raise.context.ensure
 import com.github.slugify.Slugify
 import io.github.nomisrev.CannotGenerateSlug
-import io.github.nomisrev.articles.Title
 import kotlin.random.Random
 import kotlinx.serialization.Serializable
 
@@ -47,8 +46,7 @@ fun slugifyGenerator(
         }
 
         val slug = Slug(
-            if (isFirst) slg.slugify(title.value)
-            else makeUnique(slg.slugify(title.value))
+            if (isFirst) slg.slugify(title.value) else makeUnique(slg.slugify(title.value)),
         )
 
         val isUnique = verifyUnique(slug)

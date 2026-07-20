@@ -20,7 +20,6 @@ data class RegisterUserRequest(val username: String, val email: String, val pass
     }
 }
 
-
 @Serializable
 data class UpdateUser(
     val email: String? = null,

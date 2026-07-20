@@ -33,7 +33,7 @@ fun Application.app(module: Dependencies) {
     configure(module.jwtService)
     routing {
         userRoutes(module.userService, module.jwtService)
-        tagRoutes(module.tagPersistence)
+        tagRoutes(module.tagService)
         articleRoutes(module.articleService, module.jwtService)
         commentRoutes(module.userService, module.articleService, module.jwtService)
         profileRoutes(module.userPersistence, module.jwtService)

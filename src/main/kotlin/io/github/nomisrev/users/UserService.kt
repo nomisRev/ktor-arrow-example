@@ -3,11 +3,8 @@ package io.github.nomisrev.users
 import arrow.core.raise.context.Raise
 import arrow.core.raise.context.ensure
 import io.github.nomisrev.DomainErrors
-import io.github.nomisrev.users.Email
 import io.github.nomisrev.EmptyUpdate
-import io.github.nomisrev.users.Password
 import io.github.nomisrev.UserNotFound
-import io.github.nomisrev.users.Username
 import io.github.nomisrev.auth.JwtService
 import io.github.nomisrev.auth.JwtToken
 
@@ -24,7 +21,11 @@ data class Update(
     val bio: String?,
     val image: String?,
 ) {
-    fun isNotEmpty() = username != null || email != null || password != null || bio != null || image != null
+    fun isNotEmpty() = username != null ||
+        email != null ||
+        password != null ||
+        bio != null ||
+        image != null
 }
 
 data class UserInfo(val email: Email, val username: Username, val bio: String, val image: String)

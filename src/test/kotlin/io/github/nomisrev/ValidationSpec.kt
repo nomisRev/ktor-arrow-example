@@ -5,13 +5,13 @@ import de.infix.testBalloon.framework.core.testSuite
 import io.github.nomisrev.articles.ArticlesParameters
 import io.github.nomisrev.articles.Body
 import io.github.nomisrev.articles.CreateArticle
+import io.github.nomisrev.articles.CreateArticleRequest
+import io.github.nomisrev.articles.Description
 import io.github.nomisrev.articles.FeedLimit
 import io.github.nomisrev.articles.FeedOffset
 import io.github.nomisrev.articles.FeedParameters
 import io.github.nomisrev.articles.GetArticles
 import io.github.nomisrev.articles.GetFeed
-import io.github.nomisrev.articles.CreateArticleRequest
-import io.github.nomisrev.articles.Description
 import io.github.nomisrev.articles.NewComment
 import io.github.nomisrev.articles.Slug
 import io.github.nomisrev.articles.Title
@@ -37,7 +37,8 @@ val Validation by testSuite {
                     nonEmptyListOf(
                         "Cannot be blank",
                         "is too short (minimum is 1 characters)",
-                    ), "username"
+                    ),
+                    "username",
                 ),
                 InvalidField(nonEmptyListOf("'not-an-email' is invalid email"), "email"),
                 InvalidField(
@@ -48,7 +49,8 @@ val Validation by testSuite {
                         "At least one lowercase letter",
                         "At least one number",
                         "At least one special character",
-                    ), "password"
+                    ),
+                    "password",
                 ),
             ),
             error,
@@ -90,7 +92,8 @@ val Validation by testSuite {
                         "At least one lowercase letter",
                         "At least one number",
                         "At least one special character",
-                    ), "password"
+                    ),
+                    "password",
                 ),
             ),
             error,
@@ -131,7 +134,8 @@ val Validation by testSuite {
                     nonEmptyListOf(
                         "Cannot be blank",
                         "is too short (minimum is 1 characters)",
-                    ), "username"
+                    ),
+                    "username",
                 ),
                 InvalidField(nonEmptyListOf("'invalid-email' is invalid email"), "email"),
                 InvalidField(
@@ -140,7 +144,8 @@ val Validation by testSuite {
                         "At least one uppercase letter",
                         "At least one number",
                         "At least one special character",
-                    ), "password"
+                    ),
+                    "password",
                 ),
             ),
             error,
@@ -253,11 +258,17 @@ val Validation by testSuite {
     }
 
     testRaise("returns valid inputs unchanged or mapped to service input") {
-        val register = RegisterUserRequest("simon", "simon@example.com", "Aa123456!").toRegisterUser()
+        val register = RegisterUserRequest("simon", "simon@example.com", "Aa123456!")
+            .toRegisterUser()
         assertEquals("simon", register.username.value)
         assertEquals("simon@example.com", register.email.value)
 
-        val article = CreateArticleRequest("title", "description", "body", listOf(" kotlin ", "arrow"))
+        val article = CreateArticleRequest(
+            "title",
+            "description",
+            "body",
+            listOf(" kotlin ", "arrow"),
+        )
         val userId = UserId(42)
 
         assertEquals(

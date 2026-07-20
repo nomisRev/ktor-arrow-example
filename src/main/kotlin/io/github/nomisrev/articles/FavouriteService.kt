@@ -7,14 +7,13 @@ private const val NO_USER = -1L
 
 data class FavoriteStats(val count: Long, val favorited: Boolean)
 
-class FavouritePersistence(
+class FavouriteService(
     private val favouriteQueries: FavoritesQueries,
 ) {
     fun favoriteStats(
         userId: UserId?,
         articleIds: Collection<ArticleId>,
-    ): Map<ArticleId, FavoriteStats> =
-        if (articleIds.isEmpty()) emptyMap()
+    ): Map<ArticleId, FavoriteStats> = if (articleIds.isEmpty()) emptyMap()
         else favouriteQueries
             .selectFavoriteStatsForArticles(
                 userId?.serial ?: NO_USER,

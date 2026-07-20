@@ -6,13 +6,13 @@ import com.sksamuel.cohort.hikari.HikariConnectionsHealthCheck
 import com.zaxxer.hikari.HikariDataSource
 import io.github.nomisrev.articles.ArticlePersistence
 import io.github.nomisrev.articles.ArticleService
-import io.github.nomisrev.articles.FavouritePersistence
+import io.github.nomisrev.articles.FavouriteService
 import io.github.nomisrev.articles.SlugGenerator
 import io.github.nomisrev.articles.slugifyGenerator
 import io.github.nomisrev.auth.JwtConfig
 import io.github.nomisrev.auth.JwtContext
 import io.github.nomisrev.auth.JwtService
-import io.github.nomisrev.tags.TagPersistence
+import io.github.nomisrev.tags.TagService
 import io.github.nomisrev.users.UserPersistence
 import io.github.nomisrev.users.UserService
 
@@ -21,7 +21,7 @@ class Dependencies(
     val jwtService: JwtConfig<JwtContext>,
     val articleService: ArticleService,
     val healthCheck: HealthCheckRegistry,
-    val tagPersistence: TagPersistence,
+    val tagService: TagService,
     val userPersistence: UserPersistence,
 )
 
@@ -38,8 +38,8 @@ suspend fun ResourceScope.dependencies(env: Env, hikari: HikariDataSource): Depe
         sqlDelight.commentsQueries,
         sqlDelight.tagsQueries,
     )
-    val tagPersistence = TagPersistence(sqlDelight.tagsQueries)
-    val favouritePersistence = FavouritePersistence(sqlDelight.favoritesQueries)
+    val tagService = TagService(sqlDelight.tagsQueries)
+    val favouriteService = FavouriteService(sqlDelight.favoritesQueries)
 
     val jwtService = JwtService(env.auth)
     val slugGenerator: SlugGenerator = slugifyGenerator()
@@ -56,11 +56,11 @@ suspend fun ResourceScope.dependencies(env: Env, hikari: HikariDataSource): Depe
             slugGenerator,
             articleRepo,
             userRepo,
-            tagPersistence,
-            favouritePersistence,
+            tagService,
+            favouriteService,
         ),
         healthCheck = checks,
-        tagPersistence = tagPersistence,
+        tagService = tagService,
         userPersistence = userRepo,
     )
 }

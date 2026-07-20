@@ -68,7 +68,9 @@ fun Route.articleRoutes(articleService: ArticleService, jwtService: JwtConfig<Jw
         }
 
         route(Articles.create) {
-            val created = articleService.createArticle(body.article.toCreateArticle(call.principal.userId))
+            val created = articleService.createArticle(
+                body.article.toCreateArticle(call.principal.userId),
+            )
             respond(SingleArticleResponse(created), HttpStatusCode.Created)
         }
     }

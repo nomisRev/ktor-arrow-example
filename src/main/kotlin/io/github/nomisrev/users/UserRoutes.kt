@@ -16,15 +16,13 @@ fun Route.userRoutes(userService: UserService, jwtService: JwtConfig<JwtContext>
         val register = body.user.toRegisterUser()
         val token = userService.register(register)
         respond(
-            UserWrapper(
-                User(
-                    register.email.value,
-                    token.value,
-                    register.username.value,
-                    bio = null,
-                    image = null,
-                )
-            ),
+            UserWrapper(User(
+                register.email.value,
+                token.value,
+                register.username.value,
+                bio = null,
+                image = null,
+            )),
             HttpStatusCode.Created,
         )
     }
@@ -32,48 +30,36 @@ fun Route.userRoutes(userService: UserService, jwtService: JwtConfig<JwtContext>
     route(Users.Login.authenticate) {
         val login = body.user.toLogin()
         val (token, info) = userService.login(login)
-        respond(
-            UserWrapper(
-                User(
-                    login.email.value,
-                    token.value,
-                    info.username.value,
-                    info.bio,
-                    info.image,
-                )
-            )
-        )
+        respond(UserWrapper(User(
+            login.email.value,
+            token.value,
+            info.username.value,
+            info.bio,
+            info.image,
+        )))
     }
 
     authenticateWith(jwtService) {
         route(CurrentUser.get) {
             val info = userService.getUser(call.principal.userId)
-            respond(
-                UserWrapper(
-                    User(
-                        info.email.value,
-                        call.principal.token.value,
-                        info.username.value,
-                        info.bio,
-                        info.image,
-                    )
-                )
-            )
+            respond(UserWrapper(User(
+                info.email.value,
+                call.principal.token.value,
+                info.username.value,
+                info.bio,
+                info.image,
+            )))
         }
 
         route(CurrentUser.update) {
             val info = userService.update(body.user.toUpdate(call.principal.userId))
-            respond(
-                UserWrapper(
-                    User(
-                        info.email.value,
-                        call.principal.token.value,
-                        info.username.value,
-                        info.bio,
-                        info.image,
-                    )
-                )
-            )
+            respond(UserWrapper(User(
+                info.email.value,
+                call.principal.token.value,
+                info.username.value,
+                info.bio,
+                info.image,
+            )))
         }
     }
 }

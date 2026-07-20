@@ -8,10 +8,10 @@ import arrow.core.raise.context.mapOrAccumulate
 import arrow.core.raise.context.withError
 import io.github.nomisrev.IncorrectInput
 import io.github.nomisrev.InvalidField
-import io.github.nomisrev.users.Username
 import io.github.nomisrev.notBlank
 import io.github.nomisrev.profiles.Profile
 import io.github.nomisrev.users.UserId
+import io.github.nomisrev.users.Username
 import java.time.OffsetDateTime
 import kotlinx.serialization.Serializable
 import opensavvy.spine.api.ParameterStorage

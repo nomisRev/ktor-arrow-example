@@ -15,9 +15,13 @@ import opensavvy.spine.server.TypedResponseScope
 import opensavvy.spine.server.fail
 import opensavvy.spine.server.route
 
-@Serializable data class GenericErrorModel(val errors: GenericErrorModelErrors)
+typealias ConduitError = GenericErrorModel
 
-@Serializable data class GenericErrorModelErrors(val body: List<String>)
+@Serializable
+data class GenericErrorModel(val errors: GenericErrorModelErrors)
+
+@Serializable
+data class GenericErrorModelErrors(val body: List<String>)
 
 /**
  * This is a function that allows us to remove a layer of indentation and repition in every route.
@@ -51,7 +55,7 @@ inline fun <
     reified In : Any,
     reified Out : Any,
     reified Failure : Or<Never, ByCode<GenericErrorModel>>,
-    reified Params : Parameters,
+    reified Params : Parameters
 > Route.route(
     endpoint: Endpoint<In, Out, Failure, Params>,
     crossinline block: suspend context(DomainErrors) TypedResponseScope<In, Out, Or<Never, ByCode<GenericErrorModel>>, Params>.() -> Unit,

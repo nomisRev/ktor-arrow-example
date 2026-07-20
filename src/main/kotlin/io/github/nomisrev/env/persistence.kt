@@ -10,18 +10,18 @@ import arrow.fx.coroutines.autoCloseable
 import arrow.fx.coroutines.closeable
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import io.github.nomisrev.articles.ArticleId
 import io.github.nomisrev.articles.Body
 import io.github.nomisrev.articles.Description
-import io.github.nomisrev.users.Email
-import io.github.nomisrev.articles.Title
-import io.github.nomisrev.users.Username
-import io.github.nomisrev.articles.ArticleId
 import io.github.nomisrev.articles.Slug
+import io.github.nomisrev.articles.Title
 import io.github.nomisrev.sqldelight.Articles
 import io.github.nomisrev.sqldelight.SqlDelight
 import io.github.nomisrev.sqldelight.Tags
 import io.github.nomisrev.sqldelight.Users
+import io.github.nomisrev.users.Email
 import io.github.nomisrev.users.UserId
+import io.github.nomisrev.users.Username
 import javax.sql.DataSource
 
 suspend fun ResourceScope.hikari(env: Env.DataSource): HikariDataSource = autoCloseable {
@@ -57,11 +57,13 @@ private val articleIdAdapter = columnAdapter(ArticleId::serial, ::ArticleId)
 private val userIdAdapter = columnAdapter(UserId::serial, ::UserId)
 private val slugAdapter = columnAdapter(Slug::value, ::Slug)
 
-private fun <Error, A> requireAll(transform: (Error) -> NonEmptyList<String>, block: Raise<Error>.() -> A) =
-    recover(block) { error ->
-        val messages = transform(error)
-        throw IllegalArgumentException(messages.joinToString())
-    }
+private fun <Error, A> requireAll(
+    transform: (Error) -> NonEmptyList<String>,
+    block: Raise<Error>.() -> A,
+) = recover(block) { error ->
+    val messages = transform(error)
+    throw IllegalArgumentException(messages.joinToString())
+}
 
 private val titleAdapter = columnAdapter(Title::value) {
     requireAll({ it.errors }) { Title(it) }
