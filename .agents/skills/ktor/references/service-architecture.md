@@ -137,7 +137,7 @@ Rules:
   needs two repositories (e.g. `ArticleService` needing `UserPersistence` for author profiles) takes both directly
   instead of one repository depending on another.
 - `Dependencies` exposes services (`userService`, `articleService`), plus the few persistence instances that have no
-  service layer (`tagPersistence`, `userPersistence` for profile lookups) and the health check registry —
+  service layer (`tagService`, `userPersistence` for profile lookups) and the health check registry —
   `Main.kt`'s `app(module)` only ever reads from this object, never builds anything itself.
 
 ## Resource lifecycle — `ResourceScope`, not `ApplicationStopped`

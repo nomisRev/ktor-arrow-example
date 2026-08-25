@@ -37,10 +37,10 @@ data class Update(
     val image: String?,
 ) {
     fun isNotEmpty() = username != null ||
-        email != null ||
-        password != null ||
-        bio != null ||
-        image != null
+            email != null ||
+            password != null ||
+            bio != null ||
+            image != null
 }
 
 data class UserInfo(val email: Email, val username: Username, val bio: String, val image: String)
@@ -62,15 +62,15 @@ class UserService(
         val salt = generateSalt()
         val key = generateKey(input.password.raw(), salt)
         val userId = catch({
-                usersQueries.insertAndGetId(
-                    username = input.username,
-                    email = input.email,
-                    salt = salt,
-                    hashed_password = key,
-                    bio = "",
-                    image = "",
-                ).executeAsOne()
-            }) { exception: PSQLException ->
+            usersQueries.insertAndGetId(
+                username = input.username,
+                email = input.email,
+                salt = salt,
+                hashed_password = key,
+                bio = "",
+                image = "",
+            ).executeAsOne()
+        }) { exception: PSQLException ->
             raiseUniqueViolation(exception, input.username, input.email)
         }
         return jwtService.generateJwtToken(userId)
@@ -88,17 +88,17 @@ class UserService(
         }
 
         val info = catch({
-                usersQueries.update(
-                    email = input.email?.value,
-                    username = input.username?.value,
-                    salt = passwordUpdate?.first,
-                    hashed_password = passwordUpdate?.second,
-                    bio = input.bio,
-                    image = input.image,
-                    userId = input.userId,
-                    ::UserInfo,
-                ).executeAsOneOrNull()
-            }) { exception: PSQLException ->
+            usersQueries.update(
+                email = input.email?.value,
+                username = input.username?.value,
+                salt = passwordUpdate?.first,
+                hashed_password = passwordUpdate?.second,
+                bio = input.bio,
+                image = input.image,
+                userId = input.userId,
+                ::UserInfo,
+            ).executeAsOneOrNull()
+        }) { exception: PSQLException ->
             raiseUniqueViolation(exception, input.username, input.email)
         }
 
