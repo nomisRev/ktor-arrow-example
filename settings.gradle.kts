@@ -13,6 +13,6 @@ dependencyResolutionManagement {
     }
     versionCatalogs {
         create("arrow").from("io.arrow-kt:arrow-version-catalog:2.2.3")
-        create("ktorLibs").from("io.ktor:ktor-version-catalog:3.5.1")
+        create("ktorLibs").from("io.ktor:ktor-version-catalog:3.5.2")
     }
 }
