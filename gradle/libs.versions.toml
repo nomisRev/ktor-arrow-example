@@ -1,21 +1,21 @@
 [versions]
 arrow = "2.2.3"
-cohort = "2.9.10"
+cohort = "2.9.11"
 dev-tools = "0.0.3"
 hikari = "7.1.0"
 kjwt = "1.0.0"
 kotlin = "2.4.20"
 kover = "0.9.9"
-ktor = "3.5.2"
+ktor = "3.6.0"
 logback = "1.6.3"
 postgresql = "42.7.13"
 slugify = "4.0.1"
 spotless = "8.10.2"
-sqldelight = "2.3.2"
+sqldelight = "2.4.0"
 testcontainers = "1.21.4"
 version-catalog-update = "1.1.1"
 spine = "0.12.1"
-testballoon = "1.0.1-K2.4.0"
+testballoon = "1.1.0"
 
 [libraries]
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
