@@ -14,7 +14,7 @@ spotless = "8.10.3"
 sqldelight = "2.4.0"
 testcontainers = "1.21.4"
 version-catalog-update = "1.1.1"
-spine = "0.12.1"
+spine = "0.12.2"
 testballoon = "1.0.1-K2.4.0"
 
 [libraries]
