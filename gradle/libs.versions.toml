@@ -1,5 +1,5 @@
 [versions]
-arrow = "2.2.3"
+arrow = "2.3.0.1"
 cohort = "2.9.10"
 dev-tools = "0.0.3"
 hikari = "7.1.0"
